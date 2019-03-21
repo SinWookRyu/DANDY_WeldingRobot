@@ -1,0 +1,6 @@
+#Tue Sep 10 14:52:36 KST 2013
+version=1
+eclipse.preferences.version=1
+description.autobuilding=true
+description.buildorder=bsp-menmikro-x86-f19p-src/bsp-menmikro-x86-f19p
+description.defaultbuildorder=false

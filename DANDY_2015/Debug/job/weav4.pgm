@@ -1,0 +1,251 @@
+; WVF count : 1
+; SWF count : 1
+; MWF count : 1
+; EWF count : 1
+;Arc On Test
+MOVJ   T001 V=10(%)
+ARCON  SWF=SWF001 MWF=MWF001 SEN=ON
+UWEAVL T002 WD=0 AD=0 ED=0 WVF=WVF001
+ARCOFF EWF=EWF001
+T001 JOINT 0 30.0001 30.0001 0 -60.0001
+T002 JOINT 945.438 0 499.997 180 -60.0001 0 458.366
+WVF001 WVF w=8 p=3 s=55 a=45 d1=0.1 d2=0.1 sw=12 sp=3 ss=10 d3=0
+WVF002 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF003 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF004 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF005 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF006 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF007 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF008 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF009 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF010 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF011 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF012 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF013 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF014 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF015 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF016 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF017 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF018 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF019 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF020 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF021 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF022 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF023 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF024 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF025 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF026 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF027 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF028 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF029 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF030 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF031 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF032 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF033 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF034 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF035 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF036 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF037 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF038 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF039 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF040 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF041 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF042 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF043 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF044 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF045 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF046 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF047 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF048 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF049 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF050 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF051 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF052 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF053 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF054 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF055 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF056 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF057 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF058 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF059 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+WVF060 WVF w=0 p=0 s=0 a=0 d1=0 d2=0 sw=0 sp=0 ss=0 d3=0
+SWF001 SWF v=2 c=50 t=2 p=2 d=0
+SWF002 SWF v=0 c=0 t=0 p=0 d=0
+SWF003 SWF v=0 c=0 t=0 p=0 d=0
+SWF004 SWF v=0 c=0 t=0 p=0 d=0
+SWF005 SWF v=0 c=0 t=0 p=0 d=0
+SWF006 SWF v=0 c=0 t=0 p=0 d=0
+SWF007 SWF v=0 c=0 t=0 p=0 d=0
+SWF008 SWF v=0 c=0 t=0 p=0 d=0
+SWF009 SWF v=0 c=0 t=0 p=0 d=0
+SWF010 SWF v=0 c=0 t=0 p=0 d=0
+SWF011 SWF v=0 c=0 t=0 p=0 d=0
+SWF012 SWF v=0 c=0 t=0 p=0 d=0
+SWF013 SWF v=0 c=0 t=0 p=0 d=0
+SWF014 SWF v=0 c=0 t=0 p=0 d=0
+SWF015 SWF v=0 c=0 t=0 p=0 d=0
+SWF016 SWF v=0 c=0 t=0 p=0 d=0
+SWF017 SWF v=0 c=0 t=0 p=0 d=0
+SWF018 SWF v=0 c=0 t=0 p=0 d=0
+SWF019 SWF v=0 c=0 t=0 p=0 d=0
+SWF020 SWF v=0 c=0 t=0 p=0 d=0
+SWF021 SWF v=0 c=0 t=0 p=0 d=0
+SWF022 SWF v=0 c=0 t=0 p=0 d=0
+SWF023 SWF v=0 c=0 t=0 p=0 d=0
+SWF024 SWF v=0 c=0 t=0 p=0 d=0
+SWF025 SWF v=0 c=0 t=0 p=0 d=0
+SWF026 SWF v=0 c=0 t=0 p=0 d=0
+SWF027 SWF v=0 c=0 t=0 p=0 d=0
+SWF028 SWF v=0 c=0 t=0 p=0 d=0
+SWF029 SWF v=0 c=0 t=0 p=0 d=0
+SWF030 SWF v=0 c=0 t=0 p=0 d=0
+SWF031 SWF v=0 c=0 t=0 p=0 d=0
+SWF032 SWF v=0 c=0 t=0 p=0 d=0
+SWF033 SWF v=0 c=0 t=0 p=0 d=0
+SWF034 SWF v=0 c=0 t=0 p=0 d=0
+SWF035 SWF v=0 c=0 t=0 p=0 d=0
+SWF036 SWF v=0 c=0 t=0 p=0 d=0
+SWF037 SWF v=0 c=0 t=0 p=0 d=0
+SWF038 SWF v=0 c=0 t=0 p=0 d=0
+SWF039 SWF v=0 c=0 t=0 p=0 d=0
+SWF040 SWF v=0 c=0 t=0 p=0 d=0
+SWF041 SWF v=0 c=0 t=0 p=0 d=0
+SWF042 SWF v=0 c=0 t=0 p=0 d=0
+SWF043 SWF v=0 c=0 t=0 p=0 d=0
+SWF044 SWF v=0 c=0 t=0 p=0 d=0
+SWF045 SWF v=0 c=0 t=0 p=0 d=0
+SWF046 SWF v=0 c=0 t=0 p=0 d=0
+SWF047 SWF v=0 c=0 t=0 p=0 d=0
+SWF048 SWF v=0 c=0 t=0 p=0 d=0
+SWF049 SWF v=0 c=0 t=0 p=0 d=0
+SWF050 SWF v=0 c=0 t=0 p=0 d=0
+SWF051 SWF v=0 c=0 t=0 p=0 d=0
+SWF052 SWF v=0 c=0 t=0 p=0 d=0
+SWF053 SWF v=0 c=0 t=0 p=0 d=0
+SWF054 SWF v=0 c=0 t=0 p=0 d=0
+SWF055 SWF v=0 c=0 t=0 p=0 d=0
+SWF056 SWF v=0 c=0 t=0 p=0 d=0
+SWF057 SWF v=0 c=0 t=0 p=0 d=0
+SWF058 SWF v=0 c=0 t=0 p=0 d=0
+SWF059 SWF v=0 c=0 t=0 p=0 d=0
+SWF060 SWF v=0 c=0 t=0 p=0 d=0
+MWF001 MWF v=30 c=250 s=6
+MWF002 MWF v=0 c=0 s=0
+MWF003 MWF v=0 c=0 s=0
+MWF004 MWF v=0 c=0 s=0
+MWF005 MWF v=0 c=0 s=0
+MWF006 MWF v=0 c=0 s=0
+MWF007 MWF v=0 c=0 s=0
+MWF008 MWF v=0 c=0 s=0
+MWF009 MWF v=0 c=0 s=0
+MWF010 MWF v=0 c=0 s=0
+MWF011 MWF v=0 c=0 s=0
+MWF012 MWF v=0 c=0 s=0
+MWF013 MWF v=0 c=0 s=0
+MWF014 MWF v=0 c=0 s=0
+MWF015 MWF v=0 c=0 s=0
+MWF016 MWF v=0 c=0 s=0
+MWF017 MWF v=0 c=0 s=0
+MWF018 MWF v=0 c=0 s=0
+MWF019 MWF v=0 c=0 s=0
+MWF020 MWF v=0 c=0 s=0
+MWF021 MWF v=0 c=0 s=0
+MWF022 MWF v=0 c=0 s=0
+MWF023 MWF v=0 c=0 s=0
+MWF024 MWF v=0 c=0 s=0
+MWF025 MWF v=0 c=0 s=0
+MWF026 MWF v=0 c=0 s=0
+MWF027 MWF v=0 c=0 s=0
+MWF028 MWF v=0 c=0 s=0
+MWF029 MWF v=0 c=0 s=0
+MWF030 MWF v=0 c=0 s=0
+MWF031 MWF v=0 c=0 s=0
+MWF032 MWF v=0 c=0 s=0
+MWF033 MWF v=0 c=0 s=0
+MWF034 MWF v=0 c=0 s=0
+MWF035 MWF v=0 c=0 s=0
+MWF036 MWF v=0 c=0 s=0
+MWF037 MWF v=0 c=0 s=0
+MWF038 MWF v=0 c=0 s=0
+MWF039 MWF v=0 c=0 s=0
+MWF040 MWF v=0 c=0 s=0
+MWF041 MWF v=0 c=0 s=0
+MWF042 MWF v=0 c=0 s=0
+MWF043 MWF v=0 c=0 s=0
+MWF044 MWF v=0 c=0 s=0
+MWF045 MWF v=0 c=0 s=0
+MWF046 MWF v=0 c=0 s=0
+MWF047 MWF v=0 c=0 s=0
+MWF048 MWF v=0 c=0 s=0
+MWF049 MWF v=0 c=0 s=0
+MWF050 MWF v=0 c=0 s=0
+MWF051 MWF v=0 c=0 s=0
+MWF052 MWF v=0 c=0 s=0
+MWF053 MWF v=0 c=0 s=0
+MWF054 MWF v=0 c=0 s=0
+MWF055 MWF v=0 c=0 s=0
+MWF056 MWF v=0 c=0 s=0
+MWF057 MWF v=0 c=0 s=0
+MWF058 MWF v=0 c=0 s=0
+MWF059 MWF v=0 c=0 s=0
+MWF060 MWF v=0 c=0 s=0
+EWF001 EWF v=-2 c=-30 t=2 p=2
+EWF002 EWF v=0 c=0 t=0 p=0
+EWF003 EWF v=0 c=0 t=0 p=0
+EWF004 EWF v=0 c=0 t=0 p=0
+EWF005 EWF v=0 c=0 t=0 p=0
+EWF006 EWF v=0 c=0 t=0 p=0
+EWF007 EWF v=0 c=0 t=0 p=0
+EWF008 EWF v=0 c=0 t=0 p=0
+EWF009 EWF v=0 c=0 t=0 p=0
+EWF010 EWF v=0 c=0 t=0 p=0
+EWF011 EWF v=0 c=0 t=0 p=0
+EWF012 EWF v=0 c=0 t=0 p=0
+EWF013 EWF v=0 c=0 t=0 p=0
+EWF014 EWF v=0 c=0 t=0 p=0
+EWF015 EWF v=0 c=0 t=0 p=0
+EWF016 EWF v=0 c=0 t=0 p=0
+EWF017 EWF v=0 c=0 t=0 p=0
+EWF018 EWF v=0 c=0 t=0 p=0
+EWF019 EWF v=0 c=0 t=0 p=0
+EWF020 EWF v=0 c=0 t=0 p=0
+EWF021 EWF v=0 c=0 t=0 p=0
+EWF022 EWF v=0 c=0 t=0 p=0
+EWF023 EWF v=0 c=0 t=0 p=0
+EWF024 EWF v=0 c=0 t=0 p=0
+EWF025 EWF v=0 c=0 t=0 p=0
+EWF026 EWF v=0 c=0 t=0 p=0
+EWF027 EWF v=0 c=0 t=0 p=0
+EWF028 EWF v=0 c=0 t=0 p=0
+EWF029 EWF v=0 c=0 t=0 p=0
+EWF030 EWF v=0 c=0 t=0 p=0
+EWF031 EWF v=0 c=0 t=0 p=0
+EWF032 EWF v=0 c=0 t=0 p=0
+EWF033 EWF v=0 c=0 t=0 p=0
+EWF034 EWF v=0 c=0 t=0 p=0
+EWF035 EWF v=0 c=0 t=0 p=0
+EWF036 EWF v=0 c=0 t=0 p=0
+EWF037 EWF v=0 c=0 t=0 p=0
+EWF038 EWF v=0 c=0 t=0 p=0
+EWF039 EWF v=0 c=0 t=0 p=0
+EWF040 EWF v=0 c=0 t=0 p=0
+EWF041 EWF v=0 c=0 t=0 p=0
+EWF042 EWF v=0 c=0 t=0 p=0
+EWF043 EWF v=0 c=0 t=0 p=0
+EWF044 EWF v=0 c=0 t=0 p=0
+EWF045 EWF v=0 c=0 t=0 p=0
+EWF046 EWF v=0 c=0 t=0 p=0
+EWF047 EWF v=0 c=0 t=0 p=0
+EWF048 EWF v=0 c=0 t=0 p=0
+EWF049 EWF v=0 c=0 t=0 p=0
+EWF050 EWF v=0 c=0 t=0 p=0
+EWF051 EWF v=0 c=0 t=0 p=0
+EWF052 EWF v=0 c=0 t=0 p=0
+EWF053 EWF v=0 c=0 t=0 p=0
+EWF054 EWF v=0 c=0 t=0 p=0
+EWF055 EWF v=0 c=0 t=0 p=0
+EWF056 EWF v=0 c=0 t=0 p=0
+EWF057 EWF v=0 c=0 t=0 p=0
+EWF058 EWF v=0 c=0 t=0 p=0
+EWF059 EWF v=0 c=0 t=0 p=0
+EWF060 EWF v=0 c=0 t=0 p=0

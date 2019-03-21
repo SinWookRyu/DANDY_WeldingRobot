@@ -1,0 +1,635 @@
+#include "servocon.h"
+#if defined (__QNXNTO__)
+#include "ecattypes.h"
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// global variable
+//
+
+BOOL g_fExit               = FALSE;  // flag of SC process exit
+BOOL g_fInit_Internal      = FALSE;  // flag of SC(internal) initialization
+BOOL g_fInit_External      = FALSE;  // flag of SC(external) initialization
+BOOL g_fOpenSysStatusShmRm = FALSE;  // flag of open RM_SysStatusSHM
+BOOL g_fOpenSysConfigShmRm = FALSE;  // flag of open RM_SysConfigSHM
+BOOL g_fOpenShmSc          = FALSE;  // flag of open SC_SHM
+BOOL g_fOpenShmTe          = FALSE;  // flag of open TE_SHM
+BOOL g_fLoopGo             = TRUE;   // flag of while loop
+BOOL g_fEcat               = FALSE;  // flag of EtherCAT Master state
+BOOL g_fConfigLoad         = FALSE;  // config file load state
+BOOL g_fSetPosFuncActive   = FALSE;  // set position function active state
+                               
+int g_coidRM      = INVALID_COID;    // connection identifier(to RM)
+int g_coidTE      = INVALID_COID;    // connection identifier(to TE)
+int g_chidSC      = INVALID_CHID;    // service channel identifier
+int g_chidSCTime  = INVALID_CHID;    // timer channel identifier
+int g_rcvidSC     = INVALID_RCVID;   // receive identifier
+int g_rcvidDevice = INVALID_RCVID;   // receive identifier of deviece execution
+int g_nTimer = -1;           // timer number
+int g_nTime_Limit = 0;       // time limit for SC init.
+char g_chPrintLev = 'v';     // print level ('v', 'm', 'w', 'e')
+
+// set variable for PDO write
+unsigned short g_CtrlWord[ROB_AXIS_COUNT];   // control word for PDO write
+int g_nTrg_Pos[ROB_AXIS_COUNT];              // target position of motor for PDO write
+
+// get variable for PDO read
+unsigned short g_StatusWord[ROB_AXIS_COUNT]; // status word for PDO read
+int g_nAct_Pos[ROB_AXIS_COUNT];              // actual position of motor for PDO read
+int g_nErrCode[ROB_AXIS_COUNT];              // error code of servo-pack for PDO read
+
+// get variable for servo state
+int g_nError[ROB_AXIS_COUNT];                // default of servo-pack
+int g_nServo[ROB_AXIS_COUNT];                // state of servo on/off 
+
+ECAT_HANDLE g_hMaster = ECAT_NULL; // EtherCAT master handle
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// function
+//
+int MAIN_Init_Internal(void);                      // SC internal Init. 
+int MAIN_Init_External(void);                      // SC external Init.
+int MAIN_Exit(void);                               // end of SC process
+int _loc_ExitConsole(void);                        // console handler
+static int _loc_MAIN_local_Exit(void);                    // local Exit Process
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// main()
+//
+int main(int nArgc, char* rgpszArgv[])
+{
+    int nRet = -1;             // return value of function
+
+    SC_MSG packet_msg;         // send packet
+    SC_MSG packet_reply;       // reply packet
+    MSG_INFO info;
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // set console handler
+    //
+    DEBUG_SetConsoleHandler((DEBUG_CONSOLE_HANDLER) _loc_ExitConsole);
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    // parse program option
+    //
+    if (ParseArgument(nArgc, rgpszArgv) == FALSE)
+    {
+        //VERBOSE_ERROR("Argument Parcing Fail!\n");
+        return EXIT_SUCCESS;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // SC internal initialization
+    //
+    MAIN_Init_Internal();    
+
+    ////////////////////////////////////////////////////////////////////////////
+    // message receive & reply 
+    //
+    do
+    {
+        // receive message
+        g_rcvidSC = MSG_Receive(g_chidSC, &packet_msg, sizeof(packet_msg), &info);
+
+        if (packet_msg.code == SC_SERV_ALIVE)
+        {
+            ;
+        }
+        else
+        {
+            VERBOSE_VERBOSE("Received service code: <%d>, value: <%d>\n",
+            		        packet_msg.code,
+            		        packet_msg.value);
+        }
+
+        
+        // set reply data(packet)
+        nRet = SERV_DoService(&packet_msg, &packet_reply);
+
+        // message reply
+        if (g_rcvidSC == RCVID_PULSE)   // pulse
+        {
+            packet_reply.size = 0;
+        }
+        else if (g_rcvidSC > 0)         // message
+        {
+            MSG_Reply(g_rcvidSC, nRet, &packet_reply, sizeof(packet_reply));
+        }
+        else
+        {
+            VERBOSE_ERROR("Failed to receive data...\n");
+        }
+
+    }while(g_fLoopGo);
+
+    nRet = _loc_MAIN_local_Exit();
+
+    return EXIT_SUCCESS;
+
+}  // end main()
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// _loc_MAIN_local_Exit()
+//  - connection & display finalize
+static int _loc_MAIN_local_Exit(void)  
+{
+    ////////////////////////////////////////////////////////////////////////////
+    // detach RM connection
+    //
+    if (g_coidRM != INVALID_COID)
+    {
+        MSG_NamedDetachConnection(SHM_RM_SYSSTATUS_NAME, g_coidRM);
+        g_coidRM = INVALID_COID;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // destroy SC-Channel
+    //
+    if (g_chidSC != INVALID_CHID)
+    {
+        MSG_NamedDestroyChannel(SC_CHANNEL_NAME, g_chidSC);
+        g_chidSC = INVALID_CHID;
+    }
+
+    VERBOSE_MESSAGE("SC process shut down...\n");
+    THREAD_Sleep(500);  // wait for message complete
+
+    ////////////////////////////////////////////////////////////////////////////
+    // destroy display service
+    // 
+    VGA_UnmapVGAMemory();
+    VERBOSE_WaitForComplete();
+    VERBOSE_Destroy();
+
+    return RESULT_OK;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// _loc_DSP_InitDisplay()
+//
+static int _loc_DSP_InitDisplay(void)  
+{
+    const char* VERBOSE_NAME = "Servo_Program";
+    const char* VERBOSE_PREFIX = "[SC] ";
+
+    ////////////////////////////////////////////////////////////////////////////
+    // set display
+    //
+
+    // Clear ECHO/VERBOSE Files
+    VERBOSE_CleanDirtyFile(VERBOSE_NAME);
+
+    // verbose create
+    VERBOSE_Create(VERBOSE_NAME, VERBOSE_PREFIX);
+
+    SERV_SetVerbose();  // set type of verbose
+
+    // init VGA
+    if(VGA_MapVGAMemory(0) == -1)
+    {
+        VERBOSE_ERROR("Map Error\n");
+        return RESULT_ERROR;
+    }
+
+    // config default VGA display color
+    VGA_SetAttr(VGA_MAKE_ATTR(VGA_COLOR_WHITE, VGA_COLOR_BLACK));
+
+    return RESULT_OK;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// MAIN_Init_Internal()
+//
+int MAIN_Init_Internal(void)  
+{
+    int nRet;
+
+    if (g_fInit_Internal == TRUE)
+    {
+        VERBOSE_WARNING("SC already initialized.!!!\n");
+        return 0;
+    }
+
+    // (1) Display Init (Verbose & VGA)
+    nRet = _loc_DSP_InitDisplay();
+
+    // (2) create SC SHM(shared memory)
+    if (g_fOpenShmSc == FALSE)
+    {
+        SHM_SC_CreateShmem();
+    }
+
+    // (3) create SC-channel
+    if (g_chidSC == INVALID_CHID)
+    {
+        g_chidSC = MSG_SC_CreateChannel(SC_CHANNEL_NAME);
+    }
+
+    // (4) create SC-RunTime-channel
+    if (g_chidSCTime == INVALID_CHID)
+    {
+        g_chidSCTime = MSG_SC_CreateChannel(SC_TIME_CHANNEL);
+    }
+
+    // (5) ECAT Master Init. (arg option '-single' is valid, by default value)
+    if(g_Arg.bSingleExec == TRUE)
+    {
+        nRet = ECAT_Init();
+
+        if (nRet == 0)
+        {
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->sysstate.fEcatInitState = TRUE;  // write to SC_SHM            
+            }        
+        }
+        else
+        {
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->sysstate.fEcatInitState = FALSE;  // write to SC_SHM
+            }
+        }
+    }
+
+    // (6) create run-time thread (TE & SC)
+    hRcvTimerPulseThread = THREAD_Create(ReceiveTimerPulseThread, // function
+                                         NULL,                   // variable
+                                         0,                      // stack size
+                                         THREAD_PRIO_REALTIME,   // priority
+                                         THREAD_DETACHED,        // option
+                                         THREAD_POLICY_FIFO);    // policy
+    
+    if (hRcvTimerPulseThread == INVALID_THREAD)
+    {
+        VERBOSE_ERROR("cannot create Timer Pulse Receive thread...\n");
+
+        exit(1);
+    }
+
+    // (7) create wait RM connection thread
+    if (g_nTime_Limit > 0)
+    {
+        // create thread that elapsed time of receive msg from RM
+        hCheckTimeThread = THREAD_Create(MsgRecvTimeLimitThread, // function
+                                         NULL,                  // variable
+                                         0,                     // stack size
+                                         0,                     // priority
+                                         THREAD_DETACHED,       // option
+                                         THREAD_POLICY_RR);     // policy
+
+        if (hCheckTimeThread == INVALID_THREAD)
+        {
+            VERBOSE_ERROR("cannot create RM Connect Wait thread...\n");
+
+            exit(1);
+        }
+    }
+
+    if(g_Arg.bSingleExec == TRUE)
+    {
+        // (8) create thread that monitoring of hardware system
+        hSlaveStateThread = THREAD_Create(GetSlaveStateThread,
+                                          NULL,
+                                          0,
+                                          THREAD_PRIO_REALTIME,
+                                          THREAD_DETACHED,
+                                          THREAD_POLICY_RR);
+        
+        if (hSlaveStateThread == INVALID_THREAD)
+        {
+            VERBOSE_ERROR("cannot create Slave State Monitoring thread...\n");
+
+            exit(1);
+        }
+    }
+
+    // (9) create thread that display state(for VGA)
+    hVGADisplayThread = THREAD_Create(DSP_VGADisplyThread,
+                                      NULL,
+                                      0,
+                                      0,
+                                      THREAD_DETACHED,
+                                      THREAD_POLICY_RR);
+
+    if (hVGADisplayThread == INVALID_THREAD)
+    {
+        VERBOSE_ERROR("cannot create Timer Pulse Receive thread...\n");
+
+        exit(1);
+    }
+
+    if ((g_pShmem_sc->sysstate.fEcatInitState == FALSE) || (g_fOpenShmSc == FALSE) 
+        || (g_chidSC == -1)	|| (g_chidSCTime == -1) 
+        || hRcvTimerPulseThread == NULL)
+    {
+        VERBOSE_ERROR("Failed to initialize the SC(internal) process.\n");
+        return RESULT_ERROR;
+    }
+    else
+    {
+
+		// read actual position
+    	//ECAT_ReadActPos();
+        if(g_Arg.bSingleExec == TRUE)
+        {
+            SERV_GetPosition();
+        }
+
+        g_fInit_Internal = TRUE;
+        VERBOSE_MESSAGE("Completed to initialize the SC(internal) process.\n");
+
+        return RESULT_OK;
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// MAIN_Init_External()
+//
+int MAIN_Init_External(void)  // coidRM, coidTE, coidSC, nTimer
+{
+    int nRet_rm = 0;
+    int nRet_te = 0;
+    int nRet_ecat = 0;
+
+#if 0
+    if (g_fInit_External == TRUE)
+    {
+        VERBOSE_WARNING("SC already initialized.!!!\n");
+        return 0;
+    }
+#endif
+
+    // (1) connect RM channel
+    if (g_coidRM == -1)
+    {
+        g_coidRM = MSG_SC_ConnectChannel(SYS_RM_CHANNEL_NAME);
+    }
+
+    // (2) open RM_SHM
+    if (g_fOpenSysStatusShmRm == FALSE)
+    {
+        nRet_rm = SHM_RM_SysStatusOpenShmem();
+    }
+
+    if (g_fOpenSysConfigShmRm == FALSE)
+    {
+        nRet_rm = SHM_RM_SysConfigOpenShmem();
+    }
+
+    SHM_LoadSysConfigParam(ROBOT_0_INDEX);
+
+    // (3) open TE_SHM
+    if (g_fOpenShmTe == FALSE)
+    {
+        nRet_te = SHM_TE_OpenShmem();
+    }
+
+    // (4) Ecat init.
+    if (g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+        nRet_ecat = ECAT_Init();
+
+        if (nRet_ecat != 0)
+        {
+            if (g_pShmem_sc != NULL)
+            {
+            	g_pShmem_sc->sysstate.fEcatInitState = FALSE;  // write 'EcatInit' flag to SC_SHM
+            }
+
+        	VERBOSE_ERROR("Failed to initialize EhterCAT Master.\n");
+        }
+        else
+        {
+            if (g_pShmem_sc != NULL)
+        	{
+        		g_pShmem_sc->sysstate.fEcatInitState = TRUE;  // write 'EcatInit' flag to SC_SHM
+        	}
+        }        
+    }
+    
+    if(g_Arg.bSingleExec != TRUE)
+    {
+        // create thread that monitoring of hardware system
+        hSlaveStateThread = THREAD_Create(GetSlaveStateThread,
+                                          NULL,
+                                          0,
+                                          THREAD_PRIO_REALTIME,
+                                          THREAD_DETACHED,
+                                          THREAD_POLICY_RR);
+        
+        if (hSlaveStateThread == INVALID_THREAD)
+        {
+            VERBOSE_ERROR("cannot create Slave State Monitoring thread...\n");
+        
+            exit(1);
+        }
+    }
+
+    // read actual position
+    if (g_pShmem_sc->sysstate.fEcatInitState == TRUE)
+    {	    
+        SERV_GetPosition();
+    }
+
+    if ((g_coidRM == -1) || (nRet_rm == -1) || (nRet_te == -1))
+    {
+        g_fInit_External = FALSE;
+
+        if (g_pShmem_SysStatus_rm != NULL)
+        {            
+            g_pShmem_SysStatus_rm->fExitProcSC = FALSE;  // write 'Exit' flag to RM_SHM
+        	g_pShmem_SysStatus_rm->fInitProcSC = FALSE;  // write 'Init' flag to RM_SHM
+        }
+
+        return -1;
+    }
+    else
+    {
+        g_fInit_External = TRUE;
+
+        g_pShmem_SysStatus_rm->fExitProcSC = FALSE; // write 'Exit' flag to RM_SHM
+        g_pShmem_SysStatus_rm->fInitProcSC = TRUE;  // write 'Init' flag to RM_SHM
+
+        VERBOSE_MESSAGE("Completed to initialize the SC(external) process.\n");
+        VERBOSE_MESSAGE("Service ready for SC process.\n");
+
+        return 0;
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// MAIN_Exit()
+//
+int MAIN_Exit(void)  // coidSC, chidSCTime, chidSC
+{
+    int i;
+
+    g_fExit = TRUE;
+    
+    // (1) check servo on/off state
+    if (g_pShmem_sc->outputstate.fServoOnOutState == TRUE)
+    {
+        for (i = 0; i < g_nAxisCount; i++)
+        {
+            SERV_Servo(0);  // servo off
+        }
+    }
+
+    // (2) release EtherCAT Master
+    if (g_hMaster != ECAT_NULL)
+    {
+    	ECAT_ReleaseMaster();
+    }
+
+
+    // (1) timer unregister
+#if 0
+    if (g_nTimer != -1)
+    {
+        nRet[0] = TIME_UnregTimerPulse(g_nTimer);
+        g_nTimer = -1;
+    }
+
+    // (2) detach SC(time) connection
+    if (g_coidSC != -1)
+    {
+        nRet[1] = MSG_NamedDetachConnection(SC_TIME_CHANNEL, g_coidSC);
+        g_coidSC = -1;
+    }
+#endif
+
+#if 0
+    // (3) kill thread of timer
+    if (hRcvTimerPulseThread != NULL)
+    {
+        nRet[1] = THREAD_Kill(hRcvTimerPulseThread);
+    }
+#endif
+
+    // (4) destroy SC(time)-Channel
+    if (g_chidSCTime != -1)
+    {
+        MSG_NamedDestroyChannel(SC_TIME_CHANNEL, g_chidSCTime);
+        g_chidSCTime = -1;
+    }
+
+    // (6) destroy RM_SHM
+    if (g_pShmem_SysStatus_rm != NULL)
+    {
+        if (g_fOpenSysStatusShmRm == TRUE)
+        {
+            g_pShmem_SysStatus_rm->fInitProcSC = FALSE; // flag of init for RM SHM
+            g_pShmem_SysStatus_rm->fExitProcSC = TRUE;  // flag of exit for RM SHM
+        }
+        
+        SHM_RM_SysStatusDestroyShmem();
+    }
+    if (g_pShmem_SysConfig_rm != NULL)
+    {
+        RM_SysConfigDestroyShmem();
+    }
+
+#if 1
+    // (7) destroy TE_SHM
+    if (g_pShmem_te != NULL)
+    {       
+        SHM_TE_DestroyShmem();
+    }
+#endif
+
+    //THREAD_Sleep(1000);
+
+    // check thread exit state
+    for (i = 0; i < 30; i++)
+    {
+        if (g_fThreadRuntime == TRUE &&
+            g_fSlaveStateThreadState == TRUE &&
+            g_fDisplayThreadState == TRUE)
+        {
+            break;
+        }
+
+        THREAD_Sleep(100);
+    }
+
+    if (i > 30)
+    {
+        // kill run-time thread 
+        if (hRcvTimerPulseThread != NULL)
+        {
+            THREAD_Kill(hRcvTimerPulseThread);
+            hRcvTimerPulseThread = NULL;
+        }
+
+        if (hSlaveStateThread != NULL)
+        {
+            THREAD_Kill(hSlaveStateThread);
+            hSlaveStateThread = NULL;
+        }
+
+        VERBOSE_WARNING("Forced termination of run-time and monitoring thread.\n");        
+    }
+
+    // (5) destroy SC_SHM
+    if (g_pShmem_sc != NULL)
+    {
+        SHM_SC_DestroyShmem();
+    }
+    
+#if 0
+    for (iErrCheck = 0; iErrCheck < 3; iErrCheck++)
+    {
+        if (nRet[iErrCheck] == -1)
+        {
+            return -1;
+        }
+
+        g_fExit = TRUE;
+    }
+#endif
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_ExitConsole()
+//
+int _loc_ExitConsole(void)
+{
+    int coid;
+
+    // connect SC channel
+    coid = MSG_SC_ConnectChannel(SC_CHANNEL_NAME);
+
+    if (coid != -1)
+    {
+        MSG_SendPulse(coid, SC_SERV_EXIT, 0);
+    }
+
+//    THREAD_Sleep(500);
+
+//    MSG_NamedDetachConnection(SC_CHANNEL_NAME, coid);
+
+    return EXIT_SUCCESS;
+}

@@ -1,0 +1,253 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  robot_service.c: Robot Service Manage
+//                                            2013.04.11  Ryu SinWook
+
+#include <string.h>     // for memcpy()
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "dandy_echo.h"
+#include "dandy_msgpass.h"
+#include "dandy_ansi.h"
+
+#include "taskexec_ipc.h"
+#include "servocon_ipc.h"
+#include "robotmgr_ipc.h"
+#include "dandy_platform.h"
+
+#include "robotmgr_main.h"
+#include "sys_conf.h"
+#include "ascii_def.h"
+
+///////////////////////////////////////
+//Global_variable
+
+static int g_retTEcoid;
+static int g_retSCcoid;
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExitTEService()
+//
+static int _loc_SVC_ExitTEService(void)
+{
+    if(g_coidTE != INVALID_COID)
+    {
+        if(g_fExitProcTE == FALSE)
+        {
+            MSG_SendPulse(g_coidTE, TESERV_EXIT, 0); 
+		    VERBOSE_VERBOSE("TE Quit\n"); 
+        }
+        else
+        {
+            VERBOSE_VERBOSE("TE already Exit state!\n");
+        }
+
+        g_retTEcoid = MSG_DetachConnection(g_coidTE);
+                
+		if(g_retTEcoid == -1)
+		{
+			VERBOSE_ERROR("Failed to detach the connection to %s.\n",
+                          TE_CHANNEL_NAME);
+            return -1;
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Succeeded to detach the connection to %s.\n",
+                            TE_CHANNEL_NAME);
+			g_coidTE = INVALID_COID; 
+		}
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to Pulse Sending, TE Connection is not valid\n"); 
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExitSCService()
+//
+static int _loc_SVC_ExitSCService(void)
+{
+	if(g_coidSC != INVALID_COID)
+    {
+        if(g_fExitProcSC == FALSE)
+        {
+            MSG_SendPulse(g_coidSC, SCSERV_EXIT, 0); 
+		    VERBOSE_VERBOSE("SC Quit\n"); 
+        }
+        else
+        {
+            VERBOSE_VERBOSE("SC already Exit state!\n");
+        }
+
+        g_retSCcoid = MSG_DetachConnection(g_coidSC);
+
+        if(g_retSCcoid == -1)
+		{
+			VERBOSE_ERROR("Failed to detach the connection to %s.\n",
+                          SC_CHANNEL_NAME);
+            return -1;
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Succeeded to detach the connection to %s.\n",
+                            SC_CHANNEL_NAME);
+			g_coidSC = INVALID_COID; 
+		}
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to Pulse Sending, SC Connection is not valid\n"); 
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_InitTEService()
+//
+static int _loc_SVC_InitTEService(void)
+{
+    if(g_fInitProcSC == FALSE)
+    {
+        if(g_coidTE != INVALID_COID)
+        {
+            MSG_SendPulse(g_coidTE, TESERV_INIT, 0); 
+		    VERBOSE_VERBOSE("TE INIT\n"); 
+        }
+        else
+        {
+            VERBOSE_ERROR("Fail to SendPulse, Connection Fail to TE\n"); 
+        }
+    }
+    else
+    {
+        VERBOSE_VERBOSE("TE already INIT state!\n");
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_InitSCService()
+//
+static int _loc_SVC_InitSCService(void)
+{
+    if(g_fInitProcSC == FALSE)
+    {
+	    if(g_coidSC != INVALID_COID)
+        {
+            MSG_SendPulse(g_coidSC, SCSERV_INIT, 0); 
+		    VERBOSE_VERBOSE("SC INIT\n"); 
+        }
+        else
+        {
+            VERBOSE_ERROR("Fail to SendPulse, Connection Fail to SC\n"); 
+        }
+    }
+    else
+    {
+        VERBOSE_VERBOSE("SC already INIT state!\n");
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_StopService(int coid)
+//
+static int _loc_SVC_StopService(int coid)
+{
+    if(coid == g_coidTE)
+    {
+//        MSG_SendPulse(g_coidTE, TESERV_STOP, 0); 
+		VERBOSE_VERBOSE("TE STOP\n"); 
+    }
+    if(coid == g_coidSC)
+    {
+//        MSG_SendPulse(g_coidSC, SCSERV_STOP, 0); 
+		VERBOSE_VERBOSE("SC STOP\n"); 
+    }
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_TimerTest()
+//
+
+static int _loc_SVC_TimerTest(void)
+{
+    MSG_SendPulse(g_coidTE, TESERV_TIMETEST, 0); 
+	VERBOSE_VERBOSE("Timer Test Start!\n"); 
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SVC_ExecService()
+//
+
+int SVC_ExecService(void)
+{
+    int fServiceStatus;
+    int nKeyInput;
+
+    fServiceStatus = RUN;
+
+    VERBOSE_VERBOSE("Usage: Ctrl+Q [RM Exit]\n"); 
+    VERBOSE_VERBOSE("Usage: Ctrl+E [TE INIT]\t Ctrl+R [SC INIT]\n"); 
+    VERBOSE_VERBOSE("Usage: Ctrl+D [TE Exit]\t Ctrl+F [SC Exit]\n\n"); 
+
+	while(fServiceStatus == RUN)
+	{
+		if(!CIO_kbhit())
+		{
+			continue; 
+		}
+		nKeyInput = CIO_getch();
+
+        switch(nKeyInput)
+		{
+		case ASCII_CTRL_Q:
+			fServiceStatus = STOP;
+			VERBOSE_VERBOSE("RM Service Quit\n"); 
+            _loc_SVC_ExitTEService();
+            _loc_SVC_ExitSCService();
+			break; 
+
+		case ASCII_CTRL_D:
+            _loc_SVC_ExitTEService();
+			break; 
+
+        case ASCII_CTRL_E:
+            _loc_SVC_InitTEService();
+			break; 
+
+        case ASCII_CTRL_F:
+			_loc_SVC_ExitSCService();
+			break; 
+
+        case ASCII_CTRL_R:
+            _loc_SVC_InitSCService();
+            break; 
+
+        case ASCII_CTRL_T:
+            _loc_SVC_TimerTest();
+			
+		default:
+			VERBOSE_VERBOSE("Unsupported Service! Key(%d)\n", nKeyInput); ;
+		}	
+	}
+
+    return 0;
+}

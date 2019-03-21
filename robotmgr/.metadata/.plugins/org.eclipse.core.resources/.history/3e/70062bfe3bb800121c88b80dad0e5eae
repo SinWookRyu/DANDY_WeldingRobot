@@ -1,0 +1,859 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  robot_mgr.c: RobotManager Main
+//                                            2013.04.11  Ryu SinWook
+
+#include <stdlib.h>
+#include <string.h>         // for strcpy(), strlen(), memset
+#include <stdio.h>
+
+///////////////////////////////////////
+#include "dandy_echo.h"     // for VERBOSE
+#include "dandy_thread.h"   // for service request thread
+#include "dandy_msgpass.h"  // for message passing (service request)
+#include "dandy_ansi.h"     // for key input value
+
+#include "dandy_platform.h"
+#include "dandy_debug.h"
+
+#include "ipc_robotmgr.h"
+#include "ipc_taskexec.h"
+#include "ipc_servocon.h"
+
+#include "robotmgr_main.h"
+#include "sys_conf.h"
+#include "ascii_def.h"
+#include "error_def.h"
+
+///////////////////////////////////////
+#define VERBOSE_NAME    "RM_VERBOSE_"
+#define ___DEBUG
+//#define ___COMMNET_UNLOCK
+//#define _VERSION_CHECK
+
+///////////////////////////////////////
+
+int SHM_CreateSysStatusShmem(void);
+int SHM_OpenTEShmem(void);
+int SHM_OpenSCShmem(void);
+int SHM_DestroySysStatusShmem(void);
+int SHM_DestroyTEShmem(void);
+int SHM_DestroySCShmem(void);
+
+///////////////////////////////////////
+//Global_variable
+
+int g_coidTE;
+int g_coidSC;
+int g_fSysStatus = RUN;
+int g_fInitProcTE = 0;
+int g_fInitProcSC = 0;
+int g_fExitProcTE = 0;
+int g_fExitProcSC = 0;
+int g_retOpenShmemTE;
+int g_retOpenShmemSC;
+int g_fInitRet[5] = {-1, -1, -1, -1, -1};
+int g_retInitRM = FALSE;
+int g_fErrorState = -1;
+
+RMGR_PACKET                     RM_packet;
+RMGR_REPLY_PACKET               RM_reply_packet;
+
+ARGUMENT_OPTION                 g_Arg;
+
+SHM_TE_TEST*                    g_pShmemTE;
+SHM_RM_SYSSTATUS*               g_pShm_SysStatus;
+SHM_SC_MOTORCTRL*               g_pShmemSC;
+
+///////////////////////////////////////
+
+int MSG_ConnectChannelServer(void);
+int MSG_CloseConnection(void);
+int MSG_CreateRMChannel(void);
+int SVC_InitRMService(void);
+int SHM_OpenSharedMemory(void);
+int PARAM_LoadSystemParameter(void);
+int SHM_CreateSharedMemory(void);
+int MAIN_Initialize(void);
+int SVC_InitTEService(void);
+int SVC_InitSCService(void);
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_DSP_InitDisplay()
+//      - initialize verbose, vga display
+//
+static int _loc_DSP_InitDisplay(void)
+{
+    ///////////////////////////////////
+    //
+    //  config verbose
+    //
+
+    // set verbose prefix tag
+    VERBOSE_CleanDirtyFile(VERBOSE_NAME);
+    VERBOSE_Create(VERBOSE_NAME, "[RM] ");
+    ECHO_OpenClient(VERBOSE_NAME);
+    
+    //Enables display for the specific type channel
+    VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+    VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR, TRUE);
+    VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+    VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT, TRUE);
+    VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY, TRUE);
+
+    if (g_Arg.bVerbose)
+    {
+        // -verbose argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_IGNORE, TRUE);
+    }
+    else if (g_Arg.bQuiet)
+    {
+        // -quiet argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_IGNORE, FALSE);
+
+        VERBOSE_VERBOSE("dddddddddddd\n");
+    }
+    else
+    {
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_IGNORE, FALSE);
+    }
+
+    // change verbose color
+    VERBOSE_SetColor(VERBOSE_TYPE_VERBOSE,
+                  ECHO_COLOR_LIGHTGREEN | ECHO_COLOR_INTENSITY,
+                  ECHO_COLOR_BLACK);
+
+#if defined(___DEBUG)
+    VERBOSE_VERBOSE("[DEBUG] Verbose config OK!...\n");
+#endif
+
+    ///////////////////////////////////
+    //
+    //  initialize vga display
+    //
+    if(VGA_MapVGAMemory(0) == -1)
+    {
+        VERBOSE_ERROR("Map Error\n");
+        return -1;
+    }
+
+    // config vga display color
+    VGA_SetAttr(VGA_MAKE_ATTR(VGA_COLOR_YELLOW, VGA_COLOR_BLACK));
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_DSP_FinalizeDisplay()
+//      - finalize verbose, vga display
+//
+static int _loc_DSP_FinalizeDisplay(void)
+{
+    VGA_UnmapVGAMemory();
+
+    VERBOSE_WaitForComplete();
+
+    VERBOSE_Destroy();
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_CreateSharedMemory()
+//
+
+int SHM_CreateSharedMemory(void)
+{
+    int ret;
+
+    // create the RM shared memory
+    if ((ret = SHM_CreateSysStatusShmem()) == -1)
+    {
+        VERBOSE_ERROR("RM shared memory create fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_OpenSharedMemory()
+//
+
+int SHM_OpenSharedMemory(void)
+{
+    // open the TE shared memory
+    g_retOpenShmemTE = SHM_OpenTEShmem();
+
+    // open the SC shared memory
+    g_retOpenShmemSC = SHM_OpenSCShmem();
+
+    if(g_retOpenShmemTE == -1 || g_retOpenShmemSC == -1)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SVC_InitRMService()
+//
+
+int SVC_InitRMService(void)
+{
+    VERBOSE_MESSAGE("-----------Initialize RM Services ----------\n\n");
+    VERBOSE_VERBOSE("Init Job File Handling Service\n");
+    VERBOSE_VERBOSE("Init System Monitoring Service\n");
+    VERBOSE_VERBOSE("Init Time Management Service\n");
+    VERBOSE_VERBOSE("Connect to OLP Server (FTP Connection)\n");
+    VERBOSE_VERBOSE("Connect to Teaching Pendant\n");
+    VERBOSE_VERBOSE("\n");
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_LoadSystemParameter()
+//
+
+int PARAM_LoadSystemParameter(void)
+{
+    VERBOSE_MESSAGE("---------- Load System Parameters ---------\n\n");
+    VERBOSE_VERBOSE("check parameter in memory, MAX_JOINTS\n");
+    VERBOSE_VERBOSE("check parameter in memory, LIMIT_PARAM\n");
+    VERBOSE_VERBOSE("check parameter in memory, HOME_NUM\n");
+    VERBOSE_VERBOSE("check parameter in memory, MOTOR_GAIN\n");
+    VERBOSE_VERBOSE("check parameter in memory, TOOL_OFFSET\n");
+    VERBOSE_VERBOSE("check parameter in memory, WELD_PARAM\n");
+    VERBOSE_VERBOSE("\n");
+
+    //temporally sleep for parameter loading
+    THREAD_Sleep(1500);
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: _loc_PROC_SysAliveCheckThread()
+//      Error Code: SYS_ERR_PROC_ALIVE_RM
+//                  SYS_ERR_PROC_ALIVE_TE
+//                  SYS_ERR_PROC_ALIVE_SC
+
+static THREAD_ENTRY_TYPE _loc_PROC_SysAliveCheckThread(void* pParam)
+{
+    int ret;
+
+    while(g_fSysStatus == RUN)
+	{
+        if(g_coidTE != INVALID_COID)
+        {
+            ret = MSG_SendPulse(g_coidTE, TESERV_LIFE_CHK, 0);
+            if(ret == -1)
+            {
+                RM_reply_packet.Data.reply_state.nErrCode[BASEADDR]
+                                                        = SYS_ERR_PROC_ALIVE_TE;
+                g_fErrorState = TRUE;
+            }
+            else
+            {
+                RM_reply_packet.Data.reply_state.nErrCode[BASEADDR] = -1;
+                g_fErrorState = FALSE;
+            }
+        }
+        if(g_coidSC != INVALID_COID)
+        {
+            ret = MSG_SendPulse(g_coidSC, SC_SERV_ALIVE, 0);
+            if(ret == -1)
+            {
+                RM_reply_packet.Data.reply_state.nErrCode[BASEADDR+1]
+                                                        = SYS_ERR_PROC_ALIVE_SC;
+                g_fErrorState = TRUE;
+            }
+            else
+            {
+                RM_reply_packet.Data.reply_state.nErrCode[BASEADDR+1] = -1;
+                g_fErrorState = FALSE;
+            }
+        }
+    }
+
+    THREAD_SleepMicrosec(100);
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: _loc_PROC_SysStatusCheckThread()
+//
+
+static THREAD_ENTRY_TYPE _loc_PROC_SysStatusCheckThread(void* pParam)
+{
+    int nForPrintTE;
+    int nForPrintSC;
+
+    nForPrintTE = 0;
+    nForPrintSC = 0;
+
+    while(g_fSysStatus == RUN)
+	{
+        //check init flag
+        if(g_pShm_SysStatus->fInitProcTE == TRUE)
+        {
+            g_fInitProcTE = TRUE;
+        }
+        else
+        {
+            g_fInitProcTE = FALSE;
+        }
+        
+        if(g_pShm_SysStatus->fInitProcSC == TRUE)
+        {
+            g_fInitProcSC = TRUE;
+        }
+        else
+        {
+            g_fInitProcSC = FALSE;
+        }
+
+        //check exit flag
+        if(g_pShm_SysStatus->fExitProcTE == TRUE)
+        {
+            g_fExitProcTE = TRUE;
+        }
+        else
+        {
+            g_fExitProcTE = FALSE;
+        }
+        
+        if(g_pShm_SysStatus->fExitProcSC == TRUE)
+        {
+            g_fExitProcSC = TRUE;
+        }
+        else
+        {
+            g_fExitProcSC = FALSE;
+        }
+
+        THREAD_SleepMicrosec(100);
+
+        if(g_fInitProcTE == TRUE && g_fErrorState == TRUE && nForPrintTE ==0)
+        {
+            VERBOSE_VERBOSE("%s is currently Not Alive! [ERR CODE: %d]\n",
+                            TE_PROCESS_NAME, SYS_ERR_PROC_ALIVE_TE);
+            nForPrintTE++;
+        }
+
+        if(g_fInitProcSC == TRUE && g_fErrorState == TRUE && nForPrintSC ==0)
+        {
+            VERBOSE_VERBOSE("%s is currently Not Alive! [ERR CODE: %d]\n",
+                            SC_PROCESS_NAME, SYS_ERR_PROC_ALIVE_SC);
+            nForPrintSC++;
+        }
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_PROC_WaitforOtherProcInitStatus()
+//      - Wait for Other Proc Init Status
+
+static int _loc_PROC_WaitforOtherProcInitStatus(void)
+{
+    int nForPrintTE;
+    int nForPrintSC;
+    int nTimeLimit;
+
+    nTimeLimit = 0;
+    nForPrintTE = 0;
+    nForPrintSC = 0;
+
+    VERBOSE_MESSAGE("Wait for TE & SC Processes are Init Status..\n");
+    VERBOSE_MESSAGE("For %d sec...\n", RMGR_WAIT_TIME_LIMIT_SEC);
+    VERBOSE_MESSAGE("--------------------------------------------\n\n");
+
+    while((g_fInitProcTE == FALSE || g_fInitProcSC == FALSE) &&
+          nTimeLimit <= RMGR_WAIT_TIME_LIMIT)
+    {
+        if(g_fInitProcTE == TRUE && nForPrintTE ==0)
+        {
+            VERBOSE_VERBOSE("%s Ready to start service!(Init flag: %d)\n\n",
+                            TE_PROCESS_NAME, g_pShm_SysStatus->fInitProcTE);
+            nForPrintTE++;
+        }
+
+        if(g_fInitProcSC == TRUE && nForPrintSC == 0)
+        {
+            VERBOSE_VERBOSE("%s Ready to start service!(Init flag: %d)\n\n",
+                            SC_PROCESS_NAME, g_pShm_SysStatus->fInitProcSC);
+            nForPrintSC++;
+        }
+
+        THREAD_SleepMicrosec(10000);
+        nTimeLimit++;
+        printf("Timer: %d\n", nTimeLimit);
+        if(nTimeLimit > RMGR_WAIT_TIME_LIMIT)
+            {
+                VERBOSE_WARNING("Initialize Time Limit is Exceeded!\n");
+            }
+    }
+
+    VERBOSE_MESSAGE("All Processes are Ready to start service!!\n");
+    VERBOSE_MESSAGE("------------------------------------------\n\n");
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_PROC_WaitforOtherExitStatus()
+//
+
+static int _loc_PROC_WaitforOtherExitStatus(void)
+{
+    int nForPrintTE;
+    int nForPrintSC;
+    int nTimeLimit;
+
+    nTimeLimit = 0;
+    nForPrintTE = 0;
+    nForPrintSC = 0;
+
+    ///////////////////////////////////
+    //
+    //  Wait for Other Process Exit Status
+    //
+
+    if(g_retInitRM != -1)
+    {
+        VERBOSE_MESSAGE("Wait for TE & SC Processes are Exit Status..\n");
+        VERBOSE_MESSAGE("For %d sec...\n", RMGR_WAIT_TIME_LIMIT_SEC);
+        VERBOSE_MESSAGE("--------------------------------------------\n\n");
+
+        while((g_fExitProcTE == FALSE || g_fExitProcSC == FALSE) &&
+              nTimeLimit <= RMGR_WAIT_TIME_LIMIT)
+        {
+            if(g_fExitProcTE == TRUE && nForPrintTE == 0)
+            {
+                VERBOSE_VERBOSE("%s Ready to exit service! (Exit flag: %d)\n",
+                                TE_PROCESS_NAME, g_pShm_SysStatus->fExitProcTE);
+                nForPrintTE++;
+            }
+
+            if(g_fExitProcSC == TRUE && nForPrintSC == 0)
+            {
+                VERBOSE_VERBOSE("%s Ready to exit service! (Exit flag: %d)\n",
+                                SC_PROCESS_NAME, g_pShm_SysStatus->fExitProcSC);
+                nForPrintSC++;
+            }
+
+            THREAD_SleepMicrosec(10000);
+            nTimeLimit++;
+        }
+    }
+
+    else if(g_retInitRM == -1 &&
+            (g_retOpenShmemTE != -1 && g_retOpenShmemSC == -1))
+    {
+        VERBOSE_MESSAGE("Wait for TE Processes are Exit Status(flag: %d, %d)\n",
+                        g_fExitProcTE, g_pShm_SysStatus->fExitProcTE);
+        VERBOSE_MESSAGE("For %d sec...\n", RMGR_WAIT_TIME_LIMIT_SEC);
+        VERBOSE_MESSAGE("--------------------------------------------\n\n");
+
+        while(g_fExitProcTE == FALSE && nTimeLimit <= RMGR_WAIT_TIME_LIMIT)
+        {
+            THREAD_SleepMicrosec(1000);
+
+            if(g_fExitProcTE == TRUE && nForPrintTE == 0)
+            {
+                VERBOSE_VERBOSE("%s Ready to exit service! (Exit flag: %d)\n",
+                                TE_PROCESS_NAME, g_pShm_SysStatus->fExitProcTE);
+                nForPrintTE++;
+            }
+
+            THREAD_SleepMicrosec(10000);
+            nTimeLimit++;
+        }
+    }
+    else if(g_retInitRM == -1 &&
+            (g_retOpenShmemTE == -1 && g_retOpenShmemSC != -1))
+    {
+        VERBOSE_MESSAGE("Wait for SC Processes are Exit Status(flag: %d, %d)\n",
+                        g_fExitProcSC, g_pShm_SysStatus->fExitProcSC);
+        VERBOSE_MESSAGE("For %d sec...\n", RMGR_WAIT_TIME_LIMIT_SEC);
+        VERBOSE_MESSAGE("--------------------------------------------\n\n");
+
+        while(g_fExitProcSC == FALSE && nTimeLimit <= RMGR_WAIT_TIME_LIMIT)
+        {
+            if(g_fExitProcSC == TRUE && nForPrintSC == 0)
+            {
+                VERBOSE_VERBOSE("%s Ready to exit service! (Exit flag: %d)\n",
+                                SC_PROCESS_NAME, g_pShm_SysStatus->fExitProcSC);
+                nForPrintSC++;
+            }
+
+            THREAD_SleepMicrosec(10000);
+            nTimeLimit++;
+        }
+    }
+    else if(g_retInitRM == -1 &&
+            (g_retOpenShmemTE != -1 && g_retOpenShmemSC != -1))
+    {
+        VERBOSE_MESSAGE("Wait for TE & SC Processes are Exit Status"
+                        "(Init Fail)\n");
+        VERBOSE_MESSAGE("For %d sec...\n", RMGR_WAIT_TIME_LIMIT_SEC);
+        VERBOSE_MESSAGE("--------------------------------------------\n\n");
+
+        while((g_fExitProcTE == FALSE || g_fExitProcSC == FALSE) &&
+              nTimeLimit <= RMGR_WAIT_TIME_LIMIT)
+        {
+            if(g_fExitProcTE == TRUE && nForPrintTE == 0)
+            {
+                VERBOSE_VERBOSE("%s Ready to exit service! (Exit flag: %d)\n",
+                                TE_PROCESS_NAME, g_pShm_SysStatus->fExitProcTE);
+                nForPrintTE++;
+            }
+
+            if(g_fExitProcSC == TRUE && nForPrintSC == 0)
+            {
+                VERBOSE_VERBOSE("%s Ready to exit service! (Exit flag: %d)\n",
+                                SC_PROCESS_NAME, g_pShm_SysStatus->fExitProcSC);
+                nForPrintSC++;
+            }
+
+            THREAD_SleepMicrosec(10000);
+            nTimeLimit++;
+        }
+    }
+
+    if(nTimeLimit > RMGR_WAIT_TIME_LIMIT)
+    {
+        VERBOSE_VERBOSE("Finalize Time Limit is Exceeded!\n");
+    }
+
+    VERBOSE_MESSAGE("All Processes are Ready to exit service!!\n\n");
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_DestroyShmem()
+//
+
+static int _loc_SHM_DestroyShmem(void)
+{
+    // destroy the RM shared memory
+    if (SHM_DestroySysStatusShmem() == -1)
+    {
+        VERBOSE_ERROR("RM shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    // destroy the TE shared memory
+    if (SHM_DestroyTEShmem() == -1)
+    {
+        VERBOSE_ERROR("TE shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    // destroy the SC shared memory
+    if (SHM_DestroySCShmem() == -1)
+    {
+        VERBOSE_ERROR("SC shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_ConsoleExitAct()
+//
+
+static BOOL _loc_ConsoleExitAct(DWORD dwProc)
+{
+    dwProc = dwProc;
+
+    VERBOSE_ERROR("Received Console Exit Event!!\n");
+    VERBOSE_ERROR("Send Exit Pulse to Other Process!\n\n");
+
+    // Send Exit Pulse
+    if(g_coidTE != INVALID_COID)
+    {
+        MSG_SendPulse(g_coidTE, TESERV_EXIT, 0);
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to Exit Pulse Send, TE Connection is not valid\n");
+    }
+    if(g_coidSC != INVALID_COID)
+    {
+        MSG_SendPulse(g_coidSC, SC_SERV_EXIT, 0);
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to Exit Pulse Send, SC Connection is not valid\n");
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: MAIN_Initialize()
+//
+
+int MAIN_Initialize(void)
+{
+    THREAD_HANDLE hSysCheck_Thread;
+    THREAD_HANDLE hSysAlive_Thread;
+
+    // Set Console Handle (for WIN32)
+    DEBUG_SetConsoleHandler((DEBUG_CONSOLE_HANDLER) _loc_ConsoleExitAct);
+
+    // Set Non-Canonical Form
+	CIO_SetModeCanonical(FALSE); 
+
+    // Configure display service
+    _loc_DSP_InitDisplay();
+
+    // Create RM Channel
+    VERBOSE_MESSAGE("----------- RM Channel Creating ----------\n\n");
+
+    if(MSG_CreateRMChannel() == -1)
+    {
+        VERBOSE_ERROR("Create RM Channel Fail!\n");
+        return -1;
+    }
+
+    // Create shared memory
+    g_fInitRet[0] = SHM_CreateSharedMemory();
+
+
+    // Load system parameters
+    g_fInitRet[1] = PARAM_LoadSystemParameter();
+    
+    // Connect to other proc channel
+    VERBOSE_MESSAGE("------ RM Channel Connecting to TE & SC -----\n\n");
+    g_fInitRet[2] = MSG_ConnectChannelServer();
+
+    // Request TE, SC Initialize
+    //if(g_fInitRet[0] != -1 && g_fInitRet[1] != -1 && g_fInitRet[2] != -1)
+    if(g_fInitRet[0] != -1 && g_fInitRet[1] != -1)
+    {
+        SVC_InitTEService();
+        SVC_InitSCService();
+    }
+
+    // launch system status check thread
+    hSysCheck_Thread = THREAD_Create(_loc_PROC_SysStatusCheckThread,
+                                     NULL,
+                                     0,                 // auto stack size
+                                     0,                 // normal priority
+                                     THREAD_DETACHED,   // detach thread
+                                     THREAD_POLICY_RR); // round-robin
+
+    if (hSysCheck_Thread == INVALID_THREAD)
+    {
+        VERBOSE_ERROR("cannot create the system status check thread...\n");
+
+        exit(1);
+    }
+
+    // Init RM Services
+    g_fInitRet[3] = SVC_InitRMService();
+    
+    // Open shared memory
+    g_fInitRet[4] = SHM_OpenSharedMemory();
+
+    // launch system alive check thread
+    hSysAlive_Thread = THREAD_Create(_loc_PROC_SysAliveCheckThread,
+                                    NULL,
+                                    0,                 // auto stack size
+                                    0,                 // normal priority
+                                    THREAD_DETACHED,   // detach thread
+                                    THREAD_POLICY_RR); // round-robin
+
+    if (hSysAlive_Thread == INVALID_THREAD)
+    {
+        VERBOSE_ERROR("cannot create the system alive check thread...\n");
+
+        exit(1);
+    }
+
+#if defined (__VERSION_CHECK)
+    // Check other proc version
+    g_fInitRet[4] = MSG_CheckOtherProcVersion();
+
+    // Reply Version Information to other Process
+    g_fInitRet[5] = MSG_ReplyRMVerToOtherProc();
+#endif
+
+    if(g_fInitRet[0] == -1 || g_fInitRet[1] == -1 || g_fInitRet[2] == -1 ||
+       g_fInitRet[3] == -1 || g_fInitRet[4] == -1)
+    {
+#if defined(___DEBUG)
+        VERBOSE_WARNING("[DEBUG] SharedMemoryCreate: %d, ParamLoad: %d,"
+               "ConnectChannel: %d,\n RMServInit: %d, OpenSharedMem: %d\n",
+               g_fInitRet[0], g_fInitRet[1], g_fInitRet[2],
+               g_fInitRet[3], g_fInitRet[4]);
+#endif
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_MAIN_Finalize()
+//
+
+static int _loc_MAIN_Finalize(void)
+{
+    // Close TE, SC connection
+    MSG_CloseConnection();
+
+    // Wait for TE, SC Exit status
+    _loc_PROC_WaitforOtherExitStatus();
+
+    THREAD_SleepMicrosec(10000);
+
+    // Close RM Channel
+    MSG_CloseChannel();
+
+    // Stop Thread Routine
+    g_fSysStatus = STOP;
+
+    // Destroy the shared memory
+    _loc_SHM_DestroyShmem();
+
+    THREAD_SleepMicrosec(10000);
+
+    VERBOSE_MESSAGE("---- All Services are Finalized Done!! ----\n");
+    VERBOSE_MESSAGE("-------------------------------------------\n\n");
+
+    // Finalize verbose service
+    _loc_DSP_FinalizeDisplay();
+
+    // Reset input mode to Canonical mode
+    CIO_SetModeCanonical(TRUE); 
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  main()
+//
+int main(int nArgc, char* rgpszArgv[])
+{
+    ///////////////////////////////////
+    //
+    //  Parse Program Option
+    //
+
+    memset(&g_Arg, 0, sizeof(g_Arg));
+
+    if (ParseArgument(nArgc, rgpszArgv, &g_Arg) == FALSE)
+    {
+        VERBOSE_ERROR("Argument Parcing Fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    ///////////////////////////////////
+    //
+    //  Initialize system
+    //
+
+    g_retInitRM = MAIN_Initialize();
+
+    _loc_PROC_WaitforOtherProcInitStatus();
+
+    ///////////////////////////////////
+    //
+    //  Execute service
+    //
+    if(SVC_ExecService() == -1)
+    {
+        VERBOSE_ERROR("Execute Service Step Fail\n");
+        _loc_MAIN_Finalize();
+        return EXIT_FAILURE;
+    }
+
+#if 0
+    if(g_retInitRM != -1)
+    {
+        _loc_PROC_WaitforOtherProcInitStatus();
+
+        ///////////////////////////////////
+        //
+        //  Execute service
+        //
+        if(SVC_ExecService() == -1)
+        {
+            VERBOSE_ERROR("Execute Service Step Fail\n");
+            _loc_MAIN_Finalize();
+            return EXIT_FAILURE;
+        }
+    }
+    else if(g_retInitRM == -1)
+    {
+        VERBOSE_ERROR("Main Initialize Step Fail!\n");
+
+        ///////////////////////////////////
+        //
+        //  Execute service
+        //
+        if(SVC_ExecService() == -1)
+        {
+            VERBOSE_ERROR("Execute Service Step Fail\n");
+            _loc_MAIN_Finalize();
+            return EXIT_FAILURE;
+        }
+    }
+#endif
+
+//EXIT_PROCESS:
+    THREAD_SleepMicrosec(1000);
+    
+    ///////////////////////////////////
+    //
+    //  Finalize system
+    //
+
+    if(_loc_MAIN_Finalize() == -1)
+    {
+        VERBOSE_ERROR("Main Finalize Step Fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+ 

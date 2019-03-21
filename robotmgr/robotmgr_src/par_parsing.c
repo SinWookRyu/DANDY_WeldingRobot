@@ -1,0 +1,1799 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  par_parsing.c: Parameter Config File Parsing Lib
+//                                            2013.06.20  Ryu SinWook
+
+#include <math.h>
+#include <errno.h>
+
+///////////////////////////////////////
+
+#include "robotmgr_main.h"
+
+///////////////////////////////////////
+
+#define CONFIG_NUM_ERROR    -1
+#define CONFIG_NUM_INT      0
+#define CONFIG_NUM_FLOAT    1
+#define CONFIG_NUM_OTHER    2
+
+#define CONFIG_BUFFER_LEN   4096
+#define CONFIG_KEY_LEN      256
+#define CONFIG_VALUE_LEN    1024
+
+#define IS_WHITE_SPACE(__ch)    ((__ch) == '\t' || (__ch) == ' ' || (__ch) == '\r' || (__ch) == '\n')
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: __c2x()
+//
+
+static void __c2x(char szHex[2], int ch)
+{
+    int hh, hl;
+
+    hh = (ch & 0xf0) >> 4;
+    hl = ch & 0x0f;
+    
+    if (hh >= 0xa)
+        szHex[0] = (char) (hh - 0xa + 'A');
+    else
+        szHex[0] = (char) (hh + '0');
+
+    if (hl >= 0xa)
+        szHex[1] = (char) (hl - 0xa + 'A');
+    else
+        szHex[1] = (char) (hl + '0');
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_EncodeURL()
+//      - Convert Unescaped String 'lpszStr' to Escaped String 'lpszURL'
+
+char* PARAM_EncodeURL(const char* lpszStr, char* lpszURL, int nLen, int fFullEncode)
+{
+    const unsigned char* lpszBinary;
+    char* lpszEncoded;
+
+    char szHex[2];
+
+    if (lpszStr == NULL || lpszURL == NULL)
+        return (char*)NULL;
+
+    if (nLen <= 0)
+        return lpszURL;
+
+    lpszBinary = (const unsigned char*)lpszStr;
+    lpszEncoded = (char*)lpszURL;
+
+    if (fFullEncode)
+    {
+        // convert all characters to hexa code
+
+        while(*lpszBinary && lpszEncoded - lpszURL < nLen)
+        {
+            __c2x(szHex, *lpszBinary++);
+
+            *lpszEncoded++ = '%';
+
+            if (lpszEncoded - lpszURL < nLen)
+                *lpszEncoded++ = szHex[0];
+
+            if (lpszEncoded - lpszURL < nLen)
+                *lpszEncoded++ = szHex[1];
+        }
+    }
+    else
+    {
+        while (*lpszBinary && lpszEncoded - lpszURL < nLen)
+        {
+            if (*lpszBinary == ' ')
+            {
+                *lpszEncoded++ = '+';
+                lpszBinary++;
+            }
+            else if (!isalnum(*lpszBinary))
+            {
+                __c2x(szHex, *lpszBinary++);
+
+                *lpszEncoded++ = '%';
+
+                if (lpszEncoded - lpszURL < nLen)
+                    *lpszEncoded++ = szHex[0];
+
+                if (lpszEncoded - lpszURL < nLen)
+                    *lpszEncoded++ = szHex[1];
+            }
+            else
+            {
+                *lpszEncoded++ = *lpszBinary++;
+            }
+        }
+    }
+
+
+    if (lpszEncoded - lpszURL < nLen)
+        *lpszEncoded = 0;
+    else
+        *(--lpszEncoded) = 0;
+
+    return lpszURL;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_DecodeURL()
+//
+
+int PARAM_DecodeURL(const char* lpszURL, const char** lpszNextURL)
+{
+    const unsigned char* lpszEncoded;
+
+    int cChar;
+    int nDigitLSB, nDigit;
+
+    if (lpszURL == NULL)
+    {
+        if (lpszNextURL != NULL)
+            *lpszNextURL = NULL;
+
+        return RESULT_ERROR;
+    }
+
+    lpszEncoded = (const unsigned char*) lpszURL;
+
+    switch(*lpszEncoded)
+    {
+    case 0 :
+        cChar = 0;
+        break;
+
+    case '+' :
+        cChar = ' ';
+        lpszEncoded++;
+        break;
+
+    case '%' :
+        lpszEncoded++;
+
+        if (*lpszEncoded == 0)
+        {
+            cChar = '%';
+            break;
+        }
+
+        if (isxdigit(*lpszEncoded))
+        {
+            if (*lpszEncoded >= 'a' && *lpszEncoded <= 'f')
+                nDigit = *lpszEncoded - 'a' + 10;
+            else if( *lpszEncoded >= 'A' && *lpszEncoded <= 'F')
+                nDigit = *lpszEncoded - 'A' + 10;
+            else nDigit = *lpszEncoded - '0';
+
+            lpszEncoded++;
+
+            if (isxdigit(*lpszEncoded))
+            {
+                if (*lpszEncoded >= 'a' && *lpszEncoded <= 'f')
+                    nDigitLSB = *lpszEncoded - 'a' + 10;
+                else if( *lpszEncoded >= 'A' && *lpszEncoded <= 'F')
+                    nDigitLSB = *lpszEncoded - 'A' + 10;
+                else
+                    nDigitLSB = *lpszEncoded - '0';
+
+                lpszEncoded++;
+
+                nDigit = nDigit * 16 + nDigitLSB;
+            }
+
+            cChar = (char)nDigit;
+        }
+        else
+        {
+            cChar = *lpszEncoded++;
+        }
+
+        break;
+
+    default :
+        cChar = *lpszEncoded++;
+    }
+
+    if (lpszNextURL != NULL)
+        *lpszNextURL = (char*)lpszEncoded;
+
+    return cChar;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: CONF_ParseURLEx()
+//
+
+char* CONF_ParseURLEx(const char* lpszURL,
+                      char* lpszName, int* lpnNameLen,
+                      char* lpszValue, int* lpnValueLen,
+                      int fDecodeURL, int chStop1, int chStop2)
+{
+    const char* lpszNextURL;
+    int cChar;
+
+    int nNameLen, nValueLen;
+    int nNameCount, nValueCount;
+
+    nNameLen  = (lpnNameLen == NULL)  ? 0 : *lpnNameLen;
+    nValueLen = (lpnValueLen == NULL) ? 0 : *lpnValueLen;
+
+    /* parse name */
+
+    nNameCount = 0;
+    
+    while(lpszURL != NULL && *lpszURL != 0 && *lpszURL != chStop1 && *lpszURL != chStop2)
+    {
+        if (fDecodeURL)
+        {
+            cChar = PARAM_DecodeURL(lpszURL, &lpszNextURL);
+            lpszURL = lpszNextURL;
+        }
+        else
+        {
+            cChar = *lpszURL++;
+        }
+
+        if (cChar != 0)
+        {
+            if (lpszName != NULL && nNameCount < nNameLen)
+                lpszName[nNameCount] = (char) cChar;
+
+            nNameCount++;
+        }
+    }
+
+    if (lpszName != NULL && nNameLen > 0)
+    {
+        if (nNameCount < nNameLen)
+            lpszName[nNameCount] = 0;
+        else
+            lpszName[nNameLen-1] = 0;
+    }
+
+    if (lpszURL != NULL && *lpszURL != 0 && *lpszURL == chStop1)
+        lpszURL++;
+
+    /* parse value */
+
+    nValueCount = 0;
+
+//    while (lpszURL != NULL && *lpszURL != 0 && *lpszURL != chStop1 && *lpszURL != chStop2)
+    while (lpszURL != NULL && *lpszURL != 0 && *lpszURL != chStop2)
+    {
+        if (fDecodeURL)
+        {
+            cChar = PARAM_DecodeURL(lpszURL, &lpszNextURL);
+            lpszURL = lpszNextURL;
+        }
+        else
+        {
+            cChar = *lpszURL++;
+        }
+
+        if (cChar != 0)
+        {
+            if (lpszValue != NULL && nValueCount < nValueLen)
+                lpszValue[nValueCount] = (char) cChar;
+
+            nValueCount++;
+        }
+    }
+
+    if (lpszValue != NULL && nValueLen > 0)
+    {
+        if (nValueCount < nValueLen)
+            lpszValue[nValueCount] = 0;
+        else
+            lpszValue[nValueLen-1] = 0;
+    }
+
+    if (lpszURL != NULL && *lpszURL != 0 && *lpszURL == chStop2)
+        lpszURL++;
+
+    if (lpnNameLen != NULL)
+        *lpnNameLen = nNameCount;
+
+    if (lpnValueLen != NULL)
+        *lpnValueLen = nValueCount;
+
+    return (char*)lpszURL;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ParseURLAllocEx()
+//
+
+char* PARAM_ParseURLAllocEx(const char* lpszURL,
+                            char** lpszName, char** lpszValue,
+                            int fDecodeURL, int chStop1, int chStop2)
+{
+    int nNameLen, nValueLen;
+
+    char* lpszAllocName;
+    char* lpszAllocValue;
+    char* lpszNextURL;
+
+    nNameLen = nValueLen = 0;
+    lpszNextURL = CONF_ParseURLEx(lpszURL,
+                                  NULL, &nNameLen,
+                                  NULL, &nValueLen,
+                                  fDecodeURL, chStop1, chStop2);
+
+    if (lpszNextURL == NULL)
+        return NULL;
+
+    nNameLen++;
+    nValueLen++;
+
+    if (lpszName != NULL && nNameLen > 1)
+        lpszAllocName = (char*)DEBUG_MALLOC(sizeof(char) * nNameLen);
+    else
+        lpszAllocName = NULL;
+
+    if( lpszValue != NULL && nValueLen > 1)
+        lpszAllocValue = (char*)DEBUG_MALLOC(sizeof(char) * nValueLen);
+    else lpszAllocValue = NULL;
+
+    CONF_ParseURLEx(lpszURL,
+                    lpszAllocName, &nNameLen,
+                    lpszAllocValue, &nValueLen,
+                    fDecodeURL, chStop1, chStop2);
+
+    if( lpszName != NULL)
+        *lpszName = lpszAllocName;
+
+    if( lpszValue != NULL)
+        *lpszValue = lpszAllocValue;
+
+    return lpszNextURL;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: __loc_TrimLString()
+//     - Configuration Read
+
+static char* __loc_TrimLString(char* pszStr)
+{
+    int i, j;
+
+    if (pszStr == NULL)
+        return pszStr;
+
+    for (i = 0; IS_WHITE_SPACE(pszStr[i]) ; i++)
+        ;
+
+    if (i == 0)
+        return pszStr;
+
+    for (j = 0; pszStr[i]; j++, i++)
+        pszStr[j] = pszStr[i];
+
+    pszStr[j] = 0;
+
+    return pszStr;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: __loc_TrimRString()
+//     - Configuration Read
+
+static char* __loc_TrimRString(char* pszStr)
+{
+    int i, nLen;
+
+    if (pszStr == NULL)
+        return pszStr;
+
+    if ((nLen=strlen(pszStr)) <= 0)
+        return pszStr;
+
+    for (i = nLen-1; i >= 0 && IS_WHITE_SPACE(pszStr[i]); i--)
+        ;
+
+    pszStr[i+1] = 0;
+
+    return pszStr;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: __loc_TrimString()
+//     - Configuration Read
+
+char* __loc_TrimString(char* pszStr)
+{
+    if (__loc_TrimLString(pszStr) == NULL)
+        return NULL;
+
+    if (__loc_TrimRString(pszStr) == NULL)
+        return NULL;
+
+    return pszStr;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ReadConfigLine()
+//
+
+int PARAM_ReadConfigLine(FILE* fp,
+                         char* pszBuffer, int nBufferLen,
+                         char* pszKey, int nKeyLen,
+                         char* pszValue, int nValueLen,
+                         int fDecodeURL)
+{
+    int i, nType;
+    char* pszNextURL;
+    int nLen, nValueLen2;
+
+    nType = CONFIG_TYPE_ERROR;
+
+    if (pszBuffer == NULL || nBufferLen <= 0)
+        goto ON_EMPTY_CONFIG;
+
+    if (fgets(pszBuffer, nBufferLen, fp) == NULL)
+    {
+        if (feof(fp))
+        {
+            nType = CONFIG_TYPE_EOF;
+        }
+
+        goto ON_EMPTY_CONFIG;
+    }
+
+    // erase last carrage-return code
+
+    for (i = 0; i < nBufferLen; i++)
+    {
+        if (pszBuffer[i] == 0 || pszBuffer[i] == '\r' || pszBuffer[i] == '\n')
+            break;
+    }
+
+    if (i == nBufferLen)
+        pszBuffer[nBufferLen-1] = 0;
+    else if (pszBuffer[i] == '\n' || pszBuffer[i] == '\r')
+        pszBuffer[i] = 0;
+
+    // erase first comment symbol
+
+//    while (IS_WHITE_SPACE(*pszBuffer))
+//        pszBuffer++;
+
+    __loc_TrimString(pszBuffer);
+
+    if (*pszBuffer == ';' || *pszBuffer == '#')
+    {
+        // ';' & '#' are comment
+        // *pszBuffer== 0 is end of string
+        // '[' is compatible with general INI file
+
+        nType = CONFIG_TYPE_COMMENT;
+        pszBuffer++;
+
+        __loc_TrimString(pszBuffer);
+
+        goto ON_EMPTY_CONFIG;
+    }
+
+    // erase last comment symbol
+
+    nLen = strlen(pszBuffer);
+    for (i = nLen-1; i > 0; i--)
+    {
+        if ((pszBuffer[i] == '#' || pszBuffer[i] == ';') &&
+            (i == 0 || pszBuffer[i-1] == ' ' || pszBuffer[i-1] == '\t'))
+        {
+            pszBuffer[i] = 0;
+        }
+    }
+
+    if (*pszBuffer == 0)
+    {
+        // empty line
+        nType = CONFIG_TYPE_NONE;
+        goto ON_EMPTY_CONFIG;
+    }
+
+    // section? [xxxxxx]
+    if (*pszBuffer == '[')
+    {
+        pszBuffer++;    // skip '['
+
+        pszNextURL = strchr(pszBuffer, '[');
+        if (pszNextURL != NULL)
+        {
+            // has another '[' characters : error
+            nType = CONFIG_TYPE_ERROR;
+            goto ON_EMPTY_CONFIG;
+        }
+
+        pszNextURL = strchr(pszBuffer, ']');
+
+        if (pszNextURL == NULL)
+        {
+            // no close square bracket
+            nType = CONFIG_TYPE_ERROR;
+            goto ON_EMPTY_CONFIG;
+        }
+
+        if (pszNextURL[1] != 0)
+        {
+            // ']' is not latest character, illegal section spec
+            nType = CONFIG_TYPE_ERROR;
+            goto ON_EMPTY_CONFIG;
+        }
+
+        //////
+
+        nType = CONFIG_TYPE_SECTION;
+        nLen = pszNextURL - pszBuffer;
+
+        if (nLen <= 0)
+        {
+            nType = CONFIG_TYPE_ERROR;
+            goto ON_EMPTY_CONFIG;
+        }
+
+        pszBuffer[nLen] = 0;
+        pszNextURL = CONF_ParseURLEx(pszBuffer,
+                                     pszKey, &nKeyLen,
+                                     pszValue, &nValueLen,
+                                     fDecodeURL, ',', 0);
+    }
+    else
+    {
+        nValueLen2 = nValueLen;
+
+        pszNextURL = CONF_ParseURLEx(pszBuffer,
+                                     pszKey, &nKeyLen,
+                                     pszValue, &nValueLen,
+                                     fDecodeURL, '=', 0);
+
+        if (pszNextURL == NULL)
+            goto ON_EMPTY_CONFIG;
+
+        __loc_TrimString(pszKey);
+        __loc_TrimString(pszValue);
+
+        nType = CONFIG_TYPE_KEY;
+    }
+
+    return nType;
+
+ON_EMPTY_CONFIG :
+
+    if (pszKey != NULL && nKeyLen > 0)
+        pszKey[0] = 0;
+
+    if (pszValue != NULL && nValueLen > 0)
+    {
+        //strncpy(pszValue, pszBuffer, nValueLen);
+        CRT_strcpy(pszValue, nValueLen, pszBuffer);
+        pszValue[nValueLen-1] = 0;
+    }
+
+	return nType;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_OpenConfigFile()
+//
+
+FILE* PARAM_OpenConfigFile(const char* pszFileName)
+{
+    FILE* pf;
+    char szFindPath[512];
+#if defined(_MSC_VER)
+    errno_t errno;
+#endif
+
+    int i, nLen;
+
+    pf = NULL;
+
+    if (pszFileName == NULL)
+        return stdin;
+
+#if defined(__QNXNTO__)
+    if ((pf = fopen(pszFileName, "rt")) != NULL) {
+#else
+    if ((errno=fopen_s(&pf, pszFileName, "rt")) == 0) {
+#endif
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("FileName: %s\n", pszFileName);
+#endif
+        return pf;
+    }
+   
+    // Find the file
+    // is absolute path?
+    if (strstr(pszFileName, "/") != NULL || strstr(pszFileName, "\\") != NULL)
+        return NULL;
+
+    // find the current directory
+    CRT_strcpy(szFindPath, 3, "./");
+
+    //strcat(szFindPath, pszFileName);
+    CRT_strcat(szFindPath, CONF_FILENAME_LEN, pszFileName);
+
+#if defined(__QNXNTO__)
+    if ((pf = fopen(szFindPath, "rt")) != NULL) {
+#else
+    if ((errno=fopen_s(&pf, szFindPath, "rt")) == 0) {
+#endif
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("FindPath: %s\n", szFindPath);
+#endif
+        return pf;
+    }
+
+    // find the lauch directory
+    if (__argc != 0)
+    {
+        nLen = strlen(__argv[0]);
+
+        for (i = nLen - 1; i >= 0; i--)
+        {
+            if (__argv[0][i] == '/' || __argv[0][i] == '\\')
+                break;
+        }
+
+        if (i >= 0)
+        {
+            //strncpy(szFindPath, __argv[0], i+1);
+            CRT_strncpy(szFindPath, sizeof(szFindPath), __argv[0], i+1);
+            szFindPath[i+1] = 0;
+            //strcpy(szFindPath + i + 1, pszFileName);
+            CRT_strcpy(szFindPath+i+1, CONF_FILENAME_LEN, pszFileName);
+
+#if defined(__QNXNTO__)
+            if ((pf = fopen(szFindPath, "rt")) != NULL) {
+#else
+            if ((errno=fopen_s(&pf, szFindPath, "rt")) == 0) {
+#endif
+#if defined(SYSC_VERBOSE)
+                VERBOSE_VERBOSE("Launch FindPath: %s\n", szFindPath+i+1);
+#endif
+                return pf;
+            }
+        }
+    }
+
+    // find environment variable
+
+#if defined(_WIN32)
+
+#else
+    // find '/etc
+
+    strcpy(szFindPath, "/etc/");
+    strcat(szFindPath, pszFileName);
+
+    if ((pf = fopen(szFindPath, "rt")) != NULL) {
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("Location & FileName: %s\n", szFindPath);
+#endif
+        return pf;
+    }
+#endif
+
+    return NULL;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: CONF_CloseConfigFile()
+//
+
+int CONF_CloseConfigFile(FILE* fp)
+{
+    return fclose(fp);
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: CONFIG_FindConfigValue()
+//
+
+int CONFIG_FindConfigValue(const char* pszFileName, const char* pszKey,
+                           char* pszValue, int nValueLen, int fDecodeURL)
+{
+    FILE* pf;
+
+    char* pszBuffer;
+    char* pszTempKey;
+    char* pszTempValue;
+    int nType;
+
+    nType = CONFIG_TYPE_ERROR;
+    pf   = NULL;
+
+    pszBuffer    = (char*) DEBUG_MALLOC(sizeof(char) * CONFIG_BUFFER_LEN);
+    pszTempKey   = (char*) DEBUG_MALLOC(sizeof(char) * CONFIG_KEY_LEN);
+    pszTempValue = (char*) DEBUG_MALLOC(sizeof(char) * CONFIG_VALUE_LEN);
+
+    if (pszBuffer == NULL || pszTempKey == NULL || pszTempValue == NULL)
+        goto ON_ERROR;
+
+    if ((pf=PARAM_OpenConfigFile(pszFileName)) == NULL)
+        goto ON_ERROR;
+
+    do
+    {
+        nType = PARAM_ReadConfigLine(pf,
+                                     pszBuffer, CONFIG_BUFFER_LEN,
+                                     pszTempKey, CONFIG_KEY_LEN,
+                                     pszTempValue, CONFIG_VALUE_LEN,
+                                     fDecodeURL);
+
+        if (nType == CONFIG_TYPE_EOF || nType == CONFIG_TYPE_ERROR)
+            break;
+
+        if (nType == CONFIG_TYPE_NONE)
+            continue;
+
+    } while (stricmp(pszKey, pszTempKey) != 0);
+
+    if (nType == CONFIG_TYPE_KEY || nType == CONFIG_TYPE_SECTION)
+    {
+        if (nValueLen > 0)
+        {
+            //strncpy(pszValue, pszTempValue, nValueLen);
+            CRT_strcpy(pszValue, nValueLen, pszTempValue);
+            pszValue[nValueLen-1] = 0;
+        }
+    }
+
+ON_ERROR :
+
+    if (pszBuffer != NULL)
+        DEBUG_FREE(pszBuffer);
+
+    if (pszTempKey != NULL)
+        DEBUG_FREE(pszTempKey);
+
+    if (pszTempValue != NULL)
+        DEBUG_FREE(pszTempValue);
+
+    if (pf != NULL)
+        CONF_CloseConfigFile(pf);
+
+    return nType;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: CONF_EnumConfigFile()
+//
+
+int CONF_EnumConfigFile(const char* pszFileName, int fDecodeURL,
+                        CONFIG_FILE_ENUM_PROC lpProc, void* lpParam)
+{
+    FILE* pf;
+
+    char* pszBuffer;
+    char* pszTempKey;
+    char* pszTempValue;
+
+    int nCallCount, nType;
+    int nResult;
+
+    pf = NULL;
+    nResult = CONFIG_ENUM_NO_FILE;
+
+    pszBuffer    = (char*) DEBUG_MALLOC(sizeof(char) * CONFIG_BUFFER_LEN);
+    pszTempKey   = (char*) DEBUG_MALLOC(sizeof(char) * CONFIG_KEY_LEN);
+    pszTempValue = (char*) DEBUG_MALLOC(sizeof(char) * CONFIG_VALUE_LEN);
+
+    if (pszBuffer == NULL || pszTempKey == NULL || pszTempValue == NULL)
+    {
+        VERBOSE_ERROR("Buffer & Key/Value = NULL\n");
+        goto ON_ERROR;
+    }
+
+    if ((pf = PARAM_OpenConfigFile(pszFileName)) == NULL)
+    {
+        VERBOSE_ERROR("File Open Fail!\n");
+        goto ON_ERROR;
+    }
+
+    nCallCount = 0;
+    nResult = 0;
+    
+    do
+    {
+        nType = PARAM_ReadConfigLine(pf,
+                                     pszBuffer, CONFIG_BUFFER_LEN, 
+                                     pszTempKey, CONFIG_KEY_LEN,
+                                     pszTempValue, CONFIG_VALUE_LEN,
+                                     fDecodeURL);
+
+        // end?
+        if (nType == CONFIG_TYPE_ERROR)
+        {
+            nResult = CONFIG_ENUM_SYNTAX;
+            break;
+        }
+        else if (nType == CONFIG_TYPE_EOF)
+        {
+            break;
+        }
+
+        //
+        if (nType == CONFIG_TYPE_NONE)
+            continue;
+
+        if (lpProc != NULL)
+        {
+            nResult = lpProc(nCallCount, lpParam, nType,
+                             pszTempKey, pszTempValue);
+        }
+
+        nCallCount++;
+
+    } while(nResult >= 0);
+
+ON_ERROR :
+    if (pf != NULL)
+    {
+        CONF_CloseConfigFile(pf);
+    }
+
+    if (pszBuffer != NULL)
+    {
+        //VERBOSE_VERBOSE("Buffer: %s\n", pszBuffer);
+        DEBUG_FREE(pszBuffer);
+    }
+
+    if (pszTempKey != NULL)
+    {
+        //VERBOSE_VERBOSE("TempKey: %s\n", pszTempKey);
+        DEBUG_FREE(pszTempKey);
+    }
+
+    if (pszTempValue != NULL)
+    {
+        //VERBOSE_VERBOSE("TempValue: %s\n", pszTempValue);
+        DEBUG_FREE(pszTempValue);
+    }
+
+    return nResult;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ConvNum()
+//     - Configuration Convert
+
+int PARAM_ConvNum(const char* pszLiteral, int* pnValue, double* pdbValue)
+{
+    int nDigit;
+    int fPositive, fNegative, fDegree;
+    int nDigitPos;
+    int nDigitChar;
+
+    int nLen;
+    char* pszEndStr;
+
+    int nType;      // -1 = error, 0 = int, 1 = float, 2 = other
+    int nValue;
+    double dbValue;
+
+    nDigit = -1;
+    nDigitPos  = -1;
+    nDigitChar = -1;
+
+    fPositive = 0;
+    fNegative = 0;
+    fDegree = 0;
+
+    nLen = strlen(pszLiteral);
+
+    // degree : d180 = 3.141592...
+    if (*pszLiteral == 'd' || *pszLiteral == 'D')
+    {
+        fDegree = 1;
+
+        pszLiteral++;
+        nLen--;
+    }
+
+    // sign
+    if (*pszLiteral == '+' || *pszLiteral == '-')
+    {
+        nDigit = 0;
+
+        if (*pszLiteral == '-')
+            fNegative = 1;
+        else
+            fPositive = 1;
+
+        pszLiteral++;
+        nLen--;
+    }
+
+    // +d90? d+90?
+    if (*pszLiteral == 'd' || *pszLiteral == 'D')
+    {
+        if (fDegree)
+        {
+            // already 'd' prefix appeared
+            return CONFIG_NUM_OTHER;
+        }
+
+        fDegree = 1;
+
+        pszLiteral++;
+        nLen--;
+    }
+
+    // degree
+    if (*pszLiteral == 'd' || *pszLiteral == 'D')
+    {
+        fDegree = 1;
+
+        pszLiteral++;
+        nLen--;
+    }
+
+    if (stricmp(pszLiteral, "pi") == 0)
+    {
+        dbValue = acos((double) -1);
+        nValue  = (int) dbValue;
+        
+        nType = CONFIG_NUM_FLOAT;
+    }
+    else
+    {
+        // start with '0x', '0o', '0b'
+        if (nDigit <= 0 && pszLiteral[0] == '0')
+        {
+            if (pszLiteral[1] == 'x' || pszLiteral[1] == 'X')
+            {
+                nDigit = 16;
+                pszLiteral += 2;
+            }
+            else if (pszLiteral[1] == 'o' || pszLiteral[1] == 'O')
+            {
+                nDigit = 8;
+                pszLiteral += 2;
+            }
+            else if (pszLiteral[1] == 'b' || pszLiteral[1] == 'B')
+            {
+                nDigit = 2;
+                pszLiteral += 2;
+            }
+        }
+
+        // end with 'H', 'O', 'B' 
+        if (nDigit <= 0 && isdigit(*pszLiteral))
+        {
+            nDigitChar = pszLiteral[nLen - 1];
+
+            if (nDigitChar == 'h' || nDigitChar == 'H')
+            {
+                nDigit = 16;
+                nDigitPos  = nLen - 1;
+            }
+            else if (nDigitChar == 'o' || nDigitChar == 'O')
+            {
+                nDigit = 8;
+                nDigitPos  = nLen - 1;
+            }
+            else if (nDigitChar == 'b' || nDigitChar == 'B')
+            {
+                nDigit = 2;
+                nDigitPos  = nLen - 1;
+            }
+            else
+            {
+                nDigit = 10;
+            }
+        }
+
+        if (nDigit <= 0)
+            return CONFIG_NUM_OTHER;
+
+        DANDY_ASSERT(nDigit > 0);
+
+        nValue = (int) strtol(pszLiteral, &pszEndStr, nDigit);
+
+        if (nDigit == 10 &&
+            (pszEndStr[0] == '.' || pszEndStr[0] == 'e' || pszEndStr[0] == 'E'))
+        {
+            // real (float) number
+            dbValue = (float) strtod(pszLiteral, &pszEndStr);
+
+            if (*pszEndStr != 0)
+            {
+                return CONFIG_NUM_ERROR;
+            }
+
+            // assign
+            nValue = (int) dbValue;
+            nType = CONFIG_NUM_FLOAT;
+        }
+        else
+        {
+            if (nDigitPos > 0)
+            {
+                if (nDigitPos != pszEndStr - pszLiteral)
+                    return CONFIG_NUM_ERROR;
+            }
+            else
+            {
+                if (*pszEndStr != 0)
+                    return CONFIG_NUM_ERROR;
+            }
+
+            dbValue = (double) nValue;
+            nType = CONFIG_NUM_INT;
+        }
+    }
+
+    if (fNegative)
+    {
+        dbValue = -dbValue;
+        nValue  = -nValue;
+    }
+
+    if (fDegree)
+    {
+        // acos((double) -1) == PI
+
+        dbValue = (acos((double) -1) * dbValue / 180.);
+        nValue = (int) dbValue;
+
+        nType = CONFIG_NUM_FLOAT;
+    }
+
+    if (pnValue != NULL)
+        *pnValue = nValue;
+
+    if (pdbValue != NULL)
+        *pdbValue = dbValue;
+
+    return nType;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ParseArrayConfig()
+//     - Configuration Convert
+
+char* PARAM_ParseArrayConfig(const char* pszValue,
+                                  char* pszBuffer, int nBufferLen)
+{
+    const char* pszNext;
+    int nLen;
+
+    if (pszValue == NULL)
+        return NULL;
+
+    pszNext = pszValue;
+
+    // 
+    while (*pszNext != 0 &&
+           *pszNext != ',' && 
+           *pszNext != '\t' &&
+           *pszNext != '\n' &&
+           *pszNext != '\r' &&
+           *pszNext != '>')
+    {
+        pszNext++;
+    }
+
+    nLen = pszNext - pszValue;
+
+    if (nLen == 0)
+        return NULL;
+
+    if (nLen > nBufferLen)
+        nLen = nBufferLen;
+
+    //strncpy(pszBuffer, pszValue, nLen);
+    CRT_strncpy(pszBuffer, nBufferLen, pszValue, nLen);
+    //CRT_strcpy(pszBuffer, nLen, pszValue);
+    
+    if (nLen < nBufferLen)
+        pszBuffer[nLen] = 0;
+    else if (nLen > 0)
+        pszBuffer[nLen-1] = 0;
+
+    // skip backward space
+
+    while (*pszNext != 0 &&
+           (*pszNext == ' '  ||
+            *pszNext == '\t' ||
+            *pszNext == '\n' ||
+            *pszNext == '\r'))
+    {
+        pszNext++;
+    }
+
+    if (*pszNext != 0 && *pszNext != ','&& *pszNext != '>')
+    {
+        // no comma
+        return NULL;
+    }
+
+    if (*pszNext != 0)
+    {
+        pszNext++;
+
+        while (*pszNext != 0 &&
+               (*pszNext == ' '  ||
+                *pszNext == '\t' ||
+                *pszNext == '\n' ||
+                *pszNext == '\r' ||
+                *pszNext == '>'))
+        {
+            pszNext++;
+        }
+    }
+
+    return (char*) pszNext;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ParseArrayTimeData()
+//     - Time Data Convert
+
+char* PARAM_ParseArrayTimeData(const char* pszValue,
+                               char* pszBuffer, int nBufferLen)
+{
+    const char* pszNext;
+    int nLen;
+
+    if (pszValue == NULL)
+        return NULL;
+
+    pszNext = pszValue;
+
+    // 
+    while (*pszNext != 0 &&
+           *pszNext != ',' && 
+           *pszNext != '\t' &&
+           *pszNext != '\n' &&
+           *pszNext != '\r' &&
+           *pszNext != '>' &&
+           *pszNext != ':' &&
+           *pszNext != '-')
+    {
+        pszNext++;
+    }
+
+    nLen = pszNext - pszValue;
+
+    if (nLen == 0)
+        return NULL;
+
+    if (nLen > nBufferLen)
+        nLen = nBufferLen;
+
+    //strncpy(pszBuffer, pszValue, nLen);
+    CRT_strncpy(pszBuffer, nBufferLen, pszValue, nLen);
+    //CRT_strcpy(pszBuffer, nLen, pszValue);
+    
+    if (nLen < nBufferLen)
+        pszBuffer[nLen] = 0;
+    else if (nLen > 0)
+        pszBuffer[nLen-1] = 0;
+
+    // skip backward space
+
+    while (*pszNext != 0 &&
+           (*pszNext == ' '  ||
+            *pszNext == '\t' ||
+            *pszNext == '\n' ||
+            *pszNext == '\r'))
+    {
+        pszNext++;
+    }
+
+    if (*pszNext != 0 && *pszNext != ','&& *pszNext != '>' && *pszNext != ':' && *pszNext != '-')
+    {
+        // no comma
+        return NULL;
+    }
+
+    if (*pszNext != 0)
+    {
+        pszNext++;
+
+        while (*pszNext != 0 &&
+               (*pszNext == ' '  ||
+                *pszNext == '\t' ||
+                *pszNext == '\n' ||
+                *pszNext == '\r' ||
+                *pszNext == '>'))
+        {
+            pszNext++;
+        }
+    }
+
+    return (char*) pszNext;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ConvArrayOneNum()
+//     - Configuration Convert
+
+int PARAM_ConvArrayOneNum(const char* pszLiteral,
+                         int* pnValue, double* pdbValue,
+                         const char** ppszNext)
+{
+    const char* pszNext;
+    char szToken[256];
+    int nType;
+
+    pszNext = PARAM_ParseArrayConfig(pszLiteral,
+                                     szToken,
+                                     sizeof(szToken) / sizeof(szToken[0]));
+
+    if (pszNext == NULL)
+        return CONFIG_NUM_ERROR;
+
+    nType = PARAM_ConvNum(szToken, pnValue, pdbValue);
+
+    if (ppszNext != NULL)
+        *ppszNext = (char*) pszNext;
+
+    return nType;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ConvArrayOneNumTime()
+//     - Configuration Convert
+
+int PARAM_ConvArrayOneNumTime(const char* pszLiteral,
+                              int* pnValue, double* pdbValue,
+                              const char** ppszNext)
+{
+    const char* pszNext;
+    char szToken[256];
+    int nType;
+
+    pszNext = PARAM_ParseArrayTimeData(pszLiteral,
+                                       szToken,
+                                       sizeof(szToken) / sizeof(szToken[0]));
+
+    if (pszNext == NULL)
+        return CONFIG_NUM_ERROR;
+
+    nType = PARAM_ConvNum(szToken, pnValue, pdbValue);
+
+    if (ppszNext != NULL)
+        *ppszNext = (char*) pszNext;
+
+    return nType;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ConvArrayNumInt()
+//     - Configuration Convert
+
+int PARAM_ConvArrayNumInt(const char* pszArrayStr, int rgn[], int nCount)
+{
+    const char* pszArray;
+    const char* pszNext;
+
+    int nType, nValue;
+    int i;
+
+    pszArray = pszArrayStr;
+    nType = CONFIG_NUM_INT;
+
+    for (i = 0; ; i++)
+    {
+        if (*pszArray == 0)
+            break;
+
+        nType = PARAM_ConvArrayOneNum(pszArray, &nValue, NULL, &pszNext);
+
+        if (nType != CONFIG_NUM_INT)
+        {
+            break;
+        }
+
+        if (i < nCount)
+            rgn[i] = nValue;
+
+        pszArray = pszNext;
+    }
+
+    if (nType != CONFIG_NUM_INT)
+    {
+        return CONFIG_NUM_ERROR;
+    }
+
+    return i;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ConvArrayNumFloat()
+//     - Configuration Convert
+
+int PARAM_ConvArrayNumFloat(const char* pszArrayStr, double rgdb[], int nCount)
+{
+    const char* pszArray;
+    const char* pszNext;
+
+    int nType;
+    double dbValue;
+    int i;
+
+    pszArray = pszArrayStr;
+    nType = CONFIG_NUM_INT;
+
+    for (i = 0; ; i++)
+    {
+        if (*pszArray == 0)
+            break;
+
+        nType = PARAM_ConvArrayOneNum(pszArray, NULL, &dbValue, &pszNext);
+
+        if (nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT)
+        {
+            break;
+        }
+
+        if (i < nCount)
+            rgdb[i] = dbValue;
+
+        pszArray = pszNext;
+    }
+
+    if (nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT)
+    {
+        return CONFIG_NUM_ERROR;
+    }
+
+    return i;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: PARAM_ConvArrayNumFloatTime()
+//     - Configuration Convert
+
+int PARAM_ConvArrayNumFloatTime(const char* pszArrayStr, double rgdb[], int nCount)
+{
+    const char* pszArray;
+    const char* pszNext;
+
+    int nType;
+    double dbValue;
+    int i;
+
+    pszArray = pszArrayStr;
+    nType = CONFIG_NUM_INT;
+
+    for (i = 0; ; i++)
+    {
+        if (*pszArray == 0)
+            break;
+
+        nType = PARAM_ConvArrayOneNumTime(pszArray, NULL, &dbValue, &pszNext);
+
+        if (nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT)
+        {
+            break;
+        }
+
+        if (i < nCount)
+            rgdb[i] = dbValue;
+
+        pszArray = pszNext;
+    }
+
+    if (nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT)
+    {
+        return CONFIG_NUM_ERROR;
+    }
+
+    return i;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: ConvVersion()
+//     - Configuration Convert
+
+int ConvVersion(const char* pszVer)
+{
+    int nMajor, nMinor;
+    int i, nVal, nMask;
+
+    nMajor = nMinor = 0;
+
+    // Major version, BIN format
+    while (*pszVer != 0 && *pszVer != '.')
+    {
+        if (*pszVer < '0' || *pszVer > '9')
+            return RESULT_ERROR;
+
+        nVal = (*pszVer) - '0';
+        nMajor = (nMajor * 10) + nVal;
+
+        if (nMajor > 0xff)
+            return RESULT_ERROR;
+
+        pszVer++;
+    }
+
+    // Minor version, BCD format
+    if (*pszVer == '.')
+    {
+        pszVer++;
+        nMask = 0x10;
+
+        for (i = 0; i < 2 && *pszVer != 0; i++)
+        {
+            if (*pszVer < '0' || *pszVer > '9')
+                return RESULT_ERROR;
+
+            DANDY_ASSERT(nMask != 0);
+
+            nVal = (*pszVer) - '0';
+
+            nMinor += nVal * nMask;
+            nMask >>= 4;
+
+            pszVer++;
+        }
+    }
+
+    if (*pszVer != 0)
+        return RESULT_ERROR;
+
+    DANDY_ASSERT(nMajor < 0x100);
+    DANDY_ASSERT(nMinor < 0x100);
+
+    return (nMajor << 8) + nMinor;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: MakeVersionString()
+//     - Configuration Convert
+
+void MakeVersionString(int nVer, char* pszVer)
+{
+    int nMajor, nMinor;
+
+    nMajor = (nVer >> 8) & 0xff;
+    nMinor = (nVer & 0xff);
+
+    if ((nMinor & 0x0f) == 0)
+    {
+        CRT_sprintf(pszVer, RMGR_VERSION_DATA_LEN, "%d.%x", nMajor, (nMinor >> 4) & 0xf);
+    }
+    else
+    {
+        CRT_sprintf(pszVer, RMGR_VERSION_DATA_LEN, "%d.%x", nMajor, nMinor);
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: FindFullPathName()
+//     
+
+int FindFullPathName(const char* pszModuleName, const char* pszSuffix, const char* pszExt,
+                     const char* pszDefDirName,
+                     char* pszFullName, int nNameLen)
+{
+    char szPathName[PATH_NAME_BUFFER_SIZE];
+    int nLen;
+
+#if defined(_WIN32)
+    WIN32_FIND_DATA data;
+    HANDLE hFind;
+
+    char* pszPathEnd;
+    char* pszPathEnd1;
+    char* pszPathEnd2;
+#else
+    const char* pszPathEnd;
+
+    char szDirName[PATH_NAME_BUFFER_SIZE];
+    char szFileName[PATH_NAME_BUFFER_SIZE];
+
+    DIR* pdir;
+    struct dirent* pdirent;
+    int fFound;
+
+    glob_t paths;
+    int nGlobResult;
+    struct stat fattr;
+#endif
+
+    ///////////////////////////////////
+    // make full path name
+    DANDY_ASSERT(pszModuleName != NULL);
+
+    // copy dir name
+    if (pszDefDirName != NULL)
+    {
+        nLen = strlen(pszDefDirName);
+
+        if (pszDefDirName[0] == 0)
+        {
+            CRT_strcpy(szPathName, PATH_NAME_BUFFER_SIZE, "./");
+            nLen = 2;
+        }
+        else
+        {
+            if (pszDefDirName[0] != '/' && pszDefDirName[0] != '\\')
+                nLen++;
+
+            if (nLen >= PATH_NAME_BUFFER_SIZE)
+                return RESULT_ERROR;
+
+            CRT_strcpy(szPathName, PATH_NAME_BUFFER_SIZE, pszDefDirName);
+
+            if (pszDefDirName[0] != '/' && pszDefDirName[0] != '\\')
+            {
+                CRT_strcat(szPathName, PATH_NAME_BUFFER_SIZE, "/");
+            }
+        }
+    }
+    else
+    {
+        nLen = 0;
+        szPathName[0] = 0;
+    }
+
+    // copy module name
+    nLen += strlen(pszModuleName);
+
+    if (nLen >= PATH_NAME_BUFFER_SIZE)
+        return RESULT_ERROR;
+
+    CRT_strcat(szPathName, PATH_NAME_BUFFER_SIZE, pszModuleName);
+    //VERBOSE_VERBOSE("1st Path Name: %s\n", szPathName);
+
+    if (pszSuffix != NULL)
+    {
+        nLen += strlen(pszSuffix);
+
+        if (nLen >= PATH_NAME_BUFFER_SIZE)
+            return RESULT_ERROR;
+
+        CRT_strcat(szPathName, PATH_NAME_BUFFER_SIZE, pszSuffix);
+    }
+    //VERBOSE_VERBOSE("2nd Path Name: %s\n", szPathName);
+
+    // copy ext name
+    if (pszExt != NULL)
+    {
+        nLen += strlen(pszExt);
+
+        if (nLen >= PATH_NAME_BUFFER_SIZE)
+            return RESULT_ERROR;
+
+        CRT_strcat(szPathName, PATH_NAME_BUFFER_SIZE, pszExt);
+    }
+    //VERBOSE_VERBOSE("3rd Path Name: %s\n", szPathName);
+
+    ///////////////////////////////////////////////////////
+    // checking the file
+
+    // original file name
+
+    if (CRT_access(szPathName, 0x00) == 0)
+    {
+        goto ON_FOUND;
+    }
+
+    // the szPathName has wild cards
+#if defined(_WIN32)
+    hFind = FindFirstFile(szPathName, &data);
+
+    if (hFind == INVALID_HANDLE_VALUE)
+    {
+        goto ON_NOT_FOUND;
+    }
+
+    do
+    {
+        // filter sub directories, only normal files
+
+        if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+        {
+            // found normal file
+
+            pszPathEnd1 = strrchr(szPathName, '/');
+            pszPathEnd2 = strrchr(szPathName, '\\');
+
+            if (pszPathEnd1 != NULL && pszPathEnd2 != NULL)
+            {
+                if (pszPathEnd1 - szPathName > pszPathEnd2 - szPathName)
+                    pszPathEnd = pszPathEnd1 + 1;
+                else
+                    pszPathEnd = pszPathEnd2 + 1;
+            }
+            else if (pszPathEnd1 != NULL)
+            {
+                pszPathEnd = pszPathEnd1 + 1;
+            }
+            else if (pszPathEnd2 != NULL)
+            {
+                pszPathEnd = pszPathEnd2 + 1;
+            }
+            else
+            {
+                // drive divider
+                pszPathEnd = strrchr(szPathName, ':');
+
+                if (pszPathEnd != NULL)
+                    pszPathEnd++;
+                else
+                    pszPathEnd = szPathName;
+            }
+
+            // copy file name
+            DANDY_ASSERT(pszPathEnd != NULL);
+            CRT_strcpy(pszPathEnd, CONF_FILENAME_LEN, data.cFileName);
+
+            if (CRT_access(szPathName, 0x00) == 0)
+            {
+                goto ON_FOUND;
+            }
+        }
+    } while (FindNextFile(hFind, &data));
+
+#else
+    // upper case file name
+    strupr(szPathName);
+#if defined(SYSC_VERBOSE)
+    VERBOSE_VERBOSE("Upper Path: %s\n", szPathName);
+#endif
+    if (access(szPathName, 0x00) == 0)
+    {
+        goto ON_FOUND;
+    }
+
+    // lower case file name
+    strlwr(szPathName);
+
+    if (access(szPathName, 0x00) == 0)
+    {
+        goto ON_FOUND;
+    }
+
+    // abstract dir name
+
+    if ((pszPathEnd=strrchr(szPathName, '/')) != NULL)
+    {
+        nLen = pszPathEnd - szPathName + 1;
+
+        strncpy(szDirName, szPathName, nLen);
+        szDirName[nLen] = 0;
+
+        strcpy(szFileName, pszPathEnd + 1);
+    }
+    else
+    {
+        strcpy(szDirName, "./");
+        strcpy(szFileName, szPathName);
+    }
+
+    // search dir
+    pdir = opendir(szDirName);
+
+    if (pdir == NULL)
+        goto ON_NOT_FOUND;
+
+    fFound = 0;
+
+    while (!fFound && (pdirent=readdir(pdir)) != NULL)
+    {
+        fFound = (strcmpi(szFileName, pdirent->d_name) == 0);
+    }
+
+    if (fFound)
+    {
+        strcpy(szPathName, szDirName);
+        strcat(szPathName, pdirent->d_name);
+    }
+
+    closedir(pdir);
+
+    if (fFound)
+        goto ON_FOUND;
+
+    // use glob() for wildcards
+
+    paths.gl_pathc = 0;
+    paths.gl_pathv = NULL;
+    paths.gl_offs = 0;
+
+    nGlobResult = glob(szPathName,
+                       GLOB_MARK,
+                       NULL, &paths );
+
+    if (nGlobResult == 0)
+    {
+        int idx;
+        
+        for (idx = 0; idx < paths.gl_pathc; idx++ )
+        {
+            if (stat(paths.gl_pathv[idx], &fattr) != 0)
+                continue;
+
+            if (S_ISDIR(fattr.st_mode))
+                continue;
+
+            if (access(paths.gl_pathv[idx], 0x00) == 0)
+            {
+                strcpy(szPathName, paths.gl_pathv[idx]);
+                goto ON_FOUND;
+            }
+        }
+        
+        globfree( &paths );
+    }
+
+#endif
+
+    ///////////////
+    //
+ON_NOT_FOUND :
+
+    return RESULT_ERROR;
+
+    ///////////////
+    //
+ON_FOUND :
+    if (nNameLen <= (int) strlen(szPathName))
+        return RESULT_ERROR;
+
+    CRT_strcpy(pszFullName, CONF_PATHNAME_LEN, szPathName);
+#if defined(SYSC_VERBOSE)
+    VERBOSE_VERBOSE("Full Path Name Found '%s' file Name\n", pszFullName);
+#endif
+
+    return 0;
+}

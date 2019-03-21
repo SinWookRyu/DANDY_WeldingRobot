@@ -1,0 +1,1576 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#if defined (__QNXNTO__)
+#include "ecatmkpa.h"
+#include "libmkpaiodev.h"
+//#include "mkpaauxiliary.h"
+#endif 
+
+#include "servocon_main.h"
+#include "dandy_echo.h"
+#include "dandy_msgpass.h"
+#include "dandy_thread.h"
+#include "CRT.h"
+
+#if defined (__QNXNTO__)
+#include "ecatmkpa.h"
+#include "libmkpaiodev.h"
+//#include "mkpaauxiliary.h"
+#endif 
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Variables
+//
+
+unsigned short g_nReadStatusValue[ROB_AXIS_COUNT];
+unsigned short g_DinPortVal[ECAT_READ_DI_SLAVE_COUNT][ECAT_READ_DI_PORT_COUNT];
+ECAT_REAL32    g_AinPortVal[ECAT_READ_AI_SLAVE_COUNT][ECAT_READ_AI_PORT_COUNT];
+
+int g_nSlaveCntNetwork = 0;
+int g_fHWLimitMonAct = ON;
+
+SC_MSG         SC_msg;           // msg packet
+SC_REPLY       SC_reply;         // reply packet
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Functions
+//
+
+int SERV_DoService(const SC_MSG* pMsg, SC_MSG* pReply);  // service function
+int SERV_BrakeReleaseCmd(int nAxis, int nValue);
+int SERV_ResetABSEncoder(void);
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_DoService()
+//
+// -pMsg : pointer to receive packet
+// -pReply: pointer to send packet
+//
+int SERV_DoService(const SC_MSG* pMsg, SC_REPLY* pReply)
+{
+    int nRet = -1;
+    int i;
+
+    //memcpy(pReply, pMsg, 12 + pMsg->size);
+    memcpy(pReply, pMsg, sizeof(SC_MSG));
+
+    switch(pMsg->code)
+    {
+    case SC_SERV_EXIT:
+        g_fLoopGo = FALSE;
+        nRet = MAIN_Exit();
+        break;
+
+    case SC_SERV_VERSION:
+        nRet = SERV_SetVersion(pReply);
+        break;
+
+    case SC_SERV_INIT:
+        nRet = MAIN_Init_External();
+        break;
+
+    case SC_SERV_SERVO:
+        nRet = SERV_ServoOnCmd(pMsg->value);
+        break;
+
+    case SC_SERV_BRAKE_RELEASE:
+        nRet = SERV_BrakeReleaseCmd(pMsg->value, ON);   // value is Axis No
+        break;
+
+    case SC_SERV_BRAKE_LOCK:
+        nRet = SERV_BrakeReleaseCmd(pMsg->value, OFF);  // value is Axis No
+        break;
+
+    case SC_SERV_GET_ALARM_CODE:
+        nRet = SERV_GetAlarmCode();        
+    	break;
+
+    case SC_SERV_ALARM_RESET:
+        nRet = SERV_ClearAlarm();
+    	break;
+
+    case SC_SERV_ECAT_RESTART:
+        nRet = SERV_RestartMaster();
+    	break;
+
+    case SC_SERV_SET_POSITION:
+        nRet = SERV_SetPosition(pMsg->value);
+    	break;
+
+    case SC_SERV_GET_POSITION:
+        nRet = SERV_GetPosition();
+    	break;
+
+    case SC_SERV_ESTOP:
+        nRet = SERV_EStop(pMsg->value);
+    	break;
+
+    case SC_SERV_SCAN_WELD_IO:
+        SERV_Scan_Welder_IO(pMsg->value);
+    	break;
+
+    case SC_SERV_SCAN_SERVO_IO:
+        SERV_Scan_Servo_IO(pMsg->value);
+    	break;
+        
+    case SC_SERV_SCAN_SYS_STATE:
+        SERV_Scan_System_State(pMsg->value);
+    	break;
+
+    case SC_SERV_ARCON_OUT:
+        nRet = SERV_ArcOn_out(pMsg->value);
+    	break;
+
+    case SC_SERV_GASON_OUT:
+        nRet = SERV_GasOn_out(pMsg->value);
+    	break;
+
+    case SC_SERV_INCHING_POS:
+        nRet = SERV_InchingPos_out(pMsg->value);
+    	break;
+
+    case SC_SERV_INCHING_NEG:
+        nRet = SERV_InchingNeg_out(pMsg->value);
+    	break;
+
+    case SC_SERV_TOUCH_START:
+        nRet = SERV_TouchStart_out(pMsg->value);
+    	break;
+
+    case SC_SERV_TOUCH_READY:
+        nRet = SERV_TouchReady_out(pMsg->value);
+    	break;
+
+    case SC_SERV_VOLT_OUT:
+        nRet = SERV_WeldVolt_out((double) (pMsg->value * 0.1));
+    	break;
+
+    case SC_SERV_CURR_OUT:
+        nRet = SERV_WeldCurr_out((double) (pMsg->value * 0.1));
+    	break;
+    
+    case SC_SERV_ABS_ENC_RESET:
+        SERV_ResetABSEncoder();
+        break;
+
+    case SC_TEST_IO_ON:
+        for(i = 0; i < 8; i++)
+            nRet = SERV_EcatDigitalOut(pMsg->value, i, TRUE);
+    	break;
+
+    case SC_TEST_IO_OFF:
+        for(i = 0; i < 8; i++)
+            nRet = SERV_EcatDigitalOut(pMsg->value, i, FALSE);
+    	break;
+
+    case SC_TEST_NETWORK:
+        nRet = SERV_GetNetworkState();
+
+        if (nRet == 0)
+        {
+            VERBOSE_MESSAGE("Network status is normal.\n");
+        }
+        else
+        {
+            VERBOSE_ERROR("Check the network connection status.\n");
+        }
+
+    case SC_HWLINIT_MON_ACT:
+        if(pMsg->value == ON)
+        {
+            g_fHWLimitMonAct = ON;
+            VERBOSE_MESSAGE("H/W Limit Monitoring Activated!\n");
+        }
+        else if(pMsg->value == OFF)
+        {
+            g_fHWLimitMonAct = OFF;
+            VERBOSE_MESSAGE("H/W Limit Monitoring Deactivated!\n");
+            SERV_EStop(OFF);        // E-stop State Released!
+        }
+        else
+            VERBOSE_ERROR("Invalid H/W Limit Act Value! 0 or 1 is allowable.\n");
+    	break;
+
+    case SC_SERV_ALIVE:             // 127(ignore service)
+        break;
+        
+    default:
+        VERBOSE_WARNING("Not defined service code : <%d>\n", pMsg->code);
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_ResetABSEncoder()
+//
+int SERV_ResetABSEncoder(void)
+{
+    int nRet;
+#if defined (__QNXNTO__)
+    int iAxis;
+
+    for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+    {
+        // Home offset set to new value
+        nRet = ECAT_ResetABSEncoder(iAxis);
+
+        // Servo State set to switch on disable
+        nRet = ECAT_ServoStateSetSwitchOnDisable(iAxis);
+        
+        // User Parameter set to new value
+        nRet = ECAT_ServoUserParamReset(iAxis);
+        THREAD_Sleep(20);
+    }
+
+    VERBOSE_MESSAGE("All Axes Encoder Reset Done!\n");
+#endif
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GetSlaveCountFromNetwork()
+//
+// -return: slave count in network
+//
+int SERV_GetSlaveCountFromNetwork(void)
+{
+#if defined (__QNXNTO__)
+    int nRet = 0;
+    unsigned short SlaveCount = 0;
+
+    nRet = EcatIODevSSGetSlaveCount(g_hMaster, &SlaveCount);
+
+    if (nRet != 0)
+    {
+        return -1;        
+    }
+
+    g_nSlaveCount = SlaveCount;
+
+    return SlaveCount;
+#else
+    return g_nSlaveCount;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GetSlaveCountFromFile()
+//
+// -return: slave count in config. file
+//
+int SERV_GetSlaveCountFromFile(void)
+{
+#if defined (__QNXNTO__)
+    int nRet;
+    unsigned short SlaveCount = 0;
+
+    nRet = EcatIODevGetSlaveCount(g_hMaster, &SlaveCount);
+    
+    if (nRet != 0)
+    {
+        return -1;
+    }
+    
+    g_nSlaveCount = SlaveCount;
+
+    return SlaveCount;
+#else
+    return g_nSlaveCount;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GetNetworkState()
+//
+int SERV_GetNetworkState(void)
+{
+    int nSlaveCntFile = 0;
+
+    // get slave count in network
+    g_nSlaveCntNetwork = SERV_GetSlaveCountFromNetwork();
+    //VERBOSE_MESSAGE("Configured No. of Slave: %d\n", g_nSlaveCntNetwork);
+    
+    // get slave count in config. file
+    nSlaveCntFile = SERV_GetSlaveCountFromFile();
+    //VERBOSE_MESSAGE("file slave : %d\n", nSlaveCntFile);
+
+    return(g_nSlaveCntNetwork != nSlaveCntFile || g_nSlaveCntNetwork <= 0 || nSlaveCntFile <= 0)
+        ? RESULT_ERROR : RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetDeviceState()
+//
+int SERV_GetServoState(void)
+{
+    int iAxis, i;
+    int nRet;
+    int nState[8];
+    int mask;    
+    
+
+    for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+    {
+        mask = 0x0001;
+
+        // read status word
+        nRet = ECAT_ReadStatus(iAxis, &g_nReadStatusValue[iAxis]);
+
+        if (nRet != 0)
+        {
+            return -1;
+        }
+                
+        for (i = 0; i < 8; i++)
+        {
+            nState[i] = g_nReadStatusValue[iAxis] & mask;
+            mask = mask << 1;
+#if 0   //tmp for test
+            VERBOSE_VERBOSE("[Axis %d] State Value: %d, nState: %d[%d]\n",
+                            iAxis, g_nReadStatusValue[iAxis], nState[i], i);
+#endif
+        }
+
+        // (1) check fault state (bit 3: xxxx1xxx)        
+        if (nState[3] == 0x08)
+        {
+            g_nError[iAxis] = -1;
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->sysstate.fErrorState = TRUE;
+            }
+        }
+        else
+        {
+            g_nError[iAxis] = 0;
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->sysstate.fErrorState = FALSE;
+            }
+        }
+
+        // (2) servo state (bit 2: xx110111)
+        if (nState[0] == 0x01 && nState[1] == 0x02 && nState[2] == 0x04 &&
+            nState[3] == 0x00 && nState[4] == 0x16)
+        {            
+            g_nServo[iAxis] = 1;
+            if (g_pShmem_sc != NULL)
+            {
+                //g_pShmem_sc->outputstate.fServoOnOutState = TRUE;
+            }
+        }
+        else
+        {
+            g_nServo[iAxis] = 0;
+            if (g_pShmem_sc != NULL)
+            {
+                //g_pShmem_sc->outputstate.fServoOnOutState = FALSE;
+            }
+        }
+#if 0   //tmp for test
+            VERBOSE_VERBOSE("[Axis %d] State Value: %d\n",
+                            iAxis, g_nReadStatusValue[iAxis]);
+#endif
+    }
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GetSlaveState()
+//
+int SERV_GetSlaveState(void)
+{
+#if defined (__QNXNTO__)
+    //ECAT_BYTE byState;
+    int byState = 0;
+    int iSlave;
+
+    for(iSlave = 0; iSlave < g_nSlaveCount; iSlave++)
+    {
+        byState = EcatIODevRequestSlaveState(g_hMaster, iSlave, byState);
+        //VERBOSE_VERBOSE("Current %d slave state : %d\n", iSlave, byState);
+    }
+
+#endif
+    return RESULT_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_RestartMaster()
+//
+int SERV_RestartMaster(void)
+{
+    ECAT_ReleaseMaster();
+
+    ECAT_Init();
+
+    //SERV_GetSlaveState();
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_EStop()
+//
+// -nValue: value of receive packet (0: off, 1: on)
+//
+int SERV_EStop(int nValue)
+{
+    int iAxis;
+
+    if (nValue == OFF ||
+        g_pShmem_sc->inputstate.fController_EstopInState == ESTOP_DEACT)// escape e-stop state
+    {
+        g_pShmem_sc->sysstate.fEStopState = FALSE;
+        VERBOSE_MESSAGE("E-stop state OFF.\n");
+    }
+    if (nValue == ON ||
+        g_pShmem_sc->inputstate.fController_EstopInState == ESTOP_ACT)  // set e-stop state
+    {
+        g_pShmem_sc->sysstate.fEStopState = TRUE;
+        VERBOSE_MESSAGE("E-stop state ON.\n");
+        if(g_pShmem_sc->outputstate.fServoOnOutState == ON)
+        {
+            for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+            {
+                ECAT_QuickStop(iAxis);
+            }
+
+            for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+            {
+                ECAT_ServoOff(iAxis);
+            }
+
+            SERV_ServoOnCmd(OFF);
+        }
+    }
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GetPosition()
+//
+int SERV_GetPosition(void)
+{
+#if defined (__QNXNTO__)
+	int nRet = 0;
+    int i;
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        // get actual pos.
+        nRet = ECAT_ReadPosition(i, &g_nAct_Pulse[i]);
+
+        //VERBOSE_VERBOSE("Axis[%d]: %d\n", i, g_dbAct_Pos[i]);
+
+        if (nRet != 0)
+        {
+            VERBOSE_ERROR("Cannot get %d axis position\n", i);
+        }
+
+        // write actual pos. to SC_SHM
+        if (g_pShmem_sc != NULL)
+        {
+            FUNC_ConvertPulseToPos(i, ACTUAL_POS_IDX);
+            g_pShmem_sc->inputstate.dbActPos[i] = g_dbAct_Pos[i];
+            g_dbTrg_Pos[i] = g_pShmem_sc->outputcmd.dbTrgPos[i] = g_dbAct_Pos[i];
+        }
+    }
+
+    return nRet;
+
+#else
+    int i;
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        if (g_pShmem_sc != NULL)
+        {
+            FUNC_ConvertPulseToPos(i, TARGET_POS_IDX);
+            g_pShmem_sc->inputstate.dbActPos[i] = g_dbTrg_Pos[i];
+        }
+    }
+    
+    return RESULT_OK;
+
+#endif
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_SetVersion()
+//
+// -pMsg: message packet data
+// 
+int SERV_SetVersion(SC_MSG* pMsg)
+{
+    CRT_strcpy(pMsg->data.vers.sc_build,
+               sizeof(pMsg->data.vers.sc_build), 
+               SC_BUILD);
+
+    CRT_strcpy(pMsg->data.vers.sc_vers,
+               sizeof(pMsg->data.vers.sc_vers),
+               SC_VERSION);            
+        
+    pMsg->size = sizeof(pMsg->data.vers);
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GetAlarmCode()
+//
+int SERV_GetAlarmCode(void)
+{
+    int nRet;
+	int i;
+
+    if (g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+    	return RESULT_ERROR;
+    }
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        nRet = ECAT_GetAlarmCode(i, (ECAT_WORD*) &g_nErrCode[i]);
+#if 0        
+        VERBOSE_VERBOSE("%d axis alarm code : %x\n", i, g_nErrCode[i]);
+#endif
+    }
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_EcatDigitalOut()
+//
+// -nIndex: index of IO device
+// -nValue: TRUE(on)/FALSE(off)
+//
+int SERV_EcatDigitalOut(int nSlave, int nIndex, BOOL bValue)
+{
+#if defined (__QNXNTO__)
+	int nRet;
+
+    if (bValue == TRUE)
+    {
+        nRet = ECAT_WriteDigitalOut(nSlave, nIndex, TRUE);
+    }
+    else
+    {
+        nRet = ECAT_WriteDigitalOut(nSlave, nIndex, FALSE);
+    }
+    
+    return nRet;
+#else
+    if (bValue == TRUE)
+    {
+        //VERBOSE_VERBOSE("%d - %d IO is ON\n", nSlave, nIndex);
+    }
+    else
+    {
+        //VERBOSE_VERBOSE("%d - %d IO is OFF\n", nSlave, nIndex);        
+    }
+
+    return RESULT_OK;
+#endif    
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_BrakeReleaseCmd()
+// -nAxis: Axis No (0 ~ 5)
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_BrakeReleaseCmd(int nAxis, int nValue)
+{
+    int nRet = 0;
+
+    if (nValue == OFF)  // Brake Lock
+    {
+        nRet = ECAT_WritePhysicalOutput(nAxis, OFF);
+        THREAD_Sleep(10);
+        
+        if(nRet == RESULT_OK)
+        {
+            SC_reply.data.servoout.fBrakeReleaseOutState[nAxis] = OFF;
+            g_pShmem_sc->outputstate.fBrakeReleaseOutState[nAxis] = OFF;
+        }
+
+        VERBOSE_MESSAGE("Axis%d Brake Lock.\n", nAxis);
+    }
+    else if (nValue == ON)  // Brake Release
+    {
+        nRet = ECAT_WritePhysicalOutput(nAxis, ON);
+        THREAD_Sleep(10);
+        
+        if(nRet == RESULT_OK)
+        {
+            SC_reply.data.servoout.fBrakeReleaseOutState[nAxis] = ON;
+            g_pShmem_sc->outputstate.fBrakeReleaseOutState[nAxis] = ON;
+        }
+
+        VERBOSE_MESSAGE("Axis%d Brake Release.\n", nAxis);
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_ServoOnCmd()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+
+int SERV_ServoOnCmd(int nValue)
+{
+    int nRet = 0;
+    int iAxis;
+
+#if 0
+    // check TE state
+    if (g_pShmem_te != NULL)
+    {
+        if (g_pShmem_te->run_mode != RUNMODE_NONE)
+        {
+        	VERBOSE_WARNING("TE process is run-mode.\n");
+        	return 0;
+        }
+    }
+
+#endif
+
+	// check master instance state
+	if (g_hMaster == NULL)
+	{
+		VERBOSE_WARNING("Not ready to use Master.\n");
+		return RESULT_ERROR;
+	}
+
+    // check ethercat state
+    if (g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+        VERBOSE_ERROR("Check the ethercat network\n");
+    	return RESULT_ERROR;
+    }
+    
+    // check alarm code
+    if (g_pShmem_sc->sysstate.fErrorState == TRUE)
+    {
+        VERBOSE_WARNING("Cannot servo on/off. Check alarm code.\n");
+        return RESULT_ERROR;
+    }
+
+    if (nValue == OFF)  // servo off
+    {
+SERVO_OFF:
+        for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            nRet = ECAT_ServoOff(iAxis);
+            THREAD_Sleep(100);
+            SERV_GetServoState();
+            THREAD_Sleep(50);
+
+            while(g_nReadStatusValue[iAxis] == SRVSTATE_CODE_SERVO_ON)
+            {
+                ECAT_ServoOff(iAxis);
+                THREAD_Sleep(50);
+                SERV_GetServoState();
+            }
+        }
+
+        if(nRet == RESULT_OK)
+        {
+            VERBOSE_MESSAGE("Servo off.\n");
+
+            SC_reply.data.servoout.fServoOnOutState = OFF;
+            g_pShmem_sc->outputstate.fServoOnOutState = OFF;
+        }
+        else
+            goto SERVO_OFF;
+    }
+    else if (nValue == ON)  // servo on
+    {
+SERVO_ON:
+        for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            nRet = ECAT_ServoOn(iAxis);
+            THREAD_Sleep(100);
+            SERV_GetServoState();
+            THREAD_Sleep(50);
+
+            while(g_nReadStatusValue[iAxis] == SRVSTATE_CODE_SERVO_OFF)
+            {
+                 ECAT_ServoOn(iAxis);
+                 THREAD_Sleep(50);
+                 SERV_GetServoState();
+            }
+        }
+        
+        if(nRet == RESULT_OK)
+        {
+            VERBOSE_MESSAGE("Servo on.\n");
+
+            SC_reply.data.servoout.fServoOnOutState = ON;
+            g_pShmem_sc->outputstate.fServoOnOutState = ON;
+        }
+        else
+            goto SERVO_ON;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Scan Input Service
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_Scan_Welder_IO()
+//
+// -nOpt: option for scan range (Din,Ain,Dout,Aout..etc)
+// 0: All
+// 1: Weld Digital Input        2: Weld Analog Intput
+// 3: Weld Digital Output       4: Weld Analog Output
+//
+// Welder I/O Config
+// Din -> 0: Arc    1: No Gas   2: No Wire  3: Welder Power Fail
+//        4: Touch Process      5: Touch Signal
+// Ain -> 0: Volt In            1: Current In
+// Dout-> 0: Arc ON 1: Gas On   2: Wire Inching +   3: Wrie Inching -
+//        4: Touch Start        5: Touch Ready(MC On)
+// Aout-> 0: Volt Out           1: Current Out
+//
+#define ARCON_DI_PORT_NO                0
+#define NOGAS_DI_PORT_NO                1
+#define NOWIRE_DI_PORT_NO               2
+#define WELDERPWRFAIL_DI_PORT_NO        3
+#define TOUCHPROCESS_DI_PORT_NO         4
+#define TOUCHSIGNAL_DI_PORT_NO          5
+
+#define VOLT_AI_PORT_NO                 0
+#define CURR_AI_PORT_NO                 1
+
+#define ARCON_DO_STATE_NO               0
+#define GASON_DO_STATE_NO               1
+#define INCHPOS_DO_STATE_NO             2
+#define INCHNEG_DO_STATE_NO             3
+#define TOUCHSTART_DO_STATE_NO          4
+#define TOUCHREADY_DO_STATE_NO          5
+
+#define VOLT_AO_STATE_NO                0
+#define CURR_AO_STATE_NO                1
+
+void SERV_Scan_Welder_IO(int nOpt)
+{
+    if(nOpt == 0)
+    {
+        // Digital In
+        SC_reply.data.welder_mon.weldDin.nWeldDInPortVal[ARCON_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fArcOnInState;
+        SC_reply.data.welder_mon.weldDin.nWeldDInPortVal[NOGAS_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fNoGasInState;
+        SC_reply.data.welder_mon.weldDin.nWeldDInPortVal[NOWIRE_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fNoWireInState;
+        SC_reply.data.welder_mon.weldDin.nWeldDInPortVal[WELDERPWRFAIL_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fWeldPowerFailInState;
+        SC_reply.data.welder_mon.weldDin.nWeldDInPortVal[TOUCHPROCESS_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fTouchProcessInState;
+        SC_reply.data.welder_mon.weldDin.nWeldDInPortVal[TOUCHSIGNAL_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fTouchSignalInState;
+
+        // Analog In
+        SC_reply.data.welder_mon.weldAin.dbWeldAInPortVal[VOLT_AI_PORT_NO] = 
+            g_pShmem_sc->inputstate.dbWeldVoltInVal;
+        SC_reply.data.welder_mon.weldAin.dbWeldAInPortVal[CURR_AI_PORT_NO] = 
+            g_pShmem_sc->inputstate.dbWeldCurrInVal;
+
+        // Digital Out
+        SC_reply.data.welder_mon.weldDout.nWeldDOutPortVal[ARCON_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fArcOnOutState;
+        SC_reply.data.welder_mon.weldDout.nWeldDOutPortVal[GASON_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fGasOnOutState;
+        SC_reply.data.welder_mon.weldDout.nWeldDOutPortVal[INCHPOS_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fInchingPosOutState;
+        SC_reply.data.welder_mon.weldDout.nWeldDOutPortVal[INCHNEG_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fInchingNegOutState;
+        SC_reply.data.welder_mon.weldDout.nWeldDOutPortVal[TOUCHSTART_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fTouchStartOutState;
+        SC_reply.data.welder_mon.weldDout.nWeldDOutPortVal[TOUCHREADY_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fTouchReadyOutState;
+
+        // Analog Out
+        SC_reply.data.welder_mon.weldAout.dbWeldAOutPortVal[VOLT_AO_STATE_NO] = 
+            g_pShmem_sc->outputstate.dbWeldVoltOutVal;
+        SC_reply.data.welder_mon.weldAout.dbWeldAOutPortVal[CURR_AO_STATE_NO] = 
+            g_pShmem_sc->outputstate.dbWeldCurrOutVal;
+    }
+    else if(nOpt == 1)
+    {
+        // Digital In
+        SC_reply.data.weldDin.nWeldDInPortVal[ARCON_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fArcOnInState;
+        SC_reply.data.weldDin.nWeldDInPortVal[NOGAS_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fNoGasInState;
+        SC_reply.data.weldDin.nWeldDInPortVal[NOWIRE_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fNoWireInState;
+        SC_reply.data.weldDin.nWeldDInPortVal[WELDERPWRFAIL_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fWeldPowerFailInState;
+        SC_reply.data.weldDin.nWeldDInPortVal[TOUCHPROCESS_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fTouchProcessInState;
+        SC_reply.data.weldDin.nWeldDInPortVal[TOUCHSIGNAL_DI_PORT_NO] = 
+            g_pShmem_sc->inputstate.fTouchSignalInState;
+    }
+    else if(nOpt == 2)
+    {
+        // Analog In
+        SC_reply.data.weldAin.dbWeldAInPortVal[VOLT_AI_PORT_NO] = 
+            g_pShmem_sc->inputstate.dbWeldVoltInVal;
+        SC_reply.data.weldAin.dbWeldAInPortVal[CURR_AI_PORT_NO] = 
+            g_pShmem_sc->inputstate.dbWeldCurrInVal;
+    }
+    else if(nOpt == 3)
+    {
+        // Digital Out
+        SC_reply.data.weldDout.nWeldDOutPortVal[ARCON_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fArcOnOutState;
+        SC_reply.data.weldDout.nWeldDOutPortVal[GASON_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fGasOnOutState;
+        SC_reply.data.weldDout.nWeldDOutPortVal[INCHPOS_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fInchingPosOutState;
+        SC_reply.data.weldDout.nWeldDOutPortVal[INCHNEG_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fInchingNegOutState;
+        SC_reply.data.weldDout.nWeldDOutPortVal[TOUCHSTART_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fTouchStartOutState;
+        SC_reply.data.weldDout.nWeldDOutPortVal[TOUCHREADY_DO_STATE_NO] = 
+            g_pShmem_sc->outputstate.fTouchReadyOutState;
+    }
+    else if(nOpt == 4)
+    {
+        // Analog Out
+        SC_reply.data.weldAout.dbWeldAOutPortVal[VOLT_AO_STATE_NO] = 
+            g_pShmem_sc->outputstate.dbWeldVoltOutVal;
+        SC_reply.data.weldAout.dbWeldAOutPortVal[CURR_AO_STATE_NO] = 
+            g_pShmem_sc->outputstate.dbWeldCurrOutVal;
+    }
+
+    // Determine Packet Size
+    if(nOpt == 0)
+        SC_reply.size = sizeof(SC_reply.data.welder_mon);
+    else if(nOpt == 1)
+        SC_reply.size = sizeof(SC_reply.data.welder_mon.weldDin);
+    else if(nOpt == 2)
+        SC_reply.size = sizeof(SC_reply.data.welder_mon.weldAin);
+    else if(nOpt == 3)
+        SC_reply.size = sizeof(SC_reply.data.welder_mon.weldDout);
+    else if(nOpt == 4)
+        SC_reply.size = sizeof(SC_reply.data.welder_mon.weldAout);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_Scan_Servo_IO()
+//
+// -nOpt: option for scan range (Din,Ain,Dout,Aout..etc)
+// 0: All
+// 1: Brake Digital Input       2: Brake ECAT Output
+//
+// Servo I/O Config
+// Din -> 0~5: Brake Status   6~11: Brake Clear
+// ECATout -> 0~5: Brake Release Out
+//
+void SERV_Scan_Servo_IO(int nOpt)
+{
+    int iAxis;
+
+    if(nOpt == 0)
+    {
+        // Brake State & Clear Digtal In
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+        {
+            SC_reply.data.servo_mon.servoin.nBrakeDInPortVal[iAxis] =
+                g_pShmem_sc->inputstate.fBrakeStatusInState[iAxis];
+
+            SC_reply.data.servo_mon.servoin.nBrakeDInPortVal[g_nAxisCount + iAxis] =
+                g_pShmem_sc->inputstate.fBrakeClearInState[iAxis];
+        }
+
+        // Servo On Output State
+        SC_reply.data.servo_mon.servoout.fServoOnOutState = 
+            g_pShmem_sc->outputstate.fServoOnOutState;
+
+        // Brake Release Output State
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+        {
+            SC_reply.data.servo_mon.servoout.fBrakeReleaseOutState[iAxis] = 
+              g_pShmem_sc->outputstate.fBrakeReleaseOutState[iAxis];
+        }
+    }
+    else if(nOpt == 1)
+    {
+        // Brake State & Clear Digtal In
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+        {
+            SC_reply.data.servoin.nBrakeDInPortVal[iAxis] =
+                g_pShmem_sc->inputstate.fBrakeStatusInState[iAxis];
+
+            SC_reply.data.servoin.nBrakeDInPortVal[g_nAxisCount + iAxis] =
+                g_pShmem_sc->inputstate.fBrakeClearInState[iAxis];
+        }
+    }
+    else if(nOpt == 2)
+    {
+        // Servo On Output State
+        SC_reply.data.servoout.fServoOnOutState = 
+            g_pShmem_sc->outputstate.fServoOnOutState;
+
+         // Brake Release Output State
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+        {
+            SC_reply.data.servoout.fBrakeReleaseOutState[iAxis] = 
+              g_pShmem_sc->outputstate.fBrakeReleaseOutState[iAxis];
+        }
+    }
+
+    // Determine Packet Size
+    if(nOpt == 0)
+        SC_reply.size = sizeof(SC_reply.data.servo_mon);
+    else if(nOpt == 1)
+        SC_reply.size = sizeof(SC_reply.data.servo_mon.servoin);
+    else if(nOpt == 2)
+        SC_reply.size = sizeof(SC_reply.data.servo_mon.servoout);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_Scan_System_State()
+//
+// -nOpt: option for scan range (Din,Ain,Dout,Aout..etc)
+// 0: All                       1: System State
+// 2: System I/O                3: Actual Position
+//
+void SERV_Scan_System_State(int nOpt)
+{
+    int iAxis;
+
+    if(nOpt == 0)
+    {
+        // System State
+        SC_reply.data.realtime_sysmon.sysstate.fEcatInitState = 
+            g_pShmem_sc->sysstate.fEcatInitState;
+        SC_reply.data.realtime_sysmon.sysstate.fErrorState = 
+            g_pShmem_sc->sysstate.fErrorState;
+        SC_reply.data.realtime_sysmon.sysstate.fEStopState = 
+            g_pShmem_sc->sysstate.fEStopState;
+        SC_reply.data.realtime_sysmon.sysstate.nErrorCode = 
+            g_pShmem_sc->sysstate.nErrorCode;
+
+        // System I/O State
+        SC_reply.data.realtime_sysmon.sysiostate.fController_EstopInState = 
+            g_pShmem_sc->inputstate.fController_EstopInState;
+        SC_reply.data.realtime_sysmon.sysiostate.fDeadManSwithInState = 
+            g_pShmem_sc->inputstate.fDeadManSwithInState;
+        SC_reply.data.realtime_sysmon.sysiostate.fTP_EstopInState = 
+            g_pShmem_sc->inputstate.fTP_EstopInState;
+
+        // Actual Position
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+        {
+            SC_reply.data.realtime_sysmon.pos.dbActPos[iAxis] = 
+                g_pShmem_sc->inputstate.dbActPos[iAxis];
+        }
+    }
+    else if(nOpt == 1)
+    {
+        // System State
+        SC_reply.data.sysstate.fEcatInitState = 
+            g_pShmem_sc->sysstate.fEcatInitState;
+        SC_reply.data.sysstate.fErrorState = 
+            g_pShmem_sc->sysstate.fErrorState;
+        SC_reply.data.sysstate.fEStopState = 
+            g_pShmem_sc->sysstate.fEStopState;
+        SC_reply.data.sysstate.nErrorCode = 
+            g_pShmem_sc->sysstate.nErrorCode;
+    }
+    else if(nOpt == 2)
+    {
+        // System I/O State
+        SC_reply.data.sysiostate.fController_EstopInState = 
+            g_pShmem_sc->inputstate.fController_EstopInState;
+        SC_reply.data.sysiostate.fDeadManSwithInState = 
+            g_pShmem_sc->inputstate.fDeadManSwithInState;
+        SC_reply.data.sysiostate.fTP_EstopInState = 
+            g_pShmem_sc->inputstate.fTP_EstopInState;
+    }
+    else if(nOpt == 3)
+    {
+        // Actual Position
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+        {
+            SC_reply.data.pos.dbActPos[iAxis] = 
+                g_pShmem_sc->inputstate.dbActPos[iAxis];
+        }
+    }
+
+    // Determine Packet Size
+    if(nOpt == 0)
+        SC_reply.size = sizeof(SC_reply.data.realtime_sysmon);
+    else if(nOpt == 1)
+        SC_reply.size = sizeof(SC_reply.data.realtime_sysmon.sysstate);
+    else if(nOpt == 2)
+        SC_reply.size = sizeof(SC_reply.data.realtime_sysmon.sysiostate);
+    else if(nOpt == 3)
+        SC_reply.size = sizeof(SC_reply.data.realtime_sysmon.pos);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Analog Out Service
+
+#define WELD_AO_SLAVE_NO                0
+
+#define VOLT_AO_PORT_NO                 0
+#define CURR_AO_PORT_NO                 1
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_WeldVolt_out()
+//
+// -dbValue: value of analog output
+//
+int SERV_WeldVolt_out(double dbValue)
+{
+    int nRet = 0;
+
+    nRet = ECAT_WriteAnalogOut(WELD_AO_SLAVE_NO, VOLT_AO_PORT_NO, (float) dbValue);
+    VERBOSE_MESSAGE("Weld Voltage Out: %.2lf V\n", dbValue);
+    
+    SC_reply.data.weldAout.dbWeldAOutPortVal[VOLT_AO_PORT_NO] = dbValue;
+    g_pShmem_sc->outputstate.dbWeldVoltOutVal = dbValue;
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_WeldCurr_out()
+//
+// -dbValue: value of analog output
+//
+int SERV_WeldCurr_out(double dbValue)
+{
+    int nRet = 0;
+
+    nRet = ECAT_WriteAnalogOut(WELD_AO_SLAVE_NO, CURR_AO_PORT_NO, (float) dbValue);
+    VERBOSE_MESSAGE("Weld Current Out: %.2lf V\n", dbValue);
+
+    SC_reply.data.weldAout.dbWeldAOutPortVal[CURR_AO_PORT_NO] = dbValue;
+    g_pShmem_sc->outputstate.dbWeldCurrOutVal = dbValue;
+
+    return nRet;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Digital Out Service (Weld Dout)
+
+#define WELD_DO_SLAVE_NO                0
+
+#define ARCON_DO_PORT_NO                0
+#define GASON_DO_PORT_NO                1
+#define INCHPOS_DO_PORT_NO              2
+#define INCHNEG_DO_PORT_NO              3
+#define TOUCHSTART_DO_PORT_NO           4
+#define TOUCHREADY_DO_PORT_NO           5
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_ArcOn_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_ArcOn_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, ARCON_DO_PORT_NO, ON);
+        VERBOSE_MESSAGE("Arc On.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[ARCON_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputstate.fArcOnOutState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, ARCON_DO_PORT_NO, OFF);
+        VERBOSE_MESSAGE("Arc Off.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[ARCON_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputstate.fArcOnOutState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_GasOn_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_GasOn_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, GASON_DO_PORT_NO, ON);
+        VERBOSE_MESSAGE("Gas On.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[GASON_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputstate.fGasOnOutState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, GASON_DO_PORT_NO, OFF);
+        VERBOSE_MESSAGE("Gas Off.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[GASON_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputstate.fGasOnOutState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_InchingPos_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_InchingPos_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, INCHPOS_DO_PORT_NO, ON);
+        VERBOSE_MESSAGE("Inching Positive On.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[INCHPOS_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputstate.fInchingPosOutState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, INCHPOS_DO_PORT_NO, OFF);
+        VERBOSE_MESSAGE("Inching Positive Off.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[INCHPOS_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputstate.fInchingPosOutState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_InchingNeg_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_InchingNeg_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, INCHNEG_DO_PORT_NO, ON);
+        VERBOSE_MESSAGE("Inching Negative On.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[INCHNEG_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputstate.fInchingNegOutState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, INCHNEG_DO_PORT_NO, OFF);
+        VERBOSE_MESSAGE("Inching Negative Off.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[INCHNEG_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputstate.fInchingNegOutState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_TouchStart_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_TouchStart_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, TOUCHSTART_DO_PORT_NO, ON);
+        VERBOSE_MESSAGE("Touch Start On.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[TOUCHSTART_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputstate.fTouchStartOutState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, TOUCHSTART_DO_PORT_NO, OFF);
+        VERBOSE_MESSAGE("Touch Start Off.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[TOUCHSTART_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputstate.fTouchStartOutState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_TouchReady_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_TouchReady_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, TOUCHREADY_DO_PORT_NO, ON);
+        VERBOSE_MESSAGE("Touch Ready On.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[TOUCHREADY_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputstate.fTouchReadyOutState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(WELD_DO_SLAVE_NO, TOUCHREADY_DO_PORT_NO, OFF);
+        VERBOSE_MESSAGE("Touch Ready Off.\n");
+
+        SC_reply.data.weldDout.nWeldDOutPortVal[TOUCHREADY_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputstate.fTouchReadyOutState = OFF;
+    }
+
+    return nRet;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Digital Out Service (Lamp Dout)
+
+#define LAMP_DO_SLAVE_NO                1
+
+#define LAMP_CONT_READY_DO_PORT_NO      0
+#define LAMP_OPERATING_DO_PORT_NO       1
+#define LAMP_SERVOON_DO_PORT_NO         2
+#define LAMP_ECAT_RUN_DO_PORT_NO        3
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_LampControllerReady_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_LampControllerReady_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_CONT_READY_DO_PORT_NO, ON);
+        //VERBOSE_MESSAGE("Controller Ready Lamp On.\n");
+
+        g_pShmem_sc->outputstate.fLampControllerReadyState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_CONT_READY_DO_PORT_NO, OFF);
+        //VERBOSE_MESSAGE("Controller Ready Lamp Off.\n");
+
+        g_pShmem_sc->outputstate.fLampControllerReadyState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_LampUnderOperating_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_LampUnderOperating_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_OPERATING_DO_PORT_NO, ON);
+        //VERBOSE_MESSAGE("Under Operating Lamp On.\n");
+
+        g_pShmem_sc->outputstate.fLampUnderOperatingState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_OPERATING_DO_PORT_NO, OFF);
+        //VERBOSE_MESSAGE("Under Operating Lamp Off.\n");
+
+        g_pShmem_sc->outputstate.fLampUnderOperatingState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_LampServoOn_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_LampServoOn_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_SERVOON_DO_PORT_NO, ON);
+        //VERBOSE_MESSAGE("Servo On Lamp On.\n");
+
+        g_pShmem_sc->outputstate.fLampServoOnState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_SERVOON_DO_PORT_NO, OFF);
+        //VERBOSE_MESSAGE("Servo On Lamp Off.\n");
+
+        g_pShmem_sc->outputstate.fLampServoOnState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_LampEtherCATRun_out()
+//
+// -nValue: boolean value (0: off, 1: on)
+//
+int SERV_LampEtherCATRun_out(int nValue)
+{
+    int nRet = 0;
+
+    if(nValue == ON)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_ECAT_RUN_DO_PORT_NO, ON);
+        //VERBOSE_MESSAGE("EtherCAT Run Lamp On.\n");
+
+        g_pShmem_sc->outputstate.fLampEtherCATRunState = ON;
+    }
+    else if(nValue == OFF)
+    {
+        nRet = SERV_EcatDigitalOut(LAMP_DO_SLAVE_NO, LAMP_ECAT_RUN_DO_PORT_NO, OFF);
+        //VERBOSE_MESSAGE("EtherCAT Run Lamp Off.\n");
+
+        g_pShmem_sc->outputstate.fLampEtherCATRunState = OFF;
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_SetPosition()
+//
+// -nValue: value of position (pulse)
+//
+int SERV_SetPosition(int nValue)
+{
+    int nRet = 0;
+    g_fSetPosFuncActive = TRUE;
+    THREAD_Sleep(100);
+
+#if defined (__QNXNTO__)
+    int iAxis;
+
+    for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+    {
+        nRet = ECAT_WritePosition(iAxis, nValue);
+    }
+
+#endif
+    
+    THREAD_Sleep(100);
+    g_fSetPosFuncActive = FALSE;
+
+    return nRet;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SERV_ClearAlarm()
+//
+int SERV_ClearAlarm(void)
+{
+    int nRet;
+    int iAxis;    
+
+    for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+    {
+        nRet = ECAT_AlarmClear(iAxis);
+    }
+
+    if (g_pShmem_sc != NULL)
+    {
+        if(g_pShmem_sc->outputstate.fServoOnOutState == ON)
+        {
+            SERV_ServoOnCmd(OFF);
+        }
+
+        for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            if(g_nErrCode[iAxis] != 0 ||
+               g_nReadStatusValue[iAxis] != SRVSTATE_CODE_SERVO_OFF)
+            {
+                g_pShmem_sc->sysstate.fErrorState = TRUE;
+                VERBOSE_MESSAGE("Not Cleared servo alarm. Try Again.\n");
+            }
+            else
+            {
+                g_pShmem_sc->sysstate.fErrorState = FALSE;
+                VERBOSE_MESSAGE("Cleared servo alarm.\n");
+            }
+        }
+    }
+    
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// DSP_SetVerbose()
+//
+void DSP_SetVerbose(void)
+{
+    switch(g_chPrintLev)
+    {    
+    case 'm':
+        // -message argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    case 'w':
+        // -warning argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    case 'e':
+        // -error argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    case 'v':        
+        // -verbose argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    default:        
+        // -verbose argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+    }
+
+    // set vervose color
+    VERBOSE_SetColor(VERBOSE_TYPE_VERBOSE, 
+                     ECHO_COLOR_WHITE, 
+                     ECHO_COLOR_BLACK);
+}

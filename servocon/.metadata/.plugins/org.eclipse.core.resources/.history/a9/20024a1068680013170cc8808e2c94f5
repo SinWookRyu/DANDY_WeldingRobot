@@ -1,0 +1,702 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  job_svc.c: Job Related Service
+//                                            2013.11.11  Ryu SinWook
+
+///////////////////////////////////////
+#include "service.h"
+
+
+///////////////////////////////////////
+
+
+///////////////////////////////////////
+//Global_variable
+int  g_nJobExecLineIdx = 0;
+int  g_fSVCExecThRun = RUN;
+int  g_fJobExecRun = OFF;
+int  g_fJobExecStepMode = OFF;
+int  g_nHomeSpeed[MAX_ROBOT_COUNT];
+int  g_fJobLoadDoneCheck = OFF;
+int  g_nCmdLoadCount;
+
+RMGR_JOBCALL_STACK_DATA g_rgCmdCallStack[MAX_CALL_COUNT];
+int  g_nCmdCallTop;
+
+RMGR_JOBRETURN_DATA     g_ReturnTarget[MAX_CALL_COUNT];
+
+/////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////
+//
+//  Function: SVC_LoadJobData()
+//      - Service Name: RSVC_SERV_JOBLOAD
+//                      RSVC_SERV_GENMAPFILE
+
+int SVC_LoadJobData(const char* pszCompileTargetFileName)
+{
+    static int nRet;
+    const char* pszCompileOpt;
+
+    // Check Compile Option
+    if(RM_packet.nValue & JOBASM_AF_NONE)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_NONE);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_ONEPASS)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_ONEPASS);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_CHECK_ONLY)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_CHECK_ONLY);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_STRICT)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_STRICT);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_DANDY1996)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_DANDY1996);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+
+    g_nAssembleOpt = RM_packet.nValue;
+
+    memcpy(Job_msg_data.szJobFileName,
+           pszCompileTargetFileName,
+           sizeof(Job_msg_data.szJobFileName));
+
+    memcpy(g_pShm_SysStatus->szCurrJobFileName,
+           pszCompileTargetFileName,
+           sizeof(g_pShm_SysStatus->szCurrJobFileName));
+
+    VERBOSE_MESSAGE("Received Job Name: %s\n", Job_msg_data.szJobFileName);
+
+    // disassemble old job data & delete old job file
+    if(g_fAseembleDone == TRUE)
+    {
+        nRet = JOB_DoJobDisassemble();
+
+        if(nRet == RESULT_OK)
+        {
+            SVC_DefineErrorState(OFF, 0);
+        }
+        else
+        {
+            SVC_DefineErrorState(ON, SVC_ERR_JOB_COMPILE);
+        }
+    }
+
+    // Compile Job data & Load Job shared memory
+    nRet = JOB_DoJobAssemble();
+
+    // Define Reply Message
+    memcpy(RM_reply_packet.Data.job_load.szJobFileName,
+           //RM_packet.Data.job_load.szJobFileName,
+           pszCompileTargetFileName,
+           sizeof(Job_msg_data.szJobFileName));
+
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RMGR_JOB_LOAD_DATA);
+
+    if(nRet == RESULT_OK)
+    {
+        g_pShm_SysStatus->nWorkType = WORK_TYPE_JOB;
+        g_fJobLoadDoneCheck = ON;
+        g_nJobExecLineIdx = 0;
+        g_fJobExecRun = OFF;
+        g_nJobExecLineIdx = 0;
+        g_fJobExecStepMode = OFF;
+        if(g_fCallModeJobLoad == TRUE)
+        {
+            g_pShm_SysStatus->fJobLoadDone = 1;
+        }
+    }
+    else if(nRet == RESULT_ERROR)
+    {
+        g_fJobLoadDoneCheck = OFF;
+        g_fJobExecRun = OFF;
+        if(g_fCallModeJobLoad == TRUE)
+        {
+            g_pShm_SysStatus->fJobLoadDone = -1;
+        }
+    }
+
+    g_fCallModeJobLoad = FALSE;
+
+    return nRet;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_ExecuteJobProgAuto()
+//      - Service Name: RSVC_SERV_JOBEXECAUTO
+
+int SVC_ExecuteJobProgAuto(int nLineIdx)
+{
+    int nRet;
+    int iCnt = 0;
+
+    // Request Servo On to SC
+    nRet = MSG_SendPulse(g_coidSC, SC_SERV_SERVO, ON);
+    
+    // Wait for Servo On State
+    DANDY_SLEEP(100);
+    while(g_pShmemSC->outputstate.fServoOnOutState == OFF)
+    {
+        iCnt++;
+        DANDY_SLEEP(100);
+
+        if(iCnt >= 100 || g_pShmemSC->outputstate.fServoOnOutState == ON)
+        {
+            iCnt = 0;
+            break;
+        }
+    }
+
+    if(g_Arg.bNoDeadMan == FALSE)
+    {
+        if(g_pShmemSC->outputstate.fServoOnOutState == OFF)
+        {
+            SVC_DefineErrorState(ON, SVC_ERR_SERVO_OFF);
+            VERBOSE_ERROR("Now, Servo Off State! Confirm Servo State!\n");
+            return SVC_ERR_SERVO_OFF;
+        }
+    }
+
+    // Request Job Start to SC
+    nRet = MSG_SendPulse(g_coidTE, TESERV_PROG_THRU, nLineIdx);
+	VERBOSE_VERBOSE("Request Job Prog Execute!(Start Line: %d)\n", nLineIdx);
+
+    // AutoRun mode
+    g_pShm_SysStatus->nSystemMode = MODE_STAT_AUTORUN;
+    g_nSystemMode = MODE_STAT_AUTORUN;
+    
+    g_pShm_SysStatus->nWorkType = WORK_TYPE_JOB;
+    g_fJobExecRun = ON;
+
+    // Clear Job Load Done Flag for receive new request
+    g_fJobLoadDoneCheck = OFF;
+
+    return (nRet == RESULT_ERROR) ?
+        RESULT_ERROR : RESULT_OK;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_ExecuteJobProgDry()
+//      - Service Name: RSVC_SERV_JOBEXECDRY
+
+int SVC_ExecuteJobProgDry(int nLineIdx)
+{
+    int nRet;
+    int iCnt = 0;
+
+    if(g_Arg.bNoDeadMan == FALSE)
+    {
+        if(g_pShmemSC->outputstate.fServoOnOutState == OFF)
+        {
+            SVC_DefineErrorState(ON, SVC_ERR_SERVO_OFF);
+            VERBOSE_ERROR("Now, Servo Off State! Confirm Servo State!\n");
+            return SVC_ERR_SERVO_OFF;
+        }
+    }
+
+    // Request Job Start to SC
+    nRet = MSG_SendPulse(g_coidTE, TESERV_PROG_THRU, nLineIdx);
+	VERBOSE_VERBOSE("Request Job Prog Execute!(Start Line: %d)\n", nLineIdx);
+
+    // DryRun mode
+    g_pShm_SysStatus->nSystemMode = MODE_STAT_DRYRUN;
+    g_nSystemMode = MODE_STAT_DRYRUN;
+
+    g_pShm_SysStatus->nWorkType = WORK_TYPE_JOB;
+    g_fJobExecRun = ON;
+
+    // Clear Job Load Done Flag for receive new request
+    g_fJobLoadDoneCheck = OFF;
+
+    return (nRet == RESULT_ERROR) ?
+        RESULT_ERROR : RESULT_OK;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_ExecuteJobProgStep()
+//      - Service Name: RSVC_SERV_JOBEXECSTEP
+
+int SVC_ExecuteJobProgStep(int nLineIdx)
+{
+    int nRet;
+
+    if(g_Arg.bNoDeadMan == FALSE)
+    {
+        if(g_pShmemSC->outputstate.fServoOnOutState == OFF)
+        {
+            SVC_DefineErrorState(ON, SVC_ERR_SERVO_OFF);
+            return SVC_ERR_SERVO_OFF;
+        }
+    }
+
+    nRet = MSG_SendPulse(g_coidTE, TESERV_PROG_STEP, nLineIdx);
+	VERBOSE_VERBOSE("Request Job Prog Step Execute!\n"); 
+
+    g_pShm_SysStatus->nWorkType = WORK_TYPE_JOB;
+
+    g_fJobExecRun = ON;
+    g_fJobExecStepMode = ON;
+    g_fJobLoadDoneCheck = OFF;
+
+    return (nRet == RESULT_ERROR) ?
+        RESULT_ERROR : RESULT_OK;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_StopJobProg()
+//      - Service Name: RSVC_SERV_JOBEXESTOP
+
+int SVC_StopJobProg(void)
+{
+    MSG_SendPulse(g_coidTE, TESERV_STOP, 0); 
+    MSG_SendPulse(g_coidSC, SC_SERV_JOBSTOP_EVENT, 0);
+
+	VERBOSE_VERBOSE("Stop Service Executed!\n");
+    g_fJobExecRun = OFF;
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_DumpJobShmData()
+//      - Service Name: RSVC_SERV_JOBSHMDUMP
+
+int SVC_DumpJobShmData(void)
+{
+    static int nRet;
+
+    // Dump Job shared memory data
+    nRet = JOB_DumpJobShmem();
+
+    // Define Reply Message
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RMGR_JOB_LOAD_DATA);
+#if 0
+    if(nRet == RESULT_OK)
+    {
+        RM_reply_packet.Data.job_load.bDumpDoneCheck = TRUE;
+    }
+    else if(nRet == RESULT_ERROR)
+    {
+        RM_reply_packet.Data.job_load.bDumpDoneCheck = RESULT_ERROR;
+    }
+#endif
+    return nRet;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_JobProgLineDisplay()
+//      - Service Name: RSVC_SERV_JOBLINE_DSP
+
+int SVC_JobProgLineDisplay(int nDisplayLineIndex)
+{
+    SHM_DANDY_JOB* pShmem = g_pShmemJobRM;
+    DANDY_JOB_CMD* pCmdStart;
+    char rgszCurrJobCmdOneLine[MAX_CMD_CHAR_SIZE] = "";
+    char* pszRep;
+
+    pCmdStart = GET_SHM_JOB_CMD_BUFFER(pShmem);
+
+    JOBDIS_DisassemCmd(&pCmdStart[nDisplayLineIndex],
+                       nDisplayLineIndex,
+                       NULL,
+                       0,
+                       rgszCurrJobCmdOneLine,
+                       MAX_CMD_CHAR_SIZE,
+                       JOBDIS_DF_NONE);
+    
+    /* Skip Tab Space */
+    pszRep = rgszCurrJobCmdOneLine;
+    while ((pszRep = strchr(pszRep, '\t')) != NULL)
+    {
+        *pszRep = ' ';
+        pszRep++;   // find from next character
+    }
+
+    VERBOSE_VERBOSE("CmdLine: %d, Cmd: %s\n",
+                    nDisplayLineIndex,
+                    rgszCurrJobCmdOneLine);
+
+    g_nCmdLoadCount = pShmem->dwCmdLoadCount;
+    RM_reply_packet.Data.job_dsp.nCmdLoadCount = pShmem->dwCmdLoadCount;
+    memcpy(RM_reply_packet.Data.job_dsp.szCommand,
+           rgszCurrJobCmdOneLine,
+           MAX_CMD_CHAR_SIZE);
+
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RM_reply_packet.Data.job_dsp);
+    
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_ViewCmdCallStack()
+//
+
+static void _loc_ViewCmdCallStack(void)
+{
+    const RMGR_JOBCALL_STACK_DATA*  pStackPointer;
+    int iStack;
+
+    ///////////////////////////////////
+    //
+    //  ensure the stack point
+    //
+
+    DANDY_ASSERT(g_nCmdCallTop <= MAX_CALL_COUNT);
+
+    ///////////////////////////////////
+    //
+    //  the calling stack unused?
+    //
+
+    if (g_nCmdCallTop == 0)
+    {
+        VERBOSE_WARNING("No call stack data\n");
+        return;
+    }
+
+    ///////////////////////////////////
+    //
+    //  dump the calling stack
+    //
+
+    pStackPointer = g_rgCmdCallStack;
+
+    for (iStack = 0; iStack < g_nCmdCallTop; iStack++, pStackPointer++)
+    {
+        VERBOSE_VERBOSE("\v\tStack[%d] Caller='%s'(%d)  Callee='%s'(%d)\n",
+                        iStack,                             // stack point
+                        pStackPointer->szCallerFileName,    // caller's job name
+                        pStackPointer->nCallerAddr,         // calling command address
+                        pStackPointer->szCalleeFileName,    // callee's job name
+                        pStackPointer->nCalleeAddr);        // callee's command address
+    }
+
+    VERBOSE_VERBOSE("\v\t*--- total %d stack used ---*\n", g_nCmdCallTop);
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_JobCmdJump()
+//      - Service Name: RSVC_JOB_CMDJUMP
+
+int SVC_JobCmdJump(void)
+{
+    int nResult;
+    
+    ///////////////////////////////////
+    //
+    //  new job assembling and then load the binary job
+    //
+
+    VERBOSE_VERBOSE("New callee job '%s' assembling and loaded...\n",
+                    RM_packet.Data.call_cmd.szCalleeFileName);
+
+    nResult = SVC_LoadJobData(RM_packet.Data.call_cmd.szCalleeFileName);
+
+    if(nResult == RESULT_ERROR)
+    {
+        return SVC_ERR_JOB_COMPILE;
+    }
+
+    VERBOSE_MESSAGE("Jump Cmd Success '%s' (%d) ==> '%s' (%d)\n",
+                     RM_packet.Data.call_cmd.szCallerFileName,
+                     RM_packet.Data.call_cmd.nCallerAddr,
+                     RM_packet.Data.call_cmd.szCalleeFileName,
+                     RM_packet.Data.call_cmd.nCalleeAddr);
+
+    ///////////////////////////////////
+    //
+    //  define reply data
+    //
+
+    CRT_strncpy(RM_reply_packet.Data.call_cmd.szCallerFileName,
+                JOB_MODULE_NAME_SIZE,
+                RM_packet.Data.call_cmd.szCallerFileName,
+                JOB_MODULE_NAME_SIZE);
+    RM_reply_packet.Data.call_cmd.nCallerAddr = RM_packet.Data.call_cmd.nCallerAddr;
+
+    CRT_strncpy(RM_reply_packet.Data.call_cmd.szCalleeFileName,
+                JOB_MODULE_NAME_SIZE,
+                RM_packet.Data.call_cmd.szCalleeFileName,
+                JOB_MODULE_NAME_SIZE);
+    RM_reply_packet.Data.call_cmd.nCalleeAddr = RM_packet.Data.call_cmd.nCalleeAddr;
+
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RM_reply_packet.Data.call_cmd);
+
+    return RESULT_OK;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_JobCmdCall()
+//      - Service Name: RSVC_JOB_CMDCALL
+
+int SVC_JobCmdCall(void)
+{
+    RMGR_JOBCALL_STACK_DATA*    pStackPointer;
+    int nResult;
+
+    ///////////////////////////////////
+    //
+    //  ensure current state
+    //
+
+    DANDY_ASSERT(RM_packet.Data.call_cmd.szCallerFileName != NULL);
+    DANDY_ASSERT(RM_packet.Data.call_cmd.szCalleeFileName != NULL);
+
+    DANDY_ASSERT(g_nCmdCallTop <= MAX_CALL_COUNT);
+
+    ///////////////////////////////////
+    //
+    //  check stack full
+    //
+
+    if (g_nCmdCallTop == MAX_CALL_COUNT)
+    {
+        VERBOSE_ERROR("Call Stack Full! : %d\n", g_nCmdCallTop);
+
+        return SVC_ERR_JOBCMD_PROC;
+    }
+
+    ///////////////////////////////////
+    //
+    //  get stack pointer
+    //
+
+    pStackPointer = g_rgCmdCallStack + g_nCmdCallTop;
+
+    ///////////////////////////////////
+    //
+    //  save current caller job
+    //
+
+    // save current job name
+    CRT_strncpy(pStackPointer->szCallerFileName,
+                JOB_MODULE_NAME_SIZE,
+                RM_packet.Data.call_cmd.szCallerFileName,
+                JOB_MODULE_NAME_SIZE);
+    pStackPointer->szCallerFileName[JOB_MODULE_NAME_SIZE-1] = 0;
+
+    // save current calling address
+    pStackPointer->nCallerAddr = RM_packet.Data.call_cmd.nCallerAddr;
+
+    // save target job name
+    CRT_strncpy(pStackPointer->szCalleeFileName,
+                JOB_MODULE_NAME_SIZE,
+                RM_packet.Data.call_cmd.szCalleeFileName,
+                JOB_MODULE_NAME_SIZE);
+    pStackPointer->szCalleeFileName[DANDY_JOB_MODULE_NAME_SIZE-1] = 0;
+
+    // save target address
+    pStackPointer->nCalleeAddr = RM_packet.Data.call_cmd.nCalleeAddr;
+
+    ///////////////////////////////////
+    //
+    //  new job assembling and then load the binary job
+    //
+
+    VERBOSE_VERBOSE("New callee job '%s' assembling and loaded...\n",
+                    pStackPointer->szCalleeFileName);
+
+    nResult = SVC_LoadJobData(pStackPointer->szCalleeFileName);
+
+    if(nResult == RESULT_ERROR)
+    {
+        return SVC_ERR_JOB_COMPILE;
+    }
+
+    ///////////////////////////////////
+    //
+    //  increase the call stack
+    //
+
+    g_nCmdCallTop++;
+
+    ///////////////////////////////////
+    //
+    //  display result
+    //
+
+    VERBOSE_MESSAGE("Call Cmd Success '%s' ==> '%s'\n",
+                     pStackPointer->szCallerFileName,
+                     pStackPointer->szCalleeFileName);
+    
+    _loc_ViewCmdCallStack();
+
+    ///////////////////////////////////
+    //
+    //  define reply data
+    //
+
+    CRT_strncpy(RM_reply_packet.Data.call_cmd.szCallerFileName,
+                JOB_MODULE_NAME_SIZE,
+                pStackPointer->szCallerFileName,
+                JOB_MODULE_NAME_SIZE);
+    RM_reply_packet.Data.call_cmd.nCallerAddr = pStackPointer->nCallerAddr;
+
+    CRT_strncpy(RM_reply_packet.Data.call_cmd.szCalleeFileName,
+                JOB_MODULE_NAME_SIZE,
+                pStackPointer->szCalleeFileName,
+                JOB_MODULE_NAME_SIZE);
+    RM_reply_packet.Data.call_cmd.nCalleeAddr = pStackPointer->nCalleeAddr;
+
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RM_reply_packet.Data.call_cmd);
+
+    return RESULT_OK;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_JobCmdReturn()
+//      - Service Name: RSVC_JOB_CMDRETURN
+
+int SVC_JobCmdReturn(void)
+{
+    const RMGR_JOBCALL_STACK_DATA*  pStackPointer;
+    RMGR_JOBRETURN_DATA*            pReturnTarget;
+    int   nResult;
+
+    ///////////////////////////////////
+    //
+    //  ensure current state
+    //
+
+    DANDY_ASSERT(g_nCmdCallTop <= MAX_CALL_COUNT);
+
+    ///////////////////////////////////
+    //
+    //  check stack full
+    //
+
+    if (g_nCmdCallTop == 0)
+    {
+        VERBOSE_ERROR("Call Stack Empty!! (No More Retrun Target Job) : %d\n",
+                       g_nCmdCallTop);
+
+        return SVC_ERR_JOBCMD_PROC;
+    }
+
+    pReturnTarget = g_ReturnTarget;
+
+    ///////////////////////////////////
+    //
+    //  get stack pointer
+    //
+
+    pStackPointer = g_rgCmdCallStack + g_nCmdCallTop - 1;
+    CRT_strcpy(pReturnTarget->szReturnTargetFileName, JOB_MODULE_NAME_SIZE, "");
+
+    // reload the return name
+    VERBOSE_VERBOSE("Reload the job '%s', Return address = %d+1 (from '%s'(%d))\n",
+                     pStackPointer->szCallerFileName,
+                     pStackPointer->nCallerAddr,
+                     pStackPointer->szCalleeFileName,
+                     pStackPointer->nCalleeAddr);
+
+    // inform the reload job name and return address
+    CRT_strncpy(pReturnTarget->szReturnTargetFileName,
+                JOB_MODULE_NAME_SIZE,
+                pStackPointer->szCallerFileName,
+                JOB_MODULE_NAME_SIZE);
+    pReturnTarget->szReturnTargetFileName[JOB_MODULE_NAME_SIZE-1] = 0;
+
+    // inform the reload job's retrun address
+    pReturnTarget->nReturnTargetAddr = pStackPointer->nCallerAddr + 1; // calling next command
+
+    ///////////////////////////////////
+    //
+    //  return job assembling and then load the binary job
+    //
+
+    VERBOSE_VERBOSE("Return job '%s' assembling and loaded...\n",
+                     pReturnTarget->szReturnTargetFileName);
+
+    nResult = SVC_LoadJobData(pReturnTarget->szReturnTargetFileName);
+
+    if(nResult == RESULT_ERROR)
+    {
+        return SVC_ERR_JOB_COMPILE;
+    }
+
+    ///////////////////////////////////
+    //
+    //  decrease the call stack
+    //
+
+    g_nCmdCallTop--;
+
+    ///////////////////////////////////
+    //
+    //  display result
+    //
+
+    VERBOSE_MESSAGE("Return Cmd Success : name='%s', addr=%d\n",
+                     pReturnTarget->szReturnTargetFileName,
+                     pReturnTarget->nReturnTargetAddr);    
+    
+    _loc_ViewCmdCallStack();
+
+    ///////////////////////////////////
+    //
+    //  define reply data
+    //
+
+    CRT_strncpy(RM_reply_packet.Data.return_cmd.szReturnTargetFileName,
+                JOB_MODULE_NAME_SIZE,
+                pReturnTarget->szReturnTargetFileName,
+                JOB_MODULE_NAME_SIZE);
+    RM_reply_packet.Data.return_cmd.nReturnTargetAddr = pReturnTarget->nReturnTargetAddr;
+
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RM_reply_packet.Data.return_cmd);
+    
+    return RESULT_OK;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_JobCmdContinue()
+//      - Service Name: RSVC_JOB_CMDCONTINUE
+
+int SVC_JobCmdContinue(void)
+{
+    return RESULT_OK;
+}

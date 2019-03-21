@@ -1,0 +1,658 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "servocon.h"
+#include "dandy_echo.h"
+#include "dandy_msgpass.h"
+#include "dandy_thread.h"
+#include "CRT.h"
+
+#if defined (__QNXNTO__)
+#include "ecatmkpa.h"
+#include "libmkpaiodev.h"
+//#include "mkpaauxiliary.h"
+#endif 
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetSlaveCountFromNetwork()
+//
+// -return: slave count in network
+//
+int SC_GetSlaveCountFromNetwork(void)
+{
+#if defined (__QNXNTO__)
+    int nRet = 0;
+    unsigned short SlaveCount = 0;
+
+    nRet = EcatIODevSSGetSlaveCount(g_hMaster, &SlaveCount);
+
+    if (nRet != 0)
+    {
+        return -1;        
+    }
+
+    g_nSlaveCount = SlaveCount;
+
+    return SlaveCount;
+#else
+    return g_nSlaveCount;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetSlaveCountFromFile()
+//
+// -return: slave count in config. file
+//
+int SC_GetSlaveCountFromFile(void)
+{
+#if defined (__QNXNTO__)
+    int nRet;
+    unsigned short SlaveCount = 0;
+
+    nRet = EcatIODevGetSlaveCount(g_hMaster, &SlaveCount);
+    
+    if (nRet != 0)
+    {
+        return -1;
+    }
+    
+    g_nSlaveCount = SlaveCount;
+
+    return SlaveCount;
+#else
+    return g_nSlaveCount;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetNetworkState()
+//
+int SC_GetNetworkState(void)
+{
+    int nSlaveCntNetwork = 0;
+    int nSlaveCntFile = 0;
+
+    // get slave count in network
+    nSlaveCntNetwork = SC_GetSlaveCountFromNetwork();
+    //VERBOSE_MESSAGE("network slave: %d\n", nSlaveCntNetwork);
+    
+
+    // get slave count in config. file
+    nSlaveCntFile = SC_GetSlaveCountFromFile();
+    //VERBOSE_MESSAGE("file slave : %d\n", nSlaveCntFile);
+
+    if (nSlaveCntNetwork != nSlaveCntFile || nSlaveCntNetwork <= 0 || nSlaveCntFile <= 0)
+    {   
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+    
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetDeviceState()
+//
+int SC_GetServoState(void)
+{
+    int iAxis, i;
+    int nRet;
+    unsigned short nReadValue;
+    int nState[16];
+    int mask;    
+    
+
+    for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+    {
+        mask = 0x0001;
+
+        // read status word
+        nRet = ECAT_ReadStatus(iAxis, &nReadValue);
+
+        if (nRet != 0)
+        {
+            return -1;
+        }
+                
+        for (i = 0; i < 16; i++)
+        {
+            nState[i] = nReadValue & mask;
+            mask = mask << 1;            
+        }
+
+
+        // (1) check fault state (bit 3)        
+        if (nState[3] == 0x08)
+        {
+            g_nError[iAxis] = -1;
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->sysstate.fErrorState = TRUE;
+            }            
+        }
+        else
+        {
+            g_nError[iAxis] = 0;
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->sysstate.fErrorState = FALSE;
+            } 
+        }
+
+
+        // (2) servo state (bit 2)
+        if (nState[2] == 0x04)
+        {            
+            g_nServo[iAxis] = 1;
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->outputstate.fServoOnOutState = TRUE;
+            }            
+        }
+        else
+        {
+            g_nServo[iAxis] = 0;
+            if (g_pShmem_sc != NULL)
+            {
+                g_pShmem_sc->outputstate.fServoOnOutState = FALSE;
+            }            
+        }
+        
+    }
+
+    return 0;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_ReleaseMaster()
+//
+int SC_ReleaseMaster(void)
+{
+    ECAT_ReleaseMaster();
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_EStop()
+//
+// -nValue: value of receive packet (0: off, 1: on)
+//
+int SC_EStop(int nValue)
+{
+    if (nValue == 0)  // no e-stop
+    {
+        g_pShmem_sc->sysstate.fEStopState = FALSE;
+    }
+    else if (nValue == 1)  // set e-stop
+    {
+        g_pShmem_sc->sysstate.fEStopState = TRUE;
+    }
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetPosition()
+//
+int SC_GetPosition(void)
+{
+#if defined (__QNXNTO__)
+	int nRet = 0;
+    int i;
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        // get actual pos.
+        nRet = ECAT_ReadPosition(i, &g_nAct_Pos[i]);   
+
+        //VERBOSE_VERBOSE("Axis[%d]: %d\n", i, g_nAct_Pos[i]);
+
+        if (nRet != 0)
+        {
+            VERBOSE_ERROR("Cannot get %d axis position\n", i);
+        }
+
+        // write actual pos. to SC_SHM
+        if (g_pShmem_sc != NULL)
+        {
+            g_pShmem_sc->nActPos[i] = g_nAct_Pos[i];
+            g_nTrg_Pos[i] = g_pShmem_sc->nTrgPos[i] = g_nAct_Pos[i];
+        }
+    }
+
+    return nRet;
+
+#else
+    int i;
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        if (g_pShmem_sc != NULL)
+        {
+            g_pShmem_sc->inputstate.nActPos[i] = g_nTrg_Pos[i];
+        }
+    }
+    
+    return 0;
+
+#endif
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_SetVersion()
+//
+// -pMsg: message packet data
+// 
+int SC_SetVersion(SC_MSG* pMsg)
+{
+    CRT_strcpy(pMsg->data.vers.sc_build,
+               sizeof(pMsg->data.vers.sc_build), 
+               SC_BUILD);
+
+    CRT_strcpy(pMsg->data.vers.sc_vers,
+               sizeof(pMsg->data.vers.sc_vers),
+               SC_VERSION);            
+        
+    pMsg->size = sizeof(pMsg->data.vers);
+
+    return 0;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// SC_ConnectChannel()
+//
+// -pName: channel name to connect
+// -return: connection ID
+int SC_ConnectChannel(const char* pName)
+{
+    int coid = -1;
+        
+    coid  = MSG_AttachNamedConnection(pName);
+
+    if (coid == -1)
+    {
+        VERBOSE_ERROR("Cannot connect channel : <%s>\n", pName);
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Connected channel : <%s>, <COID: %d>\n",
+                        pName,
+                        coid);
+    }
+
+    return coid;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_CreateChannel()
+//
+// -pName : channel name
+// -return: channel identifier(CHID)
+//
+int SC_CreateChannel(const char* pName)
+{
+    int chid;
+
+    chid = MSG_CreateNamedChannel(pName);
+
+    if (chid == -1)
+    {
+        VERBOSE_ERROR("Failed to create channel : <%s>\n", pName);
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Created channel : <%s>, <CHID : %d>\n", 
+                        pName, 
+                        chid);
+    }
+
+    return chid;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_DestroyChannel()
+//
+// -pName: channel name to destroy
+// -chid : channel identifier
+//
+int SC_DestroyChannel(const char* pName, int chid)
+{
+    int nRet;
+
+    nRet = MSG_DestroyChannel(chid);
+
+    if (nRet == -1)
+    {
+        VERBOSE_ERROR("Failed to destroy channel : <%s>, <chid : %d>\n",
+                      pName, 
+                      chid);
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Destroyed channel : <%s>, <chid : %d>\n",
+                        pName, 
+                        chid);
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_DetachConnection()
+//
+// -pName: channel name to detach
+// -coid : connection identifier
+//
+int SC_DetachConnection(const char* pName, int coid)
+{
+    int nRet;
+
+    nRet = MSG_DetachConnection(coid);
+
+    if (nRet == -1)
+    {
+        VERBOSE_ERROR("Failed to detach connection : <%s>, <COID : %d>\n", 
+                      pName, 
+                      coid);
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Detached connection : <%s>, <COID : %d>\n", 
+                        pName, 
+                        coid);
+    }
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_GetAlarmCode()
+//
+int SC_GetAlarmCode(void)
+{
+    int nRet;
+	int i;
+
+    if (g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+    	return -1;
+    }
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        nRet = ECAT_GetAlarmCode(i, (ECAT_WORD*) &g_nErrCode[i]);
+        
+        VERBOSE_VERBOSE("%d axis alarm code : %x\n", i, g_nErrCode[i]);
+    }
+
+    return 0;
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_EcatDIO()
+//
+// -nIndex: index of IO device
+// -nValue: TRUE(on)/FALSE(off)
+//
+int SC_EcatDIO(int nIndex, BOOL bValue)
+{
+#if defined (__QNXNTO__)
+	int nRet;
+
+    if (bValue == TRUE)
+    {
+        nRet = ECAT_WriteIO(nIndex, TRUE);
+    }
+    else
+    {
+        nRet = ECAT_WriteIO(nIndex, FALSE);
+    }
+    
+    return nRet;
+#else
+    if (bValue == TRUE)
+    {
+        VERBOSE_VERBOSE("%d IO is ON\n", nIndex);
+    }
+    else
+    {
+        VERBOSE_VERBOSE("%d IO is OFF\n", nIndex);        
+    }
+
+    return 0;
+#endif    
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_Servo()
+//
+// -nValue: value of receive packet (0: off, 1: on)
+//
+int SC_Servo(int nValue)
+{
+    int nRet = 0;
+    int i;
+
+#if 0
+    // check TE state
+    if (g_pShmem_te != NULL)
+    {
+        if (g_pShmem_te->run_mode != RUNMODE_NONE)
+        {
+        	VERBOSE_WARNING("TE process is run-mode.\n");
+        	return 0;
+        }
+    }
+
+#endif
+
+	// check master instance state
+	if (g_hMaster == NULL)
+	{
+		VERBOSE_WARNING("Not ready to use Master.\n");
+		return -1;
+	}
+
+    // check ethercat state
+    if (g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+        VERBOSE_ERROR("Check the ethercat network\n");
+    	return -1;
+    }
+
+    
+    // check alarm code
+    if (g_pShmem_sc->sysstate.fErrorState == TRUE)
+    {
+        VERBOSE_WARNING("Cannot servo on/off. Check alarm code.\n");
+        return -1;
+    }
+
+
+    if (nValue == 0)  // servo off
+    {
+        for (i = 0; i < g_nAxisCount; i++)
+        {
+            nRet = ECAT_ServoOff(i);
+            THREAD_Sleep(100);
+        }
+
+        VERBOSE_MESSAGE("Servo off.\n");        
+    }
+    else if (nValue == 1)  // servo on
+    {
+        for (i = 0; i < g_nAxisCount; i++)
+        {
+            nRet = ECAT_ServoOn(i);            
+            THREAD_Sleep(100);
+        }
+
+        VERBOSE_MESSAGE("Servo on.\n");        
+    }    
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_SetPosition()
+//
+// -nValue: value of position (pulse)
+//
+int SC_SetPosition(int nValue)
+{
+    int nRet = 0;
+    g_fSetPosFuncActive = TRUE;
+    THREAD_Sleep(100);
+
+#if defined (__QNXNTO__)
+    int iAxis;
+
+    for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+    {
+        nRet = ECAT_WritePosition(iAxis, nValue);
+    }
+
+#endif
+    
+    THREAD_Sleep(100);
+    g_fSetPosFuncActive = FALSE;
+
+    return nRet;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_ClearAlarm()
+//
+int SC_ClearAlarm(void)
+{
+    int nRet;
+    int i;    
+
+    for (i = 0; i < g_nAxisCount; i++)
+    {
+        nRet = ECAT_AlarmClear(i);    
+    }
+
+    if (g_pShmem_sc != NULL)
+    {
+        g_pShmem_sc->sysstate.fErrorState = FALSE;
+        VERBOSE_MESSAGE("Cleared servo alarm.\n");       
+    }
+    
+    return 0;
+}
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_SetVerbose()
+//
+void SC_SetVerbose(void)
+{
+    switch(g_chPrintLev)
+    {    
+    case 'm':
+        // -message argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    case 'w':
+        // -warning argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    case 'e':
+        // -error argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, FALSE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);
+        break; 
+
+    case 'v':        
+        // -verbose argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);        
+        break; 
+
+    default:        
+        // -verbose argument
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ALERT,   TRUE);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_NOTIFY,  TRUE);        
+        break; 
+    }
+
+    // set vervose color
+    VERBOSE_SetColor(VERBOSE_TYPE_VERBOSE, 
+                     ECHO_COLOR_WHITE, 
+                     ECHO_COLOR_BLACK);
+
+}
+

@@ -1,0 +1,1732 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#if defined (__QNXNTO__)
+#include "ecatmkpa.h"
+#include "libmkpaiodev.h"
+//#include "mkpaauxiliary.h"
+#endif 
+
+#include "servocon_main.h"
+#include "dandy_platform.h"
+#include "dandy_thread.h"
+#include "dandy_echo.h"
+
+char* g_pszEcatConfigDir      = DEF_ECAT_CONFIG_FILE_NAME;  // ECAT Config Dir
+int g_nAxisCount              = DEF_AXIS_COUNT;             // Axis Count
+int g_nSlaveCount             = DEF_SLAVE_COUNT;            // Slave Count
+
+int g_nWriteInitOffsetSize    = DEF_WRITE_INIT_OFFSET_SIZE; // BeckHoff output size
+int g_nWriteEcatDataSize      = DEF_WRITE_ECAT_SRVDATA_SIZE;
+int g_nWriteOffsetControlWord = DEF_WRITE_OFFSET_CONTROLWORD;
+int g_nWirteOffsetPosition    = DEF_WRITE_OFFSET_POSITION;
+int g_nWirteOffsetOutput      = DEF_WRITE_OFFSET_OUTPUT;
+
+int g_nReadInitOffsetSize     = DEF_READ_INIT_OFFSET_SIZE;  // BeckHoff input size
+int g_nReadEcatDataSize       = DEF_READ_ECAT_SRVDATA_SIZE;
+int g_nReadOffsetStatus       = DEF_READ_OFFSET_STATUS;
+int g_nReadOffsetPosition     = DEF_READ_OFFSET_POSITION;
+int g_nReadOffsetError        = DEF_READ_OFFSET_ERROR;
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_GetStateString()
+//
+#if defined(__QNXNTO__)
+
+const ECAT_CHAR* ECAT_GetStateString(ECAT_BYTE byState)
+{
+    switch (byState)
+    {
+    case EcatStateNotSet:   return "Undefined";
+    case EcatStateI:        return "Init";
+    case EcatStateP:        return "Pre-Operational";
+    case EcatStateB:        return "Bootstrap";
+    case EcatStateS:        return "Safe-Operational";
+    case EcatStateO:        return "Operational";
+    default:                return "Invalid state";
+    }
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_GetErrorDescription()
+//
+#if defined (__QNXNTO__)
+static const ECAT_CHAR* ECAT_GetErrorDescription(ECAT_RESULT nErrorCode)
+{
+	static ECAT_CHAR s_szBuffer[ECAT_ERROR_MESSAGE_BUFFER_SIZE];
+    ECAT_DWORD dwSize;
+    if (ECAT_FAILED(EcatIODevGetErrorMessage(nErrorCode,
+    		                                 s_szBuffer,
+    		                                 ECAT_ERROR_MESSAGE_BUFFER_SIZE - 1,
+    		                                 &dwSize)))
+    {
+    	return _T("Unknown");
+    }
+
+    s_szBuffer[dwSize] = _T('\0');
+    return s_szBuffer;
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_SleepMS(ECAT_TIME_MS timeMS)
+//
+#if defined (__QNXNTO__)
+static void  ECAT_SleepMS(ECAT_TIME_MS timeMS)
+{
+	struct timespec tm;
+	tm.tv_sec = (timeMS) / 1000;
+	tm.tv_nsec = (timeMS % 1000) * 1000000;
+	nanosleep(&tm,NULL);
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_GetAdapterName()
+//
+#if defined (__QNXNTO__)
+static ECAT_RESULT ECAT_GetAdapterName(ECAT_WORD wIndex, const ECAT_WCHAR** ppwszName)
+{
+	ECAT_RESULT hr;
+	ECAT_WORD wCount;
+	ECAT_WCHAR** ppwszAdapters;
+
+
+	if (ECAT_FAILED(hr = EcatIODevGetAdapterList(NULL, &ppwszAdapters, &wCount)))
+	{
+		VERBOSE_WARNING("Cannot get adapter list.\n");
+	}
+
+	if (wCount <= wIndex)
+	{
+		VERBOSE_WARNING("Cannot find the adapter %d\n", wIndex);
+		return ECAT_E_FAIL;
+	}
+
+	// show adapter list
+	VERBOSE_VERBOSE("Adapter count : %d\n", (int) wCount);
+
+	*ppwszName = ppwszAdapters[wIndex];
+
+	return ECAT_S_OK;
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// FUNC_wchar2char()
+//
+#if defined (__QNXNTO__)
+void FUNC_wchar2char(ECAT_CHAR* psz, const ECAT_WCHAR* pwsz)
+{
+    ECAT_CHAR *__psz = psz;
+    const ECAT_WCHAR *__pwsz = pwsz;
+    while(*__pwsz)
+        *(__psz++) = (ECAT_CHAR)*(__pwsz++);
+    *(__psz++) = '\0';
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_LoadConfiguration()
+//
+#if defined (__QNXNTO__)
+static ECAT_RESULT ECAT_LoadConfiguration(ECAT_HANDLE hMaster, const ECAT_CHAR* pszFileName)
+{
+	ECAT_CHAR szBuffer[ECAT_LOAD_CONFIG_BUF_SIZE];
+	size_t nLength;
+	ECAT_RESULT hr;
+	ECAT_BOOL bDone;
+	ECAT_DWORD dwCookie;
+	FILE* fstream;
+
+	// open file stream
+	fstream = fopen(pszFileName, "rb");
+	if (!fstream)
+	{
+		VERBOSE_WARNING("Cannot open the \"%s\" configuration file.\n", pszFileName);
+		return ECAT_E_FAIL;
+	}
+
+	for (;;)
+	{
+		nLength = fread(szBuffer, sizeof(ECAT_CHAR), ECAT_LOAD_CONFIG_BUF_SIZE, fstream);
+		bDone = (nLength <= 0) ?  ECAT_TRUE : ECAT_FALSE;
+		hr = EcatIODevLoadConfigFromString(hMaster,
+				                           szBuffer,
+				                          (ECAT_DWORD)nLength,
+				                           bDone,
+	             			               &dwCookie);
+		if (bDone || ECAT_FAILED(hr))
+		{
+			break;
+		}
+	}
+
+	fclose(fstream);
+
+	if (ECAT_FAILED(hr))
+	{
+		VERBOSE_ERROR("An error occurred while loading the \"%s\" XML file.\n", pszFileName);
+		return ECAT_E_FAIL;
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Loaded master configuration file : \"%s\"\n", pszFileName);
+	}
+
+	return ECAT_S_OK;
+}
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ReleaseMaster()
+//
+void ECAT_ReleaseMaster(void)
+{    
+#if defined (__QNXNTO__)
+	ECAT_RESULT hr;
+
+	if (g_hMaster != NULL)
+	{
+		// change state (operational -> init)
+        ECAT_BYTE byReqState = EcatStateI;
+        if (ECAT_FAILED(hr = EcatIODevRequestMasterState(g_hMaster, byReqState)))
+        {
+            VERBOSE_WARNING("Cannot request master state: %04X(%s)\n",hr,ECAT_GetErrorDescription(hr));
+        }
+        else
+        {
+        	VERBOSE_VERBOSE("Request master state: %s...\n", ECAT_GetStateString(byReqState));
+            ECAT_SleepMS(3000);
+        }
+
+		// stop cyclic operation
+		if (ECAT_FAILED(hr = EcatIODevStopCyclicOperation(g_hMaster)))
+		{
+			VERBOSE_WARNING("Cannot stop cyclic operation.\n");
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Stop cyclic operation.\n");
+		}
+
+		// disconnect master
+		if (ECAT_FAILED(hr = EcatIODevDisconnectMaster(g_hMaster)))
+		{
+			VERBOSE_WARNING("Cannot disconnect master.\n");
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Disconnected master.\n");
+		}
+
+		// free(release) master
+		if (ECAT_FAILED(hr = EcatIODevFreeMaster(g_hMaster)))
+		{
+			VERBOSE_WARNING("Cannot release master\n");
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Released master\n");
+		}
+
+		VERBOSE_MESSAGE("Master release done.!!!\n");
+
+		if (g_pShmem_sc != NULL)
+		{
+			g_pShmem_sc->sysstate.fEcatInitState = FALSE;
+		}
+
+        g_hMaster = NULL;
+        g_fConfigLoad = FALSE;
+	}
+	else
+	{
+		VERBOSE_WARNING("Master already released.!!!\n");
+	}
+
+#else
+    if (g_pShmem_sc != NULL)
+    {
+        g_pShmem_sc->sysstate.fEcatInitState = FALSE;
+    }
+
+    VERBOSE_VERBOSE("Released EtherCAT Master.\n");
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Ecat_StartUp()
+//
+
+static int ECAT_StartUp(void)
+{
+#if defined (__QNXNTO__)
+	ECAT_RESULT hr;
+	ECAT_WORD wAdapterIndex;
+	const ECAT_WCHAR* pwszAdapter;
+	char pstrParams[1024];
+	ECAT_DWORD dwVersionMS, dwVersionLS;
+	ECAT_BYTE byReqState;
+	ECAT_BYTE byState;
+	int nWait;
+
+	// (0) get master version
+	if (ECAT_FAILED(hr = EcatIODevGetMasterVersion(&dwVersionMS, &dwVersionLS)))
+	{
+		VERBOSE_WARNING("Cannot get master version.\n");
+		//ECAT_ReleaseMaster();
+		return ECAT_E_FAIL;
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Master Version : %d.%d.%d.%d\n",
+				        ECAT_HIWORD(dwVersionMS),
+				        ECAT_LOWORD(dwVersionMS),
+				        ECAT_HIWORD(dwVersionLS),
+				        ECAT_LOWORD(dwVersionLS));
+	}
+
+	// (1) get adapter name
+	wAdapterIndex = ECAT_MASTER_ADAPTER_INDEX;
+	if (ECAT_FAILED(ECAT_GetAdapterName(wAdapterIndex, &pwszAdapter)))
+	{
+		VERBOSE_WARNING("Cannot get adapter name.\n");
+		//ECAT_ReleaseMaster();
+		return ECAT_E_FAIL;
+	}
+
+	// (2) create master
+    if (g_hMaster == NULL)
+    {
+        hr = EcatIODevCreateMaster(&g_hMaster);
+
+        if (ECAT_FAILED(hr))
+        {
+            VERBOSE_WARNING("Cannot create master.\n");
+            //ECAT_ReleaseMaster();
+            return ECAT_E_FAIL;
+        }        
+    }	
+
+	// (3) Connect master
+	FUNC_wchar2char(pstrParams, pwszAdapter);
+	VERBOSE_VERBOSE("Master adapter name : %s\n", pstrParams);
+
+	hr = EcatIODevConnectMaster(g_hMaster,
+			                    ECAT_MASTER_REDUNDANCY_TYPE_NORMAL,
+			                    pwszAdapter,
+			                    ECAT_NULL,
+			                    ECAT_NULL);
+
+	if (ECAT_FAILED(hr) && (hr != ECAT_E_MASTER_ALREADY_CONNECTED))
+	{
+		VERBOSE_WARNING("Cannot connect master.\n");
+		//ECAT_ReleaseMaster();
+		return ECAT_E_FAIL;
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Connected master.\n");
+	}
+
+
+	// (4) Load master configuration
+    if (g_fConfigLoad == FALSE)
+    {
+        hr = ECAT_LoadConfiguration(g_hMaster, g_pszEcatConfigDir);
+        
+        if (ECAT_FAILED(hr))
+        {
+            VERBOSE_WARNING("Cannot load configuration file.\n");
+            //ECAT_ReleaseMaster();
+            g_fConfigLoad = FALSE;
+            return ECAT_E_FAIL;
+        }
+        else
+        {
+            g_fConfigLoad = TRUE;
+            VERBOSE_VERBOSE("Master config. file was loaded successfully.\n");
+        }
+    }
+    
+
+	// (5) start cyclic operation
+	hr = EcatIODevStartCyclicOperation(g_hMaster,
+			                           ECAT_MASTER_CYCLE_TIME_US,
+			                           ECAT_MASTER_SUBCYCLE_TIME_US,
+			                           ECAT_MASTER_PRIORITY);
+	if (ECAT_FAILED(hr) && (hr != ECAT_E_MASTER_ALREADY_STARTED))
+	{
+		VERBOSE_WARNING("Cannot start cyclic operation.\n");
+		//ECAT_ReleaseMaster();
+		return ECAT_E_FAIL;
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Started cyclic operation.\n");
+	}
+
+	// (6) set auto recovery timeout
+	if (ECAT_FAILED(hr = EcatIODevSetAutoRecoveryTimeout(g_hMaster, ECAT_AUTORECOVERY_TIMEOUT_MS)))
+	{
+		VERBOSE_WARNING("Cannot set auto recovery timeout.\n");
+		//ECAT_ReleaseMaster();
+		return ECAT_E_FAIL;
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Set auto recovery timeout.\n");
+	}
+
+	// (7) request master state (init -> operational)
+	byReqState = EcatStateO;   // operational state
+    VERBOSE_VERBOSE("Request master state : %s\n", ECAT_GetStateString(byReqState));
+	if (ECAT_FAILED(hr = EcatIODevRequestMasterState(g_hMaster, byReqState)))
+	{
+		VERBOSE_WARNING("Cannot request master state.\n");
+		//ECAT_ReleaseMaster();
+		return ECAT_E_FAIL;
+	}
+
+	// current state
+	//VERBOSE_VERBOSE("Current master state : %s\n", ECAT_GetStateString(byState));
+
+	// wait for master state 5 seconds
+    nWait = 1000 / ECAT_AUTORECOVERY_TIMEOUT_MS;  // 10 count
+    do
+    {
+        ECAT_SleepMS(ECAT_AUTORECOVERY_TIMEOUT_MS * 5);  // 0.5sec
+
+        // check master state
+        if (ECAT_FAILED(hr = EcatIODevGetMasterState(g_hMaster, &byState)))
+        {
+            VERBOSE_WARNING("Cannot get master state: %04X(%s)\n",
+            		        hr,
+            		        ECAT_GetErrorDescription(hr));
+            //ECAT_ReleaseMaster();
+            return ECAT_E_FAIL;
+        }
+//        else
+//        {
+//        	VERBOSE_VERBOSE("Current master state: %s\n",
+//        			        ECAT_GetStateString(byState));
+//        }
+
+        if (byState == byReqState)
+        {
+        	break;
+        }
+    }
+    while (--nWait > 0);
+
+    if(nWait <= 0)
+    {
+        VERBOSE_VERBOSE("Current master state : %s\n", ECAT_GetStateString(byState));
+        VERBOSE_WARNING("Can't reach requested state \n");
+
+        return ECAT_E_FAIL;
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Changed master state : %s\n",
+        		        ECAT_GetStateString(byReqState));
+    }
+
+    return RESULT_OK;
+
+#else
+    return RESULT_OK;
+
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Ecat_Init()
+//
+int ECAT_Init(void)
+{
+#if defined (__QNXNTO__)
+	int nRet;
+
+	// EtherCAT Master init.
+	nRet = ECAT_StartUp();
+	if (nRet != 0)
+	{
+		return RESULT_ERROR;
+	}
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// FUNC_ReadWriteSlaveCoEObject()
+//
+#define COE_OPERATION_TIMEOUT	    5000
+#define COE_OPERATION_TIMEOUT_MS    1000
+
+ECAT_RESULT FUNC_ReadWriteSlaveCoEObject(
+    IN ECAT_HANDLE hMaster,
+    IN ECAT_WORD wSlaveId,
+    IN ECAT_WORD wIndex,
+    IN ECAT_BYTE bySubIndex,
+    IN ECAT_BYTE byService,
+    IN ECAT_DWORD dwTimeOut,
+    IN OUT ECAT_BYTE* pData,
+    IN OUT ECAT_DWORD* pdwLength)
+{
+#if defined (__QNXNTO__)
+	ECAT_RESULT erResult;
+
+	erResult = EcatIODevAddCoEObject(
+			hMaster,wSlaveId,wIndex,bySubIndex,
+			byService, // upload (1) / download (2)
+			COE_OPERATION_TIMEOUT,
+			pData,pdwLength,*pdwLength);
+
+	return erResult;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WriteIntegerSlaveCoEObject()
+//
+int ECAT_WriteIntegerSlaveCoEObject(int nSlave, int nWriteIdx, int nSubIdx, ECAT_DWORD dwWriteData)
+{
+    int nRet = 0;
+#if defined (__QNXNTO__)
+    ECAT_DWORD dwLength;
+    dwLength = sizeof(dwWriteData);
+    
+    VERBOSE_VERBOSE("Write object(slave: %d, Idx: %x - %x, data: %ld)\n", 
+                     nSlave, nWriteIdx, nSubIdx, dwWriteData);
+    nRet = FUNC_ReadWriteSlaveCoEObject(g_hMaster,
+                                        nSlave /* slave index */,
+                                        nWriteIdx /* object dictionary index */,
+                                        nSubIdx /* object dictionary subindex */,
+                                        1 /* upload (1) / download (2) */,
+                                        COE_OPERATION_TIMEOUT_MS /* timeout */,
+                                       (ECAT_BYTE*)&dwWriteData,
+                                        &dwLength);
+#endif
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WriteSringSlaveCoEObject()
+//
+int ECAT_WriteSringSlaveCoEObject(int nSlave, int nWriteIdx, int nSubIdx, ECAT_BYTE *pszWriteData)
+{
+    int nRet = 0;
+#if defined (__QNXNTO__)
+    ECAT_DWORD dwLength;
+    //dwLength = OBJECT_CMD_CHAR_LEN;
+    dwLength = sizeof(dwLength);
+    
+    VERBOSE_VERBOSE("Write object(slave: %d, Idx: %x - %x, data: %s)\n", 
+                     nSlave, nWriteIdx, nSubIdx, pszWriteData);
+    nRet = FUNC_ReadWriteSlaveCoEObject(g_hMaster,
+                                        nSlave /* slave index */,
+                                        nWriteIdx /* object dictionary index */,
+                                        nSubIdx /* object dictionary subindex */,
+                                        1 /* upload (1) / download (2) */,
+                                        COE_OPERATION_TIMEOUT_MS /* timeout */,
+                                        pszWriteData,
+                                        &dwLength);
+#endif
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ReadSlaveCoEObject()
+//
+ECAT_DWORD ECAT_ReadSlaveCoEObject(int nSlave, int nReadIdx, int nSubIdx, ECAT_DWORD dwReadData)
+{
+    ECAT_DWORD nRet = 0;
+#if defined (__QNXNTO__)
+    ECAT_DWORD dwLength;
+    dwLength = sizeof(dwReadData);
+    
+    nRet = FUNC_ReadWriteSlaveCoEObject(g_hMaster,
+                                        nSlave /* slave index */,
+                                        nReadIdx /* object dictionary index */,
+                                        nSubIdx /* object dictionary subindex */,
+                                        2 /* upload (1) / download (2) */,
+                                        COE_OPERATION_TIMEOUT_MS /* timeout */,
+                                       (ECAT_BYTE*)&dwReadData,
+                                        &dwLength);
+#if 0
+    VERBOSE_VERBOSE("Read object(slave: %d, Idx: %x - %x, data: %ld)\n",
+                     nSlave, nReadIdx, nSubIdx, dwReadData);
+#endif
+    return dwReadData;
+#else
+    return nRet;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WriteHomeOffsetVal()
+// -nAxis: index of axis(0~5)
+//
+int ECAT_WriteHomeOffsetVal(int nAxis)
+{
+    int nRet;
+    int nHomeOffsetVal;
+    int nInternalPulse[ROB_AXIS_COUNT];
+    ECAT_DWORD dwReadBuff = 1;
+    
+    nInternalPulse[nAxis] = (int) ECAT_ReadSlaveCoEObject(nAxis, 0x6063, 0, dwReadBuff);
+
+    nHomeOffsetVal = -1 * nInternalPulse[nAxis];
+
+    nRet = ECAT_ReadSlaveCoEObject(nAxis, 0x607C, 0, dwReadBuff);
+    VERBOSE_VERBOSE("Home Offset Value: %d\n", nRet);
+
+    // WriteIndex: 607C, SubIndex: 0, Name: Home offset
+    nRet = ECAT_WriteIntegerSlaveCoEObject(nAxis, 0x607C, 0, nHomeOffsetVal);
+
+    VERBOSE_VERBOSE("Internal Pusle: %d, Curr Pulse: %d, Reset Pulse: %d\n",
+                     nInternalPulse[nAxis], g_nAct_Pulse[nAxis], nHomeOffsetVal);
+
+    nRet = ECAT_ReadSlaveCoEObject(nAxis, 0x607C, 0, dwReadBuff);
+    VERBOSE_VERBOSE("Home Offset Value(modified): %d\n", nRet);
+
+    return nRet;
+}
+
+#pragma pack(push, 1)
+typedef struct t_servo_adj_cmd
+{
+    BYTE byCmdCode;
+    BYTE byDataSize;
+    int  nAdrees;
+    long lnData;
+} SERVO_ADJ_SEND_CMD, SERVO_ADJ_REPLY_DATA;
+#pragma pack(pop)
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ABSEncoderReset()
+// -nAxis: index of axis(0~5)
+//
+int ECAT_ABSEncoderReset(int nAxis)
+{
+    int nRet;
+
+    SERVO_ADJ_SEND_CMD*      pSend_cmd;
+    SERVO_ADJ_REPLY_DATA*    pReply_data;
+
+    pSend_cmd->byCmdCode = 1;
+    pSend_cmd->byDataSize = sizeof(pSend_cmd->lnData);
+    pSend_cmd->nAdrees = 0x2000;
+    pSend_cmd->lnData = 0x1008;
+
+    ECAT_WriteIntegerSlaveCoEObject(nAxis, 0x2710, 1, pSend_cmd->byCmdCode);
+    ECAT_WriteIntegerSlaveCoEObject(nAxis, 0x2710, 1, pSend_cmd->byCmdCode);
+    ECAT_WriteIntegerSlaveCoEObject(nAxis, 0x2710, 1, pSend_cmd->byCmdCode);
+    ECAT_WriteIntegerSlaveCoEObject(nAxis, 0x2710, 1, pSend_cmd->byCmdCode);
+
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ServoUserParamReset()
+// -nAxis: index of axis(0~5)
+//
+ECAT_DWORD ECAT_ServoUserParamReset(int nAxis)
+{
+    ECAT_DWORD dwRet = 0;
+    ECAT_DWORD dwReadBuff = 1;
+
+    // WriteIndex: 2700, SubIndex: 0, Name: User Parameter Configuration
+    ECAT_WriteIntegerSlaveCoEObject(nAxis, 0x2700, 0, 1);
+
+READ_OBJECT:
+    dwRet = ECAT_ReadSlaveCoEObject(nAxis, 0x2700, 0, dwReadBuff);
+    //VERBOSE_VERBOSE("ReadObjectState: %ld\n", dwRet);
+    
+    if(dwRet != 0)
+        goto READ_OBJECT;
+
+    return dwRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ServoStateSetSwitchOnDisable()
+// -nAxis: index of axis(0~5)
+//
+
+int ECAT_ServoStateSetSwitchOnDisable(int nAxis)
+{
+#if defined (__QNXNTO__)
+    int nRet;
+    int nStatus;
+
+    g_CtrlWord[nAxis] = 0x00;
+    nRet = ECAT_WritePDO(nAxis);
+    SERV_GetServoState();
+
+    nStatus = g_nReadStatusValue[nAxis] & SRVSTATE_CODE_SWITCHON_DISABLED;
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x00) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+	else
+	    VERBOSE_MESSAGE("Axis%d Switch On Disabled!(Status: %x, nStatus: %x)\n",
+                        nAxis, g_nReadStatusValue[nAxis], nStatus);
+
+    return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_StoreParameters()
+// -nAxis: index of axis(0~5)
+// -Store Parameters to EEPROM
+int ECAT_StoreParameters(int nAxis)
+{
+    int nRet;
+#if 1
+    ECAT_DWORD dwReadBuff = 1;
+    ECAT_BYTE rgpszSaveCmd[] = {'s', 'a', 'v', 'e'};
+    
+    nRet = ECAT_ReadSlaveCoEObject(nAxis, 0x1010, 0, dwReadBuff);
+    VERBOSE_VERBOSE("ReadObjectState: %x\n", nRet);
+
+    // WriteIndex: 1010, SubIndex: 3, Name: Store Parameters
+    ECAT_WriteSringSlaveCoEObject(nAxis, 0x1010, 3, rgpszSaveCmd);
+
+    VERBOSE_VERBOSE("Cmd: %s(%x)\n", rgpszSaveCmd, (unsigned)*(unsigned*)rgpszSaveCmd);
+
+    nRet = ECAT_ReadSlaveCoEObject(nAxis, 0x1010, 3, dwReadBuff);
+    VERBOSE_VERBOSE("ReadObjectState: %x\n", nRet);
+
+#endif
+#if 0
+    ECAT_DWORD dwReadBuff = 1;
+    //char rgpszSaveCmd[] = "save";
+    //ECAT_BYTE rgpszSaveCmd[] = {'s', 'a', 'v', 'e', NULL};
+    ECAT_BYTE rgpszSaveCmd[] = {'s', 'a', 'v', 'e'};
+    
+    nRet = ECAT_ReadSlaveCoEObject(nAxis, 0x1010, 0, dwReadBuff);
+    VERBOSE_VERBOSE("ReadObjectState: %x\n", nRet);
+    //THREAD_Sleep(100);
+
+    // WriteIndex: 1010, SubIndex: 3, Name: Store Parameters
+    ECAT_WriteSringSlaveCoEObject(nAxis, 0x1010, 3, &rgpszSaveCmd[0]);
+    ECAT_WriteSringSlaveCoEObject(nAxis, 0x1010, 3, &rgpszSaveCmd[1]);
+    ECAT_WriteSringSlaveCoEObject(nAxis, 0x1010, 3, &rgpszSaveCmd[2]);
+    ECAT_WriteSringSlaveCoEObject(nAxis, 0x1010, 3, &rgpszSaveCmd[3]);
+
+    //VERBOSE_VERBOSE("Cmd: %s(%x)\n", rgpszSaveCmd, (unsigned)*(unsigned*)rgpszSaveCmd);
+    VERBOSE_VERBOSE("Cmd: %s(%x)\n", &rgpszSaveCmd[0], *&rgpszSaveCmd[0]);
+    VERBOSE_VERBOSE("Cmd: %s(%x)\n", &rgpszSaveCmd[1], *&rgpszSaveCmd[1]);
+    VERBOSE_VERBOSE("Cmd: %s(%x)\n", &rgpszSaveCmd[2], *&rgpszSaveCmd[2]);
+    VERBOSE_VERBOSE("Cmd: %s(%x)\n", &rgpszSaveCmd[3], *&rgpszSaveCmd[3]);
+
+    nRet = ECAT_ReadSlaveCoEObject(nAxis, 0x1010, 3, dwReadBuff);
+    VERBOSE_VERBOSE("ReadObjectState: %x\n", nRet);
+    //THREAD_Sleep(100);
+#endif
+    return nRet;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Ecat_WritePDO()
+//
+int ECAT_WritePDO(int nAxis)
+{
+    FUNC_ConvertPosToPulse(nAxis, TARGET_POS_IDX);
+
+#if defined (__QNXNTO__)
+	ECAT_BYTE pOutput[256];
+	ECAT_WORD wBitOffset_control;
+	ECAT_WORD wBitOffset_position;
+	
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+        // (1) write control word
+	    wBitOffset_control = nAxis * g_nWriteEcatDataSize + g_nWriteOffsetControlWord;
+        
+	    if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+	    		                            (ECAT_PBYTE) &g_CtrlWord[nAxis],
+	    		                             WRITE_CONTROLWORD_SIZE,
+	    		                             wBitOffset_control)))
+	    {
+	    	VERBOSE_ERROR("Cannot write control word.\n");
+	    	return RESULT_ERROR;
+	    }
+        
+	    // (2) write target position
+	    wBitOffset_position = nAxis * g_nWriteEcatDataSize + g_nWirteOffsetPosition;
+        
+	    if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+	    		                            (ECAT_PBYTE) &g_nTrg_Pulse[nAxis],
+	    		                             WRITE_POSITION_SIZE,
+	    		                             wBitOffset_position)))
+	    {
+	    	VERBOSE_ERROR("Cannot write control word.\n");
+	    	return RESULT_ERROR;
+	    }
+		
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write PDO...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+    return RESULT_OK;
+#else
+    
+    // write actual pos. value
+    FUNC_ConvertPulseToPos(nAxis, TARGET_POS_IDX);
+    g_pShmem_sc->inputstate.dbActPos[nAxis] = g_pShmem_sc->outputcmd.dbTrgPos[nAxis];    
+
+	return RESULT_OK;
+#endif
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WriteControlWord()
+//
+// -wValue : value of control command
+// -nAxis  : index of axis (0 ~ 5)
+//
+int ECAT_WriteControlWord(int nAxis, ECAT_WORD wValue)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pOutput[256];
+	ECAT_WORD wBitOffset_control;
+	ECAT_WORD wCtrlWord;
+
+	wCtrlWord = wValue;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// write control word
+		wBitOffset_control = nAxis * g_nWriteEcatDataSize + g_nWriteOffsetControlWord;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                             (ECAT_PBYTE) &wCtrlWord,
+				                             WRITE_CONTROLWORD_SIZE,
+				                             wBitOffset_control)))
+		{
+			VERBOSE_ERROR("Cannot write control word.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write outputs...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+	return RESULT_OK;
+#else
+
+    return RESULT_OK;
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WritePhysicalOutput()
+//
+// -wValue : value of control command(switch off: 0, swtich on: 1)
+// -nAxis  : index of axis (0 ~ 5)
+//
+int ECAT_WritePhysicalOutput(int nAxis, ECAT_WORD wValue)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE  pOutput[256];
+	ECAT_WORD  wBitOffset_control;
+	ECAT_INT32 wCtrlWord;
+
+    if(wValue == ON)
+    {
+	    wCtrlWord = 0x70000;
+    }
+    else if(wValue == OFF)
+    {
+        wCtrlWord = 0x00;
+    }
+    else
+    {
+        VERBOSE_ERROR("Invalid Servo Physical Output Value...\n");
+        return RESULT_ERROR;
+    }
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// write control word
+		wBitOffset_control = nAxis * g_nWriteEcatDataSize + g_nWirteOffsetOutput;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                            (ECAT_PBYTE) &wCtrlWord,
+				                             WRITE_OUTPUT_SIZE,
+				                             wBitOffset_control)))
+		{
+			VERBOSE_ERROR("Cannot write physical output.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write physical outputs...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+    
+    VERBOSE_MESSAGE("Axis %d Control Word is Set to 0x%x...\n",
+                    nAxis, (unsigned int) wCtrlWord);
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WritePosition()
+//
+// -wPos  : value of control command
+// -nAxis : index of axis (0 ~ 5)
+//
+
+int ECAT_WritePosition(int nAxis, ECAT_WORD wPos)
+{
+    FUNC_ConvertPosToPulse(nAxis, TARGET_POS_IDX);
+
+#if defined (__QNXNTO__)
+	ECAT_BYTE pOutput[256];
+	ECAT_WORD wBitOffset_position;
+	ECAT_WORD wCtrlWord;
+
+	wCtrlWord = wPos;
+
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// write target position
+		wBitOffset_position = nAxis * g_nWriteEcatDataSize + g_nWirteOffsetPosition;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                            (ECAT_PBYTE) &wCtrlWord,
+				                             WRITE_POSITION_SIZE,
+				                             wBitOffset_position)))
+		{
+			VERBOSE_ERROR("Cannot write control word.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write PDO...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Ecat_ReadPDO()
+//
+int ECAT_ReadPDO(void)
+{
+#if defined (__QNXNTO__)
+    #if 1
+	ECAT_BYTE pInput[256];
+	ECAT_WORD wBitOffset_status;
+	ECAT_WORD wBitOffset_position;
+	ECAT_WORD wBitOffset_error;
+	int i;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		for (i = 0; i < g_nAxisCount; i++)
+		{
+			// (1) read status word
+			wBitOffset_status = i * g_nReadEcatDataSize + g_nReadOffsetStatus;
+
+			if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+					                             (ECAT_PBYTE) &g_StatusWord[i],
+					                             READ_STATUS_SIZE,
+					                             wBitOffset_status)))
+			{
+				VERBOSE_ERROR("Cannot get control status.\n");
+				return RESULT_ERROR;
+			}
+
+			// (2) read acutal position value
+			wBitOffset_position = i * g_nReadEcatDataSize + g_nReadOffsetPosition;
+
+			if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+					                             (ECAT_PBYTE) &g_nAct_Pulse[i],
+					                             READ_POSITION_SIZE,
+					                             wBitOffset_position)))
+			{
+				VERBOSE_ERROR("Cannot get actual position value.\n");
+				return RESULT_ERROR;
+			}
+            else
+            {
+                FUNC_ConvertPulseToPos(i, ACTUAL_POS_IDX);
+            }
+
+			// (3) read error code
+			wBitOffset_error = i * g_nReadEcatDataSize + g_nReadOffsetError;
+
+			if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+					                             (ECAT_PBYTE) &g_nErrCode[i],
+					                             READ_ERRORCODE_SIZE,
+					                             wBitOffset_error)))
+			{
+				VERBOSE_ERROR("Cannot get actual position value.\n");
+				return RESULT_ERROR;
+			}
+
+			// (4) check error status
+			if (g_nErrCode[i] != 0)
+			{
+				g_nError[i] = TRUE;
+			}
+			else
+			{
+				g_nError[i] = FALSE;
+			}
+		} // end for
+	}
+	else
+	{
+		VERBOSE_ERROR("Cannot read servo state.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+
+    #else
+
+    // - nAxis   : (in) index of axis (0 ~ 5)
+    // -pStatus  : (out) pointer to the buffer where save status of each axis
+    // -pActPos  : (out) pointer to the buffer where save current position of each axis
+    // -pErrCode : (out) pointer to the buffer where save alarm code of each axis
+    int nAxis;
+    ECAT_WORD pStatus;
+    int pActPos;
+    ECAT_WORD pErrCode;
+    int nRet;
+
+	// (1) read status word
+	nRet = ECAT_ReadStatus(nAxis, &pStatus);
+	if (nRet != 0)
+	{
+		VERBOSE_ERROR("Cannot read status of %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+
+	// (2) read actual position
+	nRet = ECAT_ReadPosition(nAxis, &pActPos);
+	if (nRet != 0)
+	{
+		VERBOSE_ERROR("Cannot read position value of %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+
+	// (3) read alarm code
+	nRet = ECAT_GetAlarmCode(nAxis, &pErrCode);
+	if (nRet != 0)
+	{
+		VERBOSE_ERROR("Cannot read alarm code of %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+
+	return RESULT_OK;
+    #endif
+
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ReadStatus()
+//
+// -nAxis   : index of axis
+// -pStatus : pointer of buffer where save status info. of nAxis
+//
+int ECAT_ReadStatus(int nAxis, ECAT_WORD* pStatus)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[256];
+	ECAT_WORD wBitOffset_status;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// read status word
+		wBitOffset_status = nAxis * g_nReadEcatDataSize + g_nReadOffsetStatus;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                            (ECAT_PBYTE) pStatus,
+				                             READ_STATUS_SIZE,
+				                             wBitOffset_status)))
+		{
+			//VERBOSE_ERROR("Cannot get control status.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		//VERBOSE_ERROR("Cannot start read input function.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+
+#else
+    *pStatus = 0x0237;  // 0000 0010 0011 0111(operation enable)
+    return RESULT_OK;
+
+#endif
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ReadPosition()
+//
+// -nAxis   : index of axis
+// -pActPos : pointer of buffer where save actual position of nAxis
+//
+int ECAT_ReadPosition(int nAxis, int* pActPos)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[256];
+	ECAT_DWORD wBitOffset_position;
+
+    if(g_pShmem_sc->sysstate.fEcatInitState != ON)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// read actual position
+		wBitOffset_position = nAxis * g_nReadEcatDataSize + g_nReadOffsetPosition;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                            (ECAT_PBYTE) pActPos,
+				                             READ_POSITION_SIZE,
+				                             wBitOffset_position)))
+		{
+			VERBOSE_ERROR("Cannot get actual position.\n");
+			return RESULT_ERROR;
+		}
+
+        //VERBOSE_VERBOSE("%d axis position : %d\n", nAxis, g_nAct_Pulse[nAxis]);        
+	}
+	else
+	{
+		VERBOSE_ERROR("Cannot start read input function.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+#else
+    //VERBOSE_VERBOSE("%d-th axis : %d\n", nAxis, g_pShmem_sc->dbTrgPos[nAxis]);
+    return RESULT_OK;
+#endif
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_GetAlarmCode()
+//
+// -nAxis   : (in) index of axis
+// -pStatus : (out) pointer to buffer where save alarm code of nAxis
+//
+int ECAT_GetAlarmCode(int nAxis, ECAT_WORD* pAlarm)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[256];
+	ECAT_WORD wBitOffset_error;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// read status word
+		wBitOffset_error = nAxis * g_nReadEcatDataSize + g_nReadOffsetError;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                             (ECAT_PBYTE) pAlarm,
+				                             READ_ERRORCODE_SIZE,
+				                             wBitOffset_error)))
+		{
+			VERBOSE_ERROR("Cannot get alarm code.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Cannot start read input function.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+#else
+    //VERBOSE_VERBOSE("No alarm.\n");
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Ecat_AlramClear()
+//
+
+int ECAT_AlarmClear(int nAxis)
+{
+#if defined (__QNXNTO__)
+
+	int nRet;
+	
+    if (g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+    	return RESULT_ERROR;
+    }
+
+	// set cmd : 128 (0x80)
+    g_CtrlWord[nAxis] = 0x80;	
+
+#if 0
+	nRet = ECAT_WritePDO(g_CtrlWord, g_nAct_Pulse[nAxis]);
+
+#else
+	nRet = ECAT_WritePDO(nAxis);
+#endif
+
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot clear master error.\n");
+		return RESULT_ERROR;
+	}	
+
+    return RESULT_OK;
+#else      
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WriteDigitalOut()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~7: 2088 Dout 8-bit output)
+// -bValue : on(true) / off(false)
+//
+
+int ECAT_WriteDigitalOut(int nSlave, int nPort, ECAT_BOOL bValue)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pOutput[256];
+	ECAT_WORD wBitOffset_Dout;
+	ECAT_WORD wCtrlWord;
+
+	wCtrlWord = (ECAT_WORD) bValue;
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_WRITE_DO_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_WRITE_DO_PORT_COUNT);
+
+    if(g_pShmem_sc->sysstate.fEcatInitState != ON)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// (1) write DO
+        //   - n-th_port(0~7) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Dout = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_DO_OFFSET;
+
+        else if(nSlave == 1)
+		    wBitOffset_Dout = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_DO_OFFSET
+                            + ECAT_WRITE_DO_SLAVE_SIZE;
+        else if(nSlave == 2)
+		    wBitOffset_Dout = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_CART_DO_OFFSET;
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                            (ECAT_PBYTE) &wCtrlWord,
+				                             ECAT_WRITE_DO_PORT_SIZE,
+				                             wBitOffset_Dout)))
+		{
+			VERBOSE_ERROR("Cannot write DO.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write DO...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+    #if 0
+	if (bValue == ECAT_TRUE)
+	{
+		VERBOSE_VERBOSE("%d-th slave, %d-th DO is on.\n", nSlave, nPort);
+	}
+	else
+	{
+		VERBOSE_VERBOSE("%d-th slave, %d-th DO is off.\n", nSlave, nPort);
+	}
+    #endif
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_WriteAnalogOut()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~1: 4132 Aout 2ch 16-bit output)
+// -rValue : -10~10 Volt
+//
+
+int ECAT_WriteAnalogOut(int nSlave, int nPort, ECAT_REAL32 rValue)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE  pOutput[256];
+	ECAT_WORD  wBitOffset_Aout;
+	ECAT_INT16 nWriteBuff;
+
+    if(g_pShmem_sc->sysstate.fEcatInitState != ON)
+        return RESULT_ERROR;
+
+	nWriteBuff =  ((ANALOG_RAW_VAL_RES * rValue) / ANALOG_MAX_ABS_VOLTAGE);
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_WRITE_AO_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_WRITE_AO_PORT_COUNT);
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// (1) write AO
+        //   - n-th_port(0~1) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Aout = nPort * ECAT_WRITE_AO_PORT_SIZE + ECAT_WRITE_AO_OFFSET;
+
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                            (ECAT_PBYTE) &nWriteBuff,
+				                             ECAT_WRITE_AO_PORT_SIZE,
+				                             wBitOffset_Aout)))
+		{
+			VERBOSE_ERROR("Cannot write AO.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write AO...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ReadDigitalIn()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~7: 1088 Din 8-bit input)
+// -return : D-in val
+
+int ECAT_ReadDigitalIn(int nSlave, int nPort)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[256];
+	ECAT_WORD wBitOffset_Din;
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_READ_DI_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_READ_DI_PORT_COUNT);
+
+    if(g_pShmem_sc->sysstate.fEcatInitState != ON)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// (1) read DIn
+        //   - n-th_port(0~7) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET;
+
+        else if(nSlave == 1)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                            + ECAT_READ_DI_SLAVE_SIZE;
+        else if(nSlave == 2)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                            + 2 * ECAT_READ_DI_SLAVE_SIZE + ECAT_READ_AI_SALVE_SIZE;
+        else if(nSlave == 3)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_CART_DI_OFFSET;
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                            (ECAT_PBYTE) &g_DinPortVal[nSlave][nPort],
+				                             ECAT_READ_DI_PORT_SIZE,
+				                             wBitOffset_Din)))
+		{
+			VERBOSE_ERROR("Cannot get DI value.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed get DI value...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return g_DinPortVal[nSlave][nPort];
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ReadAnalogIn()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~1: 3102 Aout 2ch 16-bit input)
+// -return : A-in val
+
+ECAT_REAL32 ECAT_ReadAnalogIn(int nSlave, int nPort)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[256];
+	ECAT_WORD wBitOffset_Ain;
+    ECAT_INT16 nReadBuff;
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_READ_AI_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_READ_AI_PORT_COUNT);
+
+    if(g_pShmem_sc->sysstate.fEcatInitState != ON)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// (1) read AIn
+        //   - n-th_port(0~1) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Ain = nPort * ECAT_READ_AI_PORT_SIZE + ECAT_READ_AI_OFFSET
+                             + ECAT_READ_AI_STATUS_SIZE;
+
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                            (ECAT_PBYTE) &nReadBuff,
+				                             ECAT_READ_AI_PORT_SIZE,
+				                             wBitOffset_Ain)))
+		{
+			VERBOSE_ERROR("Cannot get AI value.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed get AI value...\n");
+		return RESULT_ERROR;
+	}
+    
+    g_AinPortVal[nSlave][nPort] = ((ECAT_REAL32)nReadBuff * ANALOG_MAX_ABS_VOLTAGE)
+                                  / ANALOG_RAW_VAL_RES;
+
+    EcatIODevDoneReadInputs(g_hMaster);
+#if 0
+    VERBOSE_ERROR("%d-%d th port: A in: %d(%d)\n", nSlave, nPort,
+    										      nReadBuff, g_AinPortVal[nSlave][nPort]);
+#endif
+	return g_AinPortVal[nSlave][nPort];
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_QuickStop()
+//
+// -nAxis: index of axis
+//
+int ECAT_QuickStop(int nAxis)
+{
+#if defined (__QNXNTO__)
+    int nRet;
+
+    g_CtrlWord[nAxis] = 0x02;
+    nRet = ECAT_WritePDO(nAxis);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x02) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+	else
+	    VERBOSE_MESSAGE("Axis%d Quik Stop Activated!\n", nAxis);
+
+    //THREAD_Sleep(10);
+    return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECAT_ServoOn()
+//
+// -nAxis: index of axis
+//
+int ECAT_ServoOn(int nAxis)
+{
+#if defined (__QNXNTO__)
+    int nRet, i;
+
+	// check servo on/off state
+	if (g_pShmem_sc->outputstate.fServoOnOutState == TRUE)
+	{
+		VERBOSE_WARNING("Motor is already SERVO-ON status.\n");
+		return RESULT_OK;
+	}
+
+    // check master instance state
+	if (g_hMaster == ECAT_NULL)
+	{
+		VERBOSE_WARNING("Not ready to use Master.\n");
+		return RESULT_ERROR;
+	}
+
+	// check alarm code
+	for (i = 0; i < g_nAxisCount; i++)
+	{
+		nRet = ECAT_GetAlarmCode(i, (ECAT_WORD*) &g_nErrCode[i]);
+
+		if (g_nErrCode[i] != 0)
+		{
+			VERBOSE_WARNING("Cannot servo-on. Check alarm code.\n");
+			return RESULT_ERROR;
+		}
+	}
+
+    // read actual position
+    //ECAT_ReadActPos();
+    SERV_GetPosition();
+    
+    // set control word : 6 (shutdown)
+	g_CtrlWord[nAxis] = 0x06;
+    nRet = ECAT_WritePDO(nAxis);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x06) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+    THREAD_Sleep(10);
+    
+    // set control word : 7 (switch on)
+	g_CtrlWord[nAxis] = 0x07;
+    nRet = ECAT_WritePDO(nAxis);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x07) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+    THREAD_Sleep(10);
+    
+    // set control word : 15 (enable operation)
+    g_CtrlWord[nAxis] = 0x0f;
+    nRet = ECAT_WritePDO(nAxis);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x0f) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}    
+
+    return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Ecat_ServoOff()
+//
+
+int ECAT_ServoOff(int nAxis)
+{
+#if defined (__QNXNTO__)
+	int nRet = 0;	
+    
+#if 0
+	// check servo state
+	if (g_pShmem_sc->fServoOnOutState == FALSE)
+	{
+		VERBOSE_WARNING("Motor is already SERVO-OFF status.\n");
+		return RESULT_OK;
+	}
+#endif
+
+    // set control word : 7 (disable operation)
+    nRet = ECAT_WriteControlWord(nAxis, 0x07);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x07) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+    THREAD_Sleep(10);
+
+    // set control word : 6 (shutdown)
+    nRet = ECAT_WriteControlWord(nAxis, 0x06);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x06) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+    THREAD_Sleep(10);
+
+    // set control word : 0 (disable voltage)
+    nRet = ECAT_WriteControlWord(nAxis, 0x00);
+	if (nRet != RESULT_OK)
+	{
+		VERBOSE_ERROR("Cannot set cmd(0x00) %d-th axis.\n", nAxis);
+		return RESULT_ERROR;
+	}
+
+    return nRet;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+
+

@@ -1,0 +1,7 @@
+;  possible pass 1
+
+T01 	JOINT	0, 0, 0, 0, d90 0
+T02	JOINT	-d30, d30, d30, d30, d30, d30
+
+MOVL   T01 V=150.0 PL=0
+;MOVJ   T02 V=030.0(%) PL=0 

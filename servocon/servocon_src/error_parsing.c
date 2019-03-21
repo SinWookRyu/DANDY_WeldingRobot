@@ -1,0 +1,380 @@
+#include "servocon_main.h"
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ERR_GetErrorDescription()
+//
+char* ERR_GetErrorDescription(int nErrCode)
+{
+    //ServoPackError servoerror;
+    const char* pszErrDescription;
+
+    pszErrDescription = DANDY_DEFINE_NAME_STR(nErrCode);
+    switch (nErrCode)
+    {
+        /* Servo Pack Error */
+    case SERVO_ERR_OK:
+        break;
+
+    case SERVO_ERR_PARAMETER_CHECKSUM_1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_PARAMETER_CHECKSUM_1);
+        break;
+
+    case SERVO_ERR_PARAMETER_FORMAT_1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_PARAMETER_FORMAT_1);
+        break;
+
+    case SERVO_ERR_SYSTEM_CHECKSUM_1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SYSTEM_CHECKSUM_1);
+        break;
+
+    case SERVO_ERR_MAIN_CIRCUIT_DECTECTOR_1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_MAIN_CIRCUIT_DECTECTOR_1);
+        break;
+
+    case SERVO_ERR_PARAMETER_SETTING_1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_PARAMETER_SETTING_1);
+        break;
+
+    case SERVO_ERR_ENCODER_OUTPULSE_SETTING:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_OUTPULSE_SETTING);
+        break;
+
+    case SERVO_ERR_PARAMETER_COMBINATION:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_PARAMETER_COMBINATION);
+        break;
+
+    case SERVO_ERR_SEMICLOSED_FULLCLOSED_CONTROL_PARAMETER_SETTING:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SEMICLOSED_FULLCLOSED_CONTROL_PARAMETER_SETTING);
+        break;
+
+    case SERVO_ERR_COMBINATION:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_COMBINATION);
+        break;
+
+    case SERVO_ERR_UNSUPPORTED_DEVICE_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_UNSUPPORTED_DEVICE_ALARM);
+        break;
+
+    case SERVO_ERR_CANCELLED_SERVOON_CMD_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CANCELLED_SERVOON_CMD_ALARM);
+        break;
+
+    case SERVO_ERR_OVERCURRENT_HEATSINK_OVERHEATED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERCURRENT_HEATSINK_OVERHEATED);
+        break;
+
+    case SERVO_ERR_REGENERATION:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_REGENERATION);
+        break;
+
+    case SERVO_ERR_REGENERATIVE_OVERLOAD:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_REGENERATIVE_OVERLOAD);
+        break;
+
+    case SERVO_ERR_MAIN_CIRCUIT_PWR_SUPPLY_WIRING:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_MAIN_CIRCUIT_PWR_SUPPLY_WIRING);
+        break;
+
+    case SERVO_ERR_OVERVOLTAGE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERVOLTAGE);
+        break;
+
+    case SERVO_ERR_UNDERVOLTAGE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_UNDERVOLTAGE);
+        break;
+
+    case SERVO_ERR_MAIN_CIRCUIT_CAPACITOR_OVERVOLTAGE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_MAIN_CIRCUIT_CAPACITOR_OVERVOLTAGE);
+        break;
+
+    case SERVO_ERR_OVERSPEED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERSPEED);
+        break;
+
+    case SERVO_ERR_OVERSPEED_ENCODER_OUTPUT_PULSE_RATE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERSPEED_ENCODER_OUTPUT_PULSE_RATE);
+        break;
+
+    case SERVO_ERR_VIBRATION_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_VIBRATION_ALARM);
+        break;
+
+    case SERVO_ERR_AUTOTUNING_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_AUTOTUNING_ALARM);
+        break;
+
+    case SERVO_ERR_OVERLOAD_HIGH_LOAD:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERLOAD_HIGH_LOAD);
+        break;
+
+    case SERVO_ERR_OVERLOAD_LOW_LOAD:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERLOAD_LOW_LOAD);
+        break;
+
+    case SERVO_ERR_DYNAMIC_BRAKE_OVERLOAD1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_DYNAMIC_BRAKE_OVERLOAD1);
+        break;
+
+    case SERVO_ERR_DYNAMIC_BRAKE_OVERLOAD2:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_DYNAMIC_BRAKE_OVERLOAD2);
+        break;
+
+    case SERVO_ERR_OVERLOAD_SURGE_CURRENT_LIMIT_RESISTOR:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERLOAD_SURGE_CURRENT_LIMIT_RESISTOR);
+        break;
+
+    case SERVO_ERR_HEATSINK_OVERHEATED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_HEATSINK_OVERHEATED);
+        break;
+
+    case SERVO_ERR_BUILT_IN_FAN_STOPPED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_BUILT_IN_FAN_STOPPED);
+        break;
+
+    case SERVO_ERR_ENCODER_BACKUP:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_BACKUP);
+        break;
+
+    case SERVO_ERR_ENCODER_CHECKSUM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_CHECKSUM);
+        break;
+
+    case SERVO_ERR_ABS_ENCODER_BATTERY:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ABS_ENCODER_BATTERY);
+        break;
+
+    case SERVO_ERR_ENCODER_DATA:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_DATA);
+        break;
+
+    case SERVO_ERR_ENCODER_OVER_SPEED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_OVER_SPEED);
+        break;
+
+    case SERVO_ERR_ENCODER_OVER_HEATED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_OVER_HEATED);
+        break;
+
+    case SERVO_ERR_CURRENT_DETECTION_1_PHASE_U:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CURRENT_DETECTION_1_PHASE_U);
+        break;
+
+    case SERVO_ERR_CURRENT_DETECTION_2_PHASE_V:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CURRENT_DETECTION_2_PHASE_V);
+        break;
+
+    case SERVO_ERR_CURRENT_DETECTION_3_CURRENT_DETECTOR:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CURRENT_DETECTION_3_CURRENT_DETECTOR);
+        break;
+
+    case SERVO_ERR_SYSTEM_ALARM_0:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SYSTEM_ALARM_0);
+        break;
+
+    case SERVO_ERR_SYSTEM_ALARM_1:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SYSTEM_ALARM_1);
+        break;
+
+    case SERVO_ERR_SYSTEM_ALARM_2:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SYSTEM_ALARM_2);
+        break;
+
+    case SERVO_ERR_SYSTEM_ALARM_3:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SYSTEM_ALARM_3);
+        break;
+
+    case SERVO_ERR_SYSTEM_ALARM_4:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SYSTEM_ALARM_4);
+        break;
+
+    case SERVO_ERR_OVERRUN_DETECTED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_OVERRUN_DETECTED);
+        break;
+
+    case SERVO_ERR_ABS_ENCODER_CLEAR_AND_MULTITURN_LIMIT_SET:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ABS_ENCODER_CLEAR_AND_MULTITURN_LIMIT_SET);
+        break;
+
+    case SERVO_ERR_ENCODER_COMMUNICATION:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_COMMUNICATION);
+        break;
+
+    case SERVO_ERR_ENCODER_COMMUNICATION_POSITION_DATA:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_COMMUNICATION_POSITION_DATA);
+        break;
+
+    case SERVO_ERR_ENCODER_COMMUNICATION_TIMER:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_COMMUNICATION_TIMER);
+        break;
+
+    case SERVO_ERR_ENCODER_PARAMETER:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_PARAMETER);
+        break;
+
+    case SERVO_ERR_ENCODER_ECHOBACK:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_ENCODER_ECHOBACK);
+        break;
+
+    case SERVO_ERR_MULTI_TURN_LIMIT_DISAGREEMENT:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_MULTI_TURN_LIMIT_DISAGREEMENT);
+        break;
+
+    case SERVO_ERR_POSITION_ERR_PULSE_OVERFLOW:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_POSITION_ERR_PULSE_OVERFLOW);
+        break;
+
+    case SERVO_ERR_POSITION_ERR_PULSE_OVERFLOW_ALARM_AT_SERVOON:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_POSITION_ERR_PULSE_OVERFLOW_ALARM_AT_SERVOON);
+        break;
+
+    case SERVO_ERR_POSITION_ERR_PULSE_OVERFLOW_ALARM_BY_SPEEDLIMIT:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_POSITION_ERR_PULSE_OVERFLOW_ALARM_BY_SPEEDLIMIT);
+        break;
+
+    case SERVO_ERR_POSITION_DATA_OVERFLOW:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_POSITION_DATA_OVERFLOW);
+        break;
+
+    case SERVO_ERR_CMD_OPTION_MODULE_IF_INIT_TIMEOUT:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CMD_OPTION_MODULE_IF_INIT_TIMEOUT);
+        break;
+
+    case SERVO_ERR_CMD_OPTION_MODULE_IF_SYNC:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CMD_OPTION_MODULE_IF_SYNC);
+        break;
+
+    case SERVO_ERR_CMD_OPTION_MODULE_IF_COMMUNICATION_DATA:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CMD_OPTION_MODULE_IF_COMMUNICATION_DATA);
+        break;
+
+    case SERVO_ERR_CMD_OPTION_MODULE_DETECTION_FAIL_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CMD_OPTION_MODULE_DETECTION_FAIL_ALARM);
+        break;
+
+    case SERVO_ERR_SAFETY_OPTION_MODULE_DETECTION_FAIL_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SAFETY_OPTION_MODULE_DETECTION_FAIL_ALARM);
+        break;
+
+    case SERVO_ERR_UNSUPPORTED_CMD_OPTION_MODULE_DETECTION_FAIL_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_UNSUPPORTED_CMD_OPTION_MODULE_DETECTION_FAIL_ALARM);
+        break;
+
+    case SERVO_ERR_UNSUPPORTED_SAFETY_OPTION_MODULE_DETECTION_FAIL_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_UNSUPPORTED_SAFETY_OPTION_MODULE_DETECTION_FAIL_ALARM);
+        break;
+
+    case SERVO_ERR_CMD_OPTION_MODULE_DETECTION_DISAGREE_ALARM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_CMD_OPTION_MODULE_DETECTION_DISAGREE_ALARM);
+        break;
+
+    case SERVO_ERR_SAFETY_DEVICE_SIGNAL_INPUT_TIMING:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_SAFETY_DEVICE_SIGNAL_INPUT_TIMING);
+        break;
+
+    case SERVO_ERR_MAIN_CIRCUIT_CABLE_OPEN_PHASE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_ERR_MAIN_CIRCUIT_CABLE_OPEN_PHASE);
+        break;
+
+
+        /* Servo Pack Warning */
+    case SERVO_WARN_POSITION_ERR_PULSE_OVERFLOW:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_POSITION_ERR_PULSE_OVERFLOW);
+        break;
+
+    case SERVO_WARN_POSITION_ERR_PULSE_OVERFLOW_ALARM_AT_SERVOON:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_POSITION_ERR_PULSE_OVERFLOW_ALARM_AT_SERVOON);
+        break;
+
+    case SERVO_WARN_OVERLOAD:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_OVERLOAD);
+        break;
+
+    case SERVO_WARN_VIBRATION:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_VIBRATION);
+        break;
+
+    case SERVO_WARN_REGENERATIVE_OVERLOAD:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_REGENERATIVE_OVERLOAD);
+        break;
+
+    case SERVO_WARN_DYNAMIC_BRAKE_OVERLOAD:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_DYNAMIC_BRAKE_OVERLOAD);
+        break;
+
+    case SERVO_WARN_ABS_ENCODER_BATTERY:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_ABS_ENCODER_BATTERY);
+        break;
+
+    case SERVO_WARN_UNDERVOLTAGE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(SERVO_WARN_UNDERVOLTAGE);
+        break;
+
+
+        /* EtherCAT Error */
+    case ECAT_ERR_CMD_OPTION_IF_SERVO_UNIT_INIT:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_CMD_OPTION_IF_SERVO_UNIT_INIT);
+        break;
+
+    case ECAT_ERR_CMD_OPTION_IF_MEMORY_CHECK:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_CMD_OPTION_IF_MEMORY_CHECK);
+        break;
+
+    case ECAT_ERR_CMD_OPTION_IF_SERVO_SYNC:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_CMD_OPTION_IF_SERVO_SYNC);
+        break;
+
+    case ECAT_ERR_CMD_OPTION_IF_SERVO_DATA:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_CMD_OPTION_IF_SERVO_DATA);
+        break;
+
+    case ECAT_ERR_ECAT_DC_SYNC:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_ECAT_DC_SYNC);
+        break;
+
+    case ECAT_ERR_ECAT_STATE:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_ECAT_STATE);
+        break;
+
+    case ECAT_ERR_ECAT_OUTPUT_DATA_SYNC:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_ECAT_OUTPUT_DATA_SYNC);
+        break;
+
+    case ECAT_ERR_PARAMETER_SETTING:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_PARAMETER_SETTING);
+        break;
+
+    case ECAT_ERR_SYSTEM_INIT:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_SYSTEM_INIT);
+        break;
+
+    case ECAT_ERR_COMMUNICATION_DEVICE_INIT:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_COMMUNICATION_DEVICE_INIT);
+        break;
+
+    case ECAT_ERR_LOADING_SERVO_INFORM:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_LOADING_SERVO_INFORM);
+        break;
+
+    case ECAT_ERR_EEPROM_PARAMETER_DATA:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_EEPROM_PARAMETER_DATA);
+        break;
+        
+    case ECAT_ERR_SLAVE_CONNECTION_CLOSED:
+        pszErrDescription = DANDY_DEFINE_NAME_STR(ECAT_ERR_SLAVE_CONNECTION_CLOSED);
+        break;
+    }
+
+    CRT_strncpy(g_szEcatErrorDescription, ERROR_MESSAGE_BUFFER_SIZE,
+                pszErrDescription + 5, ERROR_MESSAGE_BUFFER_SIZE);
+
+#if defined (__QNXNTO__)
+    strlwr(g_szEcatErrorDescription);
+#else
+    _strlwr_s(g_szEcatErrorDescription, sizeof(g_szEcatErrorDescription));
+#endif
+
+    VERBOSE_MESSAGE("Code: %x, Descript: %s\n", nErrCode, g_szEcatErrorDescription);
+
+    return g_szEcatErrorDescription;
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cHelpSettings>
+<project name="robotmgr_qnx">
+<provider id="com.qnx.tools.ide.qde.ui.help.CompletionContributorID">
+<book enabled="true" title="QNX Help Documentation"/>
+</provider>
+<provider id="org.eclipse.cdt.ui.provider1"/>
+</project>
+</cHelpSettings>

@@ -1,0 +1,542 @@
+////////////////////////////////////////////////////////////////////////////////
+// INIT.C is initialzation program for TASKEXEC
+// 2013-05-19 mrch0
+
+#include "taskexec_def.h"
+#include "stdio.h"
+#define ARG_VERB    ('v')
+#define ARG_MSG     ('m') 
+#define ARG_WARN    ('w') 
+#define ARG_ERR     ('e') 
+#define ARG_NONE    ('n') 
+
+static const char s_arg_help[]          = "-h";
+static const char s_arg_print[]         = "-p"; 
+static const char s_arg_wait[]          = "-ka"; 
+
+static const char s_sz_help[] = 
+"TASKEXEC_QNX is the task executor of Dandy2015.\n"
+"Copyright(c) 2013 DSME Co.Ltd. All Rights Reserved.\n"
+"\n"
+"USAGE : taskexec_qnx [-h] [-ka <time>] [-p <level>]\n"
+"\n"
+"-h : Help Message Print Option. \n"
+"     This makes TASKEXEC prints the help message without running.\n"
+"     This option is prior to all the options.\n"
+"\n"
+"-ka: IPC Initialization Wait Time Option (Keep Alive)\n"
+"     Waits for IPC connection for <time> second before fail exit.\n" 
+"     If <time> is <= 0, TASKEXEC waits infinitely. (Default = Inf.)\n" 
+"\n"
+"-p : The message option controls the message display level\n"
+"     The message display levels are among VERBOSE, MESSAGE, WARNING, ERROR,\n"
+"     and NO-MESSAGE.\n"
+"     The VERBOSE is the lowest and NO-MESSAGE is the highest.\n"
+"     If one level is defined, Messages under defined level do not appear.\n"
+"     The default message level is MESSAGE.\n"
+"\n"
+"     <level>\n"
+"        v : VERBOSE\n"
+"        m : MESSAGE (default)\n"
+"        w : WARNING\n"
+"        e : ERROR \n"
+"        n : NO-MESSAGE\n"
+"\n"; 
+
+static unsigned long s_ipc_wait = DEF_IPC_WAITTIME; 
+static char s_print_opt = ARG_VERB; 
+
+void Init_ExitProc(int n)
+{
+    Init_TeResourceUninit(); 
+
+    Init_SetExitFlag(); 
+
+    Init_IpcUninit(); 
+    
+    Init_VerboseUninit();     
+}
+
+// No help argument parsing : return 0
+int Init_Argument(int argc, char* argv[])
+{
+	int i; 
+
+    // Default Option Value 
+    s_ipc_wait = DEF_IPC_WAITTIME;
+    s_print_opt = ARG_VERB; 
+
+    // Argument Option Value 
+    for ( i=0 ; i<argc ; i++)
+    {
+        if( strcmp(argv[i], s_arg_help) == 0 )
+        {  
+            printf("\nTASKEXEC_QNX [Ver:%s Build:%s]\n", TE_VERSION, TE_BUILD); 
+            printf("%s", s_sz_help); 
+            return -1; 
+        }        
+
+        if( strcmp(argv[i], s_arg_print) == 0 && strlen(argv[i+1]) == 1)
+        {   
+            s_print_opt = *argv[i+1]; 
+            continue;
+        }
+
+        if( strcmp(argv[i], s_arg_wait) == 0)
+        {   
+            s_ipc_wait = 1000*atoi(argv[i+1]);           
+#if 0
+            s_ipc_wait = (s_ipc_wait < 0)? 0 : s_ipc_wait; 
+#endif
+            continue;
+        }
+    }
+    return 0; 
+}
+
+void Init_VerboseInit(void)
+{
+    VERBOSE_Create(TE_VERBOSE_NAME, TE_VERBOSE_PREFIX); 
+
+    VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR, TRUE);
+    VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, TRUE);
+	VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, TRUE);
+    VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, TRUE);
+
+    switch(s_print_opt)
+    {
+    case ARG_NONE:
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   0);
+        break;
+    case ARG_ERR:
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   1);
+        break;
+    case ARG_WARN:
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, 1);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   1);
+        break;
+    case ARG_MSG:
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, 0);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, 1);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, 1);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   1);
+        break;
+    case ARG_VERB:
+    default: 
+        VERBOSE_EnableOutput(VERBOSE_TYPE_VERBOSE, 1);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_MESSAGE, 1);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_WARNING, 1);
+        VERBOSE_EnableOutput(VERBOSE_TYPE_ERROR,   1);              
+    }
+}
+
+void Init_VerboseUninit(void)
+{    
+	VERBOSE_WaitForComplete();
+    VERBOSE_Destroy();
+}
+
+int Init_TeResourceInit(void)
+{
+	unsigned long time_wait; 
+	
+	// Channel Init	
+    g_ch_te = MSG_CreateNamedChannel(TE_CHANNEL_NAME);
+    if (g_ch_te == INVALID_CHID)
+    {
+		VERBOSE_ERROR("Failed to create the channel. Name:%s\n", TE_CHANNEL_NAME);
+        return -1; 
+    }
+	else
+	{
+		VERBOSE_VERBOSE("Created the channel. Name:%s ID:%d \n", TE_CHANNEL_NAME, g_ch_te);
+	}
+
+	// Shm of te init
+	g_hshm_te_test = SHM_Create(SHMNAME_TE_TEST, sizeof(SHM_TE_TEST)); 
+	if(g_hshm_te_test == -1)
+	{
+		VERBOSE_ERROR("Failed to create the shared memory handle.\n"); 
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Created the shared memory handle.\n"); 
+	}
+
+	g_pshm_te_test = (volatile SHM_TE_TEST*)SHM_Map(g_hshm_te_test, sizeof(SHM_TE_TEST)); 
+	if(g_pshm_te_test == NULL) 
+	{ 
+		VERBOSE_ERROR("Cannot map shared memory.\n"); 
+		return -1; 
+	}
+	else
+	{
+		g_pshm_te_test->nSize = sizeof(SHM_TE_TEST); 
+		VERBOSE_VERBOSE("Mapped the shared memory. Size:%dbytes\n", g_pshm_te_test->nSize); 
+	}
+
+	// Thread Init
+
+	g_hthr_run = THREAD_Create(RuntimeThread, NULL, 0, THREAD_POLICY_FIFO, 
+								THREAD_DETACHED, 0); 
+	if(g_hthr_run == THREAD_INVALID)
+	{
+		VERBOSE_ERROR("Cannot create 'RuntimeThread'.\n"); 
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Created 'RuntimeThread'.\n"); 
+	}
+
+	// Waits Thread Ready.
+    VERBOSE_VERBOSE("Waits for 'Runtime' thread ready.\n"); 
+
+	for(time_wait=0 ; time_wait<=WAITTIME_THR_READY ; time_wait+=WAITTIME_SLICE)
+	{	
+		if(g_ind_runtime_ready == TRUE)
+		{
+			VERBOSE_VERBOSE("Checked 'Runtime' thread ready.\n"); 
+			break; 
+		}
+		THREAD_Sleep(WAITTIME_SLICE); 
+	}
+    if(WAITTIME_THR_READY <= time_wait)
+	{
+		VERBOSE_ERROR("Failed to wait for 'Runtime' thread ready.\n"); 
+		return -1; 
+	}
+
+    // Connection to TASKEXEC
+    g_co_te = MSG_AttachConnection(0, g_ch_te); 
+    if (g_co_te == INVALID_COID) 
+    { 
+        VERBOSE_ERROR("Failed to attatch connetion to TASKEXEC thread\n"); 
+        return -1; 
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Attached the connection to TASKEXEC Thread. ID:%d \n", g_co_te); 
+    }
+
+    // Init Check Time Limit 
+    if(s_ipc_wait > 0)
+    {
+        g_htmr_exit = TIME_RegTimerPulse(g_co_te, TESERV_EXIT, 0, s_ipc_wait, 0);
+        if(g_htmr_exit == -1)
+        {              
+            VERBOSE_ERROR("Failed to register INIT_WAIT timer.\n"); 
+            return -1; 
+        }
+        else
+        {
+            VERBOSE_VERBOSE("Waits for RM INIT MSG for %d[ms]\n", s_ipc_wait); 
+        }
+    }
+
+    // Exit Forced Handler Register 
+    DEBUG_SetConsoleHandler(Init_ExitProc); 
+
+	return 0; 
+}
+
+void Init_TeResourceUninit(void)
+{
+	int ret; 
+	unsigned long time_wait; 
+
+    // !! Warning !! Timer Handle Stop First 
+    // Unregistered INIT_WAIT Timer
+    if(g_htmr_exit != -1)
+    {
+        if(TIME_UnregTimerPulse(g_htmr_exit) == -1)
+        {
+            VERBOSE_ERROR("Failed to unregister INIT_WAIT timer. Handle:%d \n", g_htmr_exit); 
+        }
+        else
+        {
+            VERBOSE_VERBOSE("Unregistered INIT_WAIT timer. Handle:%d \n", g_htmr_exit); 
+        }
+    }
+
+    // Uninit Connection Connection to TASKEXEC
+	if(INVALID_COID != g_co_te) 
+	{
+		ret = MSG_DetachConnection(g_co_te);
+		g_co_te = INVALID_COID; 
+
+		if(-1 == ret)
+		{
+			VERBOSE_ERROR("Failed to detach the connection to TASKEXEC.\n");
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Detached the connection to TASKEXEC. ID:%d\n", g_co_te);			
+		}
+	}
+
+    // Thread Uninit 
+
+	// Thread Exit Wait
+	if(g_ind_runtime_ready)
+	{
+        // Req to Exit Runtime Thread 
+
+        VERBOSE_VERBOSE("Waits for 'Runtime' thread to exit.\n"); 
+        
+		MSG_SendPulse(g_co_run, RUNSERV_EXIT, 0); 
+		        
+		for(time_wait=0 ; time_wait<=WAITTIME_THR_EXIT ; time_wait+=WAITTIME_SLICE)
+		{	
+			if(g_ind_runtime_exit)
+			{
+				VERBOSE_VERBOSE("Checked 'Runtime' thread exit.\n"); 
+				break; 
+			}
+			THREAD_Sleep(WAITTIME_SLICE); 			
+		}
+
+		if(WAITTIME_THR_EXIT <= time_wait)
+		{
+			THREAD_Kill(g_hthr_run); 
+			VERBOSE_WARNING("Forced to kill 'Runtime' thread.\n"); 
+		}
+	}
+	
+	// TE Shared Memory Uninit
+	if(NULL != g_pshm_te_test)
+	{
+		SHM_Unmap((void*)g_pshm_te_test, sizeof(SHM_TE_TEST)); 
+		g_pshm_te_test = NULL; 
+		
+		VERBOSE_VERBOSE("Unmapped the shared memory. Size:%dbytes\n", sizeof(SHM_TE_TEST)); 
+	}
+	if(-1 != g_hshm_te_test)
+	{
+		SHM_Destroy(g_hshm_te_test, SHMNAME_TE_TEST); 
+		g_hshm_te_test = -1; 
+
+		VERBOSE_VERBOSE("Destroyed the shared memory. Name:%s\n", SHMNAME_TE_TEST); 
+	}
+
+	// Uninit Channel
+	if(INVALID_CHID != g_ch_te)
+	{
+		ret = MSG_DestroyChannel(g_ch_te);
+		g_ch_te = INVALID_CHID; 
+
+		if(-1 == ret)
+		{
+			VERBOSE_ERROR("Failed to destroy the channel. Name:%s\n", TE_CHANNEL_NAME);
+		}
+		else
+		{
+			VERBOSE_VERBOSE("Destroyed the channel. Name:%s\n", TE_CHANNEL_NAME);
+		}
+	}
+}
+
+int Init_IpcInit(void)
+{   
+    // Uninit for Re-init
+    Init_IpcUninit(); 
+
+    ///// Connection to RM
+
+    VERBOSE_VERBOSE("Waits for connecting to RM...\n");					
+
+	g_co_rm = MSG_WaitForNamedConnection(SYS_RM_CHANNEL_NAME, s_ipc_wait);			
+
+	if(g_co_rm == INVALID_COID)
+	{
+		VERBOSE_ERROR("Failed the connection to RM\n");		        
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Connected to RM. ID:%d\n", g_co_rm);							
+	}
+
+    // RM Shared Memory Init
+
+	// Open
+	g_hshm_rm_sys = SHM_Open(SHM_RM_SYSSTATUS_NAME); 
+	if(g_hshm_rm_sys == -1)
+	{
+		VERBOSE_ERROR("Failed to open the shared memory handle. Name:%s\n", SHM_RM_SYSSTATUS_NAME);         
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Opened the shared memory handle. Name:%s Handle:%d\n", SHM_RM_SYSSTATUS_NAME, g_hshm_rm_sys); 
+	}
+
+	g_pshm_rm_sys = (volatile SHM_RM_SYSSTATUS*)SHM_Map(g_hshm_rm_sys, sizeof(SHM_RM_SYSSTATUS)); 
+	
+	// Map
+	if(g_pshm_rm_sys == NULL) 
+	{ 
+		VERBOSE_ERROR("Cannot map shared memory. Name:%s\n", SHM_RM_SYSSTATUS_NAME);         
+		return -1; 
+	}
+	else
+	{		
+		VERBOSE_VERBOSE("Mapped the shared memory. Name:%s Size:%dbytes\n", SHM_RM_SYSSTATUS_NAME, g_pshm_rm_sys->nSize); 
+	}
+
+	// Size Check 
+	if(g_pshm_rm_sys->nSize != sizeof(SHM_RM_SYSSTATUS))
+	{
+		VERBOSE_ERROR("Mismatched shared memory size. Name:%s Map:%dbytes Chk:%dbytes \n", SHM_RM_SYSSTATUS_NAME, sizeof(SHM_RM_SYSSTATUS), g_pshm_rm_sys->nSize);         
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Matched shared memory size. Name:%s Map:%dbytes Chk:%dbytes \n", SHM_RM_SYSSTATUS_NAME, sizeof(SHM_RM_SYSSTATUS), g_pshm_rm_sys->nSize); 
+	}
+
+	// SC Shared Memory Init
+
+	// Open
+	g_hshm_sc_motor = SHM_Open(SC_SHM_NAME); 
+	if(g_hshm_sc_motor == -1)
+	{
+		VERBOSE_ERROR("Failed to open the shared memory handle. Name:%s\n", SC_SHM_NAME);         
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Opened the shared memory handle. Name:%s Handle:%d\n", SC_SHM_NAME, g_hshm_sc_motor); 
+	}
+
+	g_pshm_sc_motor = (volatile SHM_SC_MOTORCTRL*)SHM_Map(g_hshm_sc_motor, sizeof(SHM_SC_MOTORCTRL)); 
+	
+	// Map
+	if(g_pshm_sc_motor == NULL) 
+	{ 
+		VERBOSE_ERROR("Cannot map shared memory. Name:%s\n", SC_SHM_NAME);         
+		return -1; 
+	}
+	else
+	{		
+        VERBOSE_VERBOSE("Mapped the shared memory. Name:%s Size:%dbytes\n", SC_SHM_NAME, g_pshm_sc_motor->size);
+	}
+
+	// Size Check 
+    if(g_pshm_sc_motor->size != sizeof(SHM_SC_MOTORCTRL))
+	{
+        VERBOSE_ERROR("Mismatched shared memory size. Name:%s Map:%dbytes Chk:%dbytes \n", SC_SHM_NAME, sizeof(SHM_SC_MOTORCTRL), g_pshm_sc_motor->size);         
+		return -1; 
+	}
+	else
+	{
+        VERBOSE_VERBOSE("Matched shared memory size. Name:%s Map:%dbytes Chk:%dbytes \n", SC_SHM_NAME, sizeof(SHM_SC_MOTORCTRL), g_pshm_sc_motor->size); 
+	}
+    
+    // Sets init completion flag in shm & Global 
+    g_pshm_rm_sys->fInitProcTE = TRUE;    
+    g_f_ipc_init = TRUE; 
+
+    VERBOSE_MESSAGE("Completed IPC resources\n");     
+    VERBOSE_MESSAGE("Completed all initilization\n");  
+	return 0; 
+}
+
+void Init_IpcUninit(void)
+{
+    // Sets exit completion flag in shm
+    if(g_pshm_rm_sys != NULL)
+    {        
+        g_pshm_rm_sys->fInitProcTE = FALSE;         
+    }
+    // Reset Flag for IPC Inited
+    g_f_ipc_init = FALSE; 
+
+    // SC Shared Memory Uninit
+	
+	if(NULL != g_pshm_sc_motor)
+	{
+		SHM_Unmap((void*)g_pshm_sc_motor, sizeof(SHM_SC_MOTORCTRL)); 
+		g_pshm_sc_motor = NULL; 
+		
+		VERBOSE_VERBOSE("Unmapped the SC shared memory. Size:%dbytes\n", sizeof(SHM_SC_MOTORCTRL)); 
+	}
+	if(-1 != g_hshm_sc_motor)
+	{
+		SHM_Destroy(g_hshm_sc_motor, SC_SHM_NAME); 
+		g_hshm_sc_motor = -1; 
+
+		VERBOSE_VERBOSE("Destroyed the SC shared memory. Name:%s\n", SC_SHM_NAME); 
+	}
+
+	// RM Shared Memory Uinit
+	
+	if(NULL != g_pshm_rm_sys)
+	{
+		SHM_Unmap((void*)g_pshm_rm_sys, sizeof(SHM_RM_SYSSTATUS)); 
+		g_pshm_rm_sys = NULL; 
+		
+		VERBOSE_VERBOSE("Unmapped the RM shared memory. Size:%dbytes\n", sizeof(SHM_RM_SYSSTATUS_NAME)); 
+	}
+	if(-1 != g_hshm_rm_sys)
+	{
+		SHM_Destroy(g_hshm_rm_sys, SHM_RM_SYSSTATUS_NAME); 
+		g_hshm_rm_sys = -1; 
+
+		VERBOSE_VERBOSE("Destroyed the RM shared memory. Name:%s\n", SHM_RM_SYSSTATUS_NAME); 
+	}
+
+    ///// Detach RM Connection
+    if(INVALID_COID != g_co_rm) 
+	{
+		MSG_DetachConnection(g_co_rm);
+		VERBOSE_VERBOSE("Detached the connection to RM. ID:%d\n", g_co_rm);
+		g_co_rm = INVALID_COID; 
+	}
+}
+
+void Init_SetExitFlag(void)
+{
+    if(g_pshm_rm_sys != NULL)
+    {
+        g_pshm_rm_sys->fExitProcTE = TRUE;
+    }
+}
+
+#if 0
+// RM Request Version
+int RmReqVers(void)
+{
+	int ret; 
+	RMGR_PACKET	 msg; 
+	RMGR_REPLY_PACKET rep; 
+
+    msg.nCode = RMGR_SERV_SYSVERSION; 
+    msg.nValue = 0; 
+    msg.nDataSize = 0; 
+	
+    VERBOSE_VERBOSE("Send Blocking for version request to RM... Code:%d Val:%d \n", msg.nCode, msg.nValue); 
+
+	ret = MSG_Send(g_co_rm, &msg, sizeof(msg), &rep, sizeof(RMGR_REPLY_PACKET));
+	if(ret != 0)
+	{
+        VERBOSE_ERROR("Failed to send the Vers Req to RM. Code:%d Val:%d \n", msg.nCode, msg.nValue);		
+		return -1; 
+	}
+	else
+	{	
+        VERBOSE_VERBOSE("Was replyed for Vers Req from RM. Ver:%s Build:%s\n", 
+            rep.Data.reply_ver.rgchRM_vers, rep.Data.reply_ver.rgchRM_build); 		
+	}
+    return 0; 
+}
+#endif

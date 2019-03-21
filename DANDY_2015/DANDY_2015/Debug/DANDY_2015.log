@@ -1,0 +1,34 @@
+﻿Build started 2014-07-29 오전 8:46:00.
+     1>Project "F:\DANDY2015\Integrated_Project\DANDY_2015\DANDY_2015\DANDY_2015.vcxproj" on node 5 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "Debug\DANDY_2015.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "Debug\DANDY_2015.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yc"StdAfx.h" /Fp"Debug\DANDY_2015.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt stdafx.cpp
+         stdafx.cpp
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Yu"StdAfx.h" /Fp"Debug\DANDY_2015.pch" /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt DANDY_2015.cpp
+         DANDY_2015.cpp
+       ManifestResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\DANDY_2015.exe.embed.manifest.res" Debug\DANDY_2015_manifest.rc 
+       Link:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\DANDY_2015.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.lib" /MACHINE:X86 Debug\DANDY_2015.exe.embed.manifest.res
+         Debug\DANDY_2015.obj
+         Debug\stdafx.obj
+       Manifest:
+         Deleting file "Debug\DANDY_2015.exe.embed.manifest".
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\DANDY_2015.exe.embed.manifest" /manifest Debug\DANDY_2015.exe.intermediate.manifest
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\DANDY_2015.exe.embed.manifest.res" Debug\DANDY_2015_manifest.rc 
+       LinkEmbedManifest:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.exe" /INCREMENTAL /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\DANDY_2015.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.lib" /MACHINE:X86 Debug\DANDY_2015.exe.embed.manifest.res
+         Debug\DANDY_2015.obj
+         Debug\stdafx.obj
+         DANDY_2015.vcxproj -> F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\DANDY_2015.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\DANDY_2015.unsuccessfulbuild".
+         Touching "Debug\DANDY_2015.lastbuildstate".
+     1>Done Building Project "F:\DANDY2015\Integrated_Project\DANDY_2015\DANDY_2015\DANDY_2015.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:02.67

@@ -1,0 +1,5 @@
+T01 	JOINT	0 0 0 0 0 0
+
+TIMER T=1.0
+CALL "sub.pgm"
+MOVJ   T01 V=10.0 PL=0 

@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workbench progressCount="23" version="2.0">
+<workbenchAdvisor/>
+<window height="768" maximized="true" width="1024" x="536" y="27">
+<fastViewData fastViewLocation="1024">
+<orientation position="512" view="com.qnx.tools.ide.target.fsys"/>
+</fastViewData>
+<perspectiveBar>
+<itemSize x="365"/>
+</perspectiveBar>
+<coolbarLayout locked="0">
+<coolItem id="group.file" itemType="typeGroupMarker"/>
+<coolItem id="org.eclipse.ui.workbench.file" itemType="typeToolBarContribution" x="129" y="22"/>
+<coolItem id="additions" itemType="typeGroupMarker"/>
+<coolItem id="com.qnx.tools.ide.phab.ui.PhabActionSet" itemType="typeToolBarContribution" x="39" y="22"/>
+<coolItem id="org.eclipse.cdt.ui.CElementCreationActionSet" itemType="typeToolBarContribution" x="160" y="22"/>
+<coolItem id="org.eclipse.cdt.ui.buildConfigActionSet" itemType="typeToolBarContribution" x="86" y="22"/>
+<coolItem id="org.eclipse.debug.ui.launchActionSet" itemType="typeToolBarContribution" x="160" y="22"/>
+<coolItem id="org.eclipse.search.searchActionSet" itemType="typeToolBarContribution" x="75" y="22"/>
+<coolItem id="org.eclipse.ui.edit.text.actionSet.presentation" itemType="typeToolBarContribution" x="85" y="22"/>
+<coolItem id="group.nav" itemType="typeGroupMarker"/>
+<coolItem id="org.eclipse.ui.workbench.navigate" itemType="typeToolBarContribution" x="183" y="22"/>
+<coolItem id="group.editor" itemType="typeGroupMarker"/>
+<coolItem id="com.qnx.tools.ide.fsys.FsysEditor" itemType="typePlaceholder" x="-1" y="-1"/>
+<coolItem id="org.eclipse.cdt.ui.editor.CEditor" itemType="typeToolBarContribution" x="-1" y="-1"/>
+<coolItem id="group.help" itemType="typeGroupMarker"/>
+<coolItem id="org.eclipse.ui.workbench.help" itemType="typeToolBarContribution" x="-1" y="-1"/>
+</coolbarLayout>
+<page aggregateWorkingSetId="Aggregate for window 1378947928843" focus="true" label="Workspace - C/C++">
+<editors>
+<editorArea activeWorkbook="DefaultEditorWorkbook">
+<info part="DefaultEditorWorkbook">
+<folder appearance="1" expanded="2">
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">
+<part id="0"/>
+<part id="1"/>
+<part id="2"/>
+<part id="3"/>
+<part id="4"/>
+<part id="5"/>
+<part id="6"/>
+<part id="7"/>
+</presentation>
+</folder>
+</info>
+</editorArea>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="shmem_mgr.c" partName="shmem_mgr.c" path="D:/Work/Dandy2015_dev/robotmgr_ver2.11a_131112/robotmgr_src/shmem_mgr.c" title="shmem_mgr.c" tooltip="robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/shmem_mgr.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/shmem_mgr.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="1052" selectionTopPixel="0"/>
+</editor>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="ecat_pdo.c" partName="ecat_pdo.c" path="D:/Work/Dandy2015_dev/servocon_ver2.11a_131112/servocon_src/ecat_pdo.c" title="ecat_pdo.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_pdo.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_pdo.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="7934" selectionTopPixel="4488"/>
+</editor>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="run_thread.c" partName="run_thread.c" path="D:/Work/Dandy2015_dev/servocon_ver2.11a_131112/servocon_src/run_thread.c" title="run_thread.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/run_thread.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/run_thread.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="34200" selectionTopPixel="16099"/>
+</editor>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="sysinfo_svc.c" partName="sysinfo_svc.c" path="D:/Work/Dandy2015_dev/robotmgr_ver2.11a_131112/robotmgr_src/sysinfo_svc.c" title="sysinfo_svc.c" tooltip="robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/sysinfo_svc.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/sysinfo_svc.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="27077" selectionTopPixel="9061"/>
+</editor>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="servocon_main.c" partName="servocon_main.c" path="D:/Work/Dandy2015_dev/servocon_ver2.11a_131112/servocon_src/servocon_main.c" title="servocon_main.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/servocon_main.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/servocon_main.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="17276" selectionTopPixel="8058"/>
+</editor>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="job_svc.c" partName="job_svc.c" path="D:/Work/Dandy2015_dev/robotmgr_ver2.11a_131112/robotmgr_src/job_svc.c" title="job_svc.c" tooltip="robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/job_svc.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/job_svc.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="7876" selectionTopPixel="4471"/>
+</editor>
+<editor activePart="true" focus="true" id="org.eclipse.cdt.ui.editor.CEditor" name="sys_svc.c" partName="sys_svc.c" path="D:/Work/Dandy2015_dev/servocon_ver2.11a_131112/servocon_src/sys_svc.c" title="sys_svc.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/sys_svc.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/sys_svc.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="889" selectionTopPixel="204"/>
+</editor>
+<editor id="org.eclipse.cdt.ui.editor.CEditor" name="ecat_coe.c" partName="ecat_coe.c" path="D:/Work/Dandy2015_dev/servocon_ver2.11a_131112/servocon_src/ecat_coe.c" title="ecat_coe.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_coe.c" workbook="DefaultEditorWorkbook">
+<input factoryID="org.eclipse.ui.part.FileEditorInputFactory" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_coe.c"/>
+<editorState selectionHorizontalPixel="0" selectionLength="0" selectionOffset="16113" selectionTopPixel="8126"/>
+</editor>
+</editors>
+<views>
+<view id="org.eclipse.ui.views.TaskList" partName="Tasks"/>
+<view id="com.qnx.tools.ide.SystemProfiler.ui.views.filters" partName="Filters"/>
+<view id="org.eclipse.debug.ui.DebugView" partName="Debug">
+<viewState/>
+</view>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.mallocview" partName="Malloc Information">
+<viewState/>
+</view>
+<view id="org.eclipse.ui.console.ConsoleView" partName="Console">
+<viewState/>
+</view>
+<view id="QNXSystemBuilderBinaryInspector" partName="QNX Binary Inspector"/>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.memview" partName="Memory Information">
+<viewState/>
+</view>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.systemview" partName="System Summary">
+<viewState system.highlight="0"/>
+</view>
+<view id="org.eclipse.ui.navigator.ProjectExplorer" partName="Project Explorer">
+<viewState CommonNavigator.LINKING_ENABLED="0" CommonNavigator.LINKING_ENABLED.delayed="0" currentWorkingSetName="Aggregate for window 1378947928843" org.eclipse.cdt.ui.cview.groupincludes="false" org.eclipse.cdt.ui.editor.CUChildren="true" org.eclipse.ui.navigator.resources.workingSets.showTopLevelWorkingSets="0"/>
+</view>
+<view id="org.eclipse.debug.ui.BreakpointView" partName="Breakpoints">
+<viewState>
+<isTrackingSelection value="false"/>
+</viewState>
+</view>
+<view id="org.eclipse.ui.views.BookmarkView" partName="Bookmarks"/>
+<view id="org.eclipse.cdt.debug.ui.executablesView" partName="Executables"/>
+<view id="com.qnx.tools.ide.target.fsys" partName="Target File System Navigator">
+<viewState showfiles="no" showtable="yes" sorter="filename" sortorder="1024" weightl="30">
+<columns IMemento.internal.id="filename" widths="246"/>
+<columns IMemento.internal.id="size" widths="80"/>
+<columns IMemento.internal.id="date" widths="173"/>
+<columns IMemento.internal.id="owner" widths="70"/>
+<columns IMemento.internal.id="group" widths="70"/>
+<columns IMemento.internal.id="permission" widths="82"/>
+</viewState>
+</view>
+<view id="org.eclipse.debug.ui.VariableView" partName="Variables">
+<viewState/>
+</view>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.processview" partName="Process Information">
+<viewState categorize="1" items="124,117,102,108,109,115,125" process.highlight="0"/>
+</view>
+<view id="QNXSystemBuilderProjectView" partName="System Builder Projects"/>
+<view id="com.qnx.tools.ide.target.internal.ui.targetview" partName="Target Navigator">
+<viewState auto_refresh="1" group_type="0" refresh_interval="5" sort_reverse="0" sort_type="0"/>
+</view>
+<view id="org.eclipse.ui.views.PropertySheet" partName="Properties">
+<viewState/>
+</view>
+<view id="com.qnx.tools.ide.SystemProfiler.views.ClientServer" partName="Client/Server CPU Statistics"/>
+<view id="qnxTftpView" partName="TFTP Server"/>
+<view id="com.qnx.tools.ide.SystemProfiler.ui.views.logview" partName="Trace Event Log"/>
+<view id="org.eclipse.ui.views.ResourceNavigator" partName="Navigator"/>
+<view id="org.eclipse.cdt.make.ui.views.MakeView" partName="Make Targets">
+<viewState/>
+</view>
+<view id="org.eclipse.ui.views.ContentOutline" partName="Outline">
+<viewState/>
+</view>
+<view id="com.qnx.tools.ide.SystemProfiler.views.ConditionStatsView" partName="Condition Statistics"/>
+<view id="com.qnx.tools.ide.SystemProfiler.views.ElementStatsView" partName="Event Owner Statistics"/>
+<view id="com.qnx.tools.ide.SystemProfiler.views.GeneralStatsView" partName="General Statistics"/>
+<view id="org.eclipse.tm.terminal.view.TerminalView" partName="Terminal"/>
+<view id="org.eclipse.ui.views.ProblemView" partName="Problems">
+<viewState PRIMARY_SORT_FIELD="org.eclipse.ui.ide.severityAndDescriptionField" categoryGroup="org.eclipse.ui.ide.severity" markerContentGenerator="org.eclipse.ui.ide.problemsGenerator" partName="Problems">
+<expanded>
+<category IMemento.internal.id="Warnings"/>
+<category IMemento.internal.id="Warnings (2 items)"/>
+</expanded>
+<columnWidths org.eclipse.ui.ide.locationField="64" org.eclipse.ui.ide.markerType="94" org.eclipse.ui.ide.pathField="124" org.eclipse.ui.ide.resourceField="94" org.eclipse.ui.ide.severityAndDescriptionField="454"/>
+<visible IMemento.internal.id="org.eclipse.ui.ide.severityAndDescriptionField"/>
+<visible IMemento.internal.id="org.eclipse.ui.ide.resourceField"/>
+<visible IMemento.internal.id="org.eclipse.ui.ide.pathField"/>
+<visible IMemento.internal.id="org.eclipse.ui.ide.locationField"/>
+<visible IMemento.internal.id="org.eclipse.ui.ide.markerType"/>
+</viewState>
+</view>
+</views>
+<perspectives activePart="org.eclipse.cdt.ui.editor.CEditor" activePerspective="org.eclipse.cdt.ui.CPerspective">
+<perspective editorAreaTrimState="2" editorAreaVisible="1" fixed="0" version="0.016">
+<descriptor class="com.qnx.tools.ide.SystemProfiler.ui.SystemProfilerPerspective" id="com.qnx.tools.ide.SystemProfiler.ui.perspective.traceperspective" label="QNX System Profiler"/>
+<alwaysOnActionSet id="org.eclipse.ui.cheatsheets.actionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.target.ui.actionset.log"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.updater"/>
+<alwaysOnActionSet id="org.eclipse.search.searchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.team.svn.ui.menu.help"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.annotationNavigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.navigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.convertLineDelimitersTo"/>
+<alwaysOnActionSet id="org.eclipse.ui.externaltools.ExternalToolsSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.keyBindings"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.openFiles"/>
+<show_view_action id="com.qnx.tools.ide.SystemProfiler.ui.views.filters"/>
+<show_view_action id="com.qnx.tools.ide.target.internal.ui.targetview"/>
+<show_view_action id="com.qnx.tools.ide.SystemProfiler.ui.views.logview"/>
+<show_view_action id="org.eclipse.ui.views.ResourceNavigator"/>
+<show_view_action id="org.eclipse.ui.views.BookmarkView"/>
+<show_view_action id="org.eclipse.ui.views.PropertySheet"/>
+<show_view_action id="com.qnx.tools.ide.SystemProfiler.views.GeneralStatsView"/>
+<show_view_action id="com.qnx.tools.ide.SystemProfiler.views.ElementStatsView"/>
+<show_view_action id="com.qnx.tools.ide.SystemProfiler.views.ClientServer"/>
+<show_view_action id="com.qnx.tools.ide.SystemProfiler.views.ConditionStatsView"/>
+<hide_toolbar_item_id id="org.eclipse.ui.edit.text.toggleShowSelectedElementOnly"/>
+<view id="org.eclipse.ui.views.ResourceNavigator"/>
+<view id="com.qnx.tools.ide.SystemProfiler.ui.views.filters"/>
+<view id="com.qnx.tools.ide.target.internal.ui.targetview"/>
+<view id="com.qnx.tools.ide.SystemProfiler.ui.views.logview"/>
+<view id="org.eclipse.ui.views.BookmarkView"/>
+<view id="com.qnx.tools.ide.SystemProfiler.views.GeneralStatsView"/>
+<view id="com.qnx.tools.ide.SystemProfiler.views.ElementStatsView"/>
+<view id="com.qnx.tools.ide.SystemProfiler.views.ConditionStatsView"/>
+<view id="com.qnx.tools.ide.SystemProfiler.views.ClientServer"/>
+<fastViewBars/>
+<layout>&#x0A;<mainWindow>&#x0A;<info folder="true" part="Left">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="org.eclipse.ui.views.ResourceNavigator" label="Navigator"/>
+</folder>
+</info>
+<info folder="true" part="stickyFolderRight" ratio="0.75" ratioLeft="756" ratioRight="252" relationship="2" relative="Left">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="org.eclipse.help.ui.HelpView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.internal.introview" label="LabelNotFound"/>
+<page content="org.eclipse.ui.cheatsheets.views.CheatSheetView" label="LabelNotFound"/>
+</folder>
+</info>
+<info part="org.eclipse.ui.editorss" ratio="0.19940476" ratioLeft="201" ratioRight="807" relationship="2" relative="Left"/>
+<info folder="true" part="Bottom" ratio="0.6989247" ratioLeft="455" ratioRight="196" relationship="4" relative="org.eclipse.ui.editorss">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="com.qnx.tools.ide.SystemProfiler.ui.views.logview" label="Trace Event Log"/>
+<page content="org.eclipse.ui.views.BookmarkView" label="Bookmarks"/>
+<page content="com.qnx.tools.ide.SystemProfiler.views.GeneralStatsView" label="General Statistics"/>
+<page content="com.qnx.tools.ide.SystemProfiler.views.ElementStatsView" label="Event Owner Statistics"/>
+<page content="com.qnx.tools.ide.SystemProfiler.views.ConditionStatsView" label="Condition Statistics"/>
+<page content="com.qnx.tools.ide.SystemProfiler.views.ClientServer" label="Client/Server CPU Statistics"/>
+</folder>
+</info>
+<info folder="true" part="LeftBottom" ratio="0.49923196" ratioLeft="325" ratioRight="326" relationship="4" relative="Left">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="com.qnx.tools.ide.SystemProfiler.ui.views.filters" label="Filters"/>
+<page content="com.qnx.tools.ide.target.internal.ui.targetview" label="Target Navigator"/>
+</folder>
+</info>
+</mainWindow>
+</layout>
+</perspective>
+<perspective editorAreaTrimState="2" editorAreaVisible="1" fixed="0" version="0.016">
+<descriptor class="com.qnx.tools.ide.builder.internal.ui.SystemBuilderPersepectiveFactory" id="QNXSystemBuilderPerspective" label="QNX System Builder"/>
+<alwaysOnActionSet id="org.eclipse.ui.cheatsheets.actionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.target.ui.actionset.log"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.updater"/>
+<alwaysOnActionSet id="org.eclipse.search.searchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.team.svn.ui.menu.help"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.annotationNavigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.navigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.convertLineDelimitersTo"/>
+<alwaysOnActionSet id="org.eclipse.ui.externaltools.ExternalToolsSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.keyBindings"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.openFiles"/>
+<show_view_action id="QNXSystemBuilderProjectView"/>
+<show_view_action id="QNXSystemBuilderBinaryInspector"/>
+<show_view_action id="org.eclipse.ui.views.ResourceNavigator"/>
+<show_view_action id="org.eclipse.ui.views.PropertySheet"/>
+<show_view_action id="org.eclipse.ui.views.TaskList"/>
+<show_view_action id="org.eclipse.tm.terminal.view.TerminalView"/>
+<show_view_action id="qnxTftpView"/>
+<new_wizard_action id="org.eclipse.ui.wizards.new.file"/>
+<new_wizard_action id="org.eclipse.ui.wizards.new.folder"/>
+<new_wizard_action id="QNXSystemBuilderProject"/>
+<new_wizard_action id="com.qnx.tools.ide.target.ui.wizard.NewTarget"/>
+<perspective_action id="org.eclipse.team.cvs.ui.cvsPerspective"/>
+<perspective_action id="com.qnx.tools.ide.sysinfo.perspective"/>
+<perspective_action id="org.eclipse.cdt.ui.CPerspective"/>
+<perspective_action id="com.qnx.tools.ide.BSPPerspective"/>
+<hide_toolbar_item_id id="org.eclipse.ui.edit.text.toggleShowSelectedElementOnly"/>
+<view id="QNXSystemBuilderProjectView"/>
+<view id="org.eclipse.ui.views.ResourceNavigator"/>
+<view id="qnxTftpView"/>
+<view id="org.eclipse.ui.views.ProblemView"/>
+<view id="org.eclipse.ui.console.ConsoleView"/>
+<view id="QNXSystemBuilderBinaryInspector"/>
+<view id="org.eclipse.tm.terminal.view.TerminalView"/>
+<view id="org.eclipse.ui.views.PropertySheet"/>
+<fastViewBars/>
+<layout>&#x0A;<mainWindow>&#x0A;<info folder="true" part="leftFolder">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="QNXSystemBuilderProjectView" label="System Builder Projects"/>
+<page content="org.eclipse.ui.views.ResourceNavigator" label="Navigator"/>
+</folder>
+</info>
+<info folder="true" part="stickyFolderRight" ratio="0.75" ratioLeft="756" ratioRight="252" relationship="2" relative="leftFolder">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="org.eclipse.help.ui.HelpView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.internal.introview" label="LabelNotFound"/>
+<page content="org.eclipse.ui.cheatsheets.views.CheatSheetView" label="LabelNotFound"/>
+</folder>
+</info>
+<info part="org.eclipse.ui.editorss" ratio="0.25" ratioLeft="252" ratioRight="756" relationship="2" relative="leftFolder"/>
+<info folder="true" part="bottomFolder" ratio="0.74961597" ratioLeft="488" ratioRight="163" relationship="4" relative="org.eclipse.ui.editorss">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="org.eclipse.ui.views.ProblemView" label="Problems"/>
+<page content="org.eclipse.ui.console.ConsoleView" label="Console"/>
+<page content="QNXSystemBuilderBinaryInspector" label="QNX Binary Inspector"/>
+<page content="org.eclipse.tm.terminal.view.TerminalView" label="Terminal"/>
+</folder>
+</info>
+<info folder="true" part="rightFolder" ratio="0.75" ratioLeft="567" ratioRight="189" relationship="2" relative="org.eclipse.ui.editorss">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="org.eclipse.ui.views.PropertySheet" label="Properties"/>
+</folder>
+</info>
+<info folder="true" part="org.eclipse.ui.internal.ViewStack@c11557" ratio="0.74961597" ratioLeft="488" ratioRight="163" relationship="4" relative="leftFolder">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="qnxTftpView" label="TFTP Server"/>
+</folder>
+</info>
+</mainWindow>
+</layout>
+</perspective>
+<perspective editorAreaTrimState="2" editorAreaVisible="1" fixed="0" version="0.016">
+<descriptor class="com.qnx.tools.ide.sysinfo.internal.ui.SysInfoPerspective" id="com.qnx.tools.ide.sysinfo.perspective" label="QNX System Information"/>
+<alwaysOnActionSet id="org.eclipse.ui.cheatsheets.actionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.target.ui.actionset.log"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.updater"/>
+<alwaysOnActionSet id="org.eclipse.search.searchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.team.svn.ui.menu.help"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.annotationNavigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.navigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.convertLineDelimitersTo"/>
+<alwaysOnActionSet id="org.eclipse.ui.externaltools.ExternalToolsSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.keyBindings"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.openFiles"/>
+<show_view_action id="com.qnx.tools.ide.target.internal.ui.targetview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.systemview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.processview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.memview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.mallocview"/>
+<show_view_action id="com.qnx.tools.ide.target.fsys"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.blockedview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.coidview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.signalview"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.internal.ui.usageview"/>
+<show_view_action id="org.eclipse.ui.views.ProgressView"/>
+<show_view_action id="com.qnx.tools.ide.apsinfo.ui.views.APSView"/>
+<show_view_action id="com.qnx.tools.ide.sysinfo.log.ui.historyView"/>
+<new_wizard_action id="com.qnx.tools.ide.target.ui.wizard.NewTarget"/>
+<hide_toolbar_item_id id="org.eclipse.ui.edit.text.toggleShowSelectedElementOnly"/>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.systemview"/>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.processview"/>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.memview"/>
+<view id="com.qnx.tools.ide.sysinfo.internal.ui.mallocview"/>
+<view id="com.qnx.tools.ide.target.fsys"/>
+<view id="org.eclipse.ui.console.ConsoleView"/>
+<view id="com.qnx.tools.ide.target.internal.ui.targetview"/>
+<fastViewBars/>
+<layout>
+<mainWindow>
+<info folder="true" part="navArea">
+<folder activePageID="com.qnx.tools.ide.target.internal.ui.targetview" appearance="2" expanded="2">
+<page content="com.qnx.tools.ide.target.internal.ui.targetview" label="Target Navigator"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">
+<part id="0"/>
+</presentation>
+</folder>
+</info>
+<info folder="true" part="stickyFolderRight" ratio="0.75" ratioLeft="756" ratioRight="252" relationship="2" relative="navArea">
+<folder appearance="2" expanded="2">
+<page content="org.eclipse.help.ui.HelpView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.internal.introview" label="LabelNotFound"/>
+<page content="org.eclipse.ui.cheatsheets.views.CheatSheetView" label="LabelNotFound"/>
+</folder>
+</info>
+<info part="org.eclipse.ui.editorss" ratio="0.25" ratioLeft="252" ratioRight="756" relationship="2" relative="navArea"/>
+<info folder="true" part="belowEditor" ratio="0.4424307" ratioLeft="415" ratioRight="523" relationship="4" relative="org.eclipse.ui.editorss">
+<folder activePageID="com.qnx.tools.ide.target.fsys" appearance="2" expanded="2">
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.systemview" label="System Summary"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.processview" label="Process Information"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.memview" label="Memory Information"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.mallocview" label="Malloc Information"/>
+<page content="com.qnx.tools.ide.target.fsys" label="Target File System Navigator"/>
+<page content="org.eclipse.ui.console.ConsoleView" label="Console"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.blockedview" label="LabelNotFound"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.coidview" label="LabelNotFound"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.signalview" label="LabelNotFound"/>
+<page content="com.qnx.tools.ide.sysinfo.internal.ui.usageview" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">
+<part id="0"/>
+<part id="1"/>
+<part id="2"/>
+<part id="3"/>
+<part id="4"/>
+<part id="5"/>
+</presentation>
+</folder>
+</info>
+<info folder="true" part="belowSysViews" ratio="0.74846625" ratioLeft="366" ratioRight="123" relationship="4" relative="belowEditor">
+<folder appearance="2" expanded="2">
+<page content="org.eclipse.ui.views.ProgressView" label="LabelNotFound"/>
+</folder>
+</info>
+<info part="com.qnx.tools.ide.sysinfo.log.ui.historyView" ratio="0.49923196" ratioLeft="325" ratioRight="326" relationship="4" relative="navArea"/>
+</mainWindow>
+</layout>
+</perspective>
+<perspective editorAreaTrimState="2" editorAreaVisible="1" fixed="0" version="0.016">
+<descriptor class="org.eclipse.debug.internal.ui.DebugPerspectiveFactory" id="org.eclipse.debug.ui.DebugPerspective" label="Debug"/>
+<alwaysOnActionSet id="org.eclipse.ui.cheatsheets.actionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.target.ui.actionset.log"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.updater"/>
+<alwaysOnActionSet id="org.eclipse.search.searchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.team.svn.ui.menu.help"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.annotationNavigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.navigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.convertLineDelimitersTo"/>
+<alwaysOnActionSet id="org.eclipse.ui.externaltools.ExternalToolsSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.keyBindings"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.openFiles"/>
+<alwaysOnActionSet id="org.eclipse.debug.ui.launchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.debug.ui.debugActionSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.NavigateActionSet"/>
+<alwaysOnActionSet id="org.eclipse.debug.ui.breakpointActionSet"/>
+<alwaysOnActionSet id="org.eclipse.debug.ui.debugActionSet"/>
+<show_view_action id="org.eclipse.debug.ui.DebugView"/>
+<show_view_action id="org.eclipse.debug.ui.VariableView"/>
+<show_view_action id="org.eclipse.debug.ui.BreakpointView"/>
+<show_view_action id="org.eclipse.debug.ui.ExpressionView"/>
+<show_view_action id="org.eclipse.ui.views.ContentOutline"/>
+<show_view_action id="org.eclipse.ui.console.ConsoleView"/>
+<show_view_action id="org.eclipse.ui.views.TaskList"/>
+<show_view_action id="com.qnx.tools.ide.target.fsys"/>
+<show_view_action id="com.qnx.tools.ide.target.internal.ui.targetview"/>
+<show_view_action id="org.eclipse.cdt.debug.ui.SignalsView"/>
+<show_view_action id="org.eclipse.debug.ui.RegisterView"/>
+<show_view_action id="org.eclipse.debug.ui.ModuleView"/>
+<show_view_action id="org.eclipse.debug.ui.MemoryView"/>
+<show_view_action id="org.eclipse.cdt.debug.ui.DisassemblyView"/>
+<show_view_action id="org.eclipse.ui.views.ProblemView"/>
+<show_view_action id="org.eclipse.cdt.debug.ui.executablesView"/>
+<show_view_action id="org.eclipse.cdt.debug.ui.memory.memorybrowser.MemoryBrowser"/>
+<show_view_action id="org.eclipse.pde.runtime.LogView"/>
+<perspective_action id="com.qnx.tools.ide.sysinfo.perspective"/>
+<perspective_action id="org.eclipse.cdt.ui.CPerspective"/>
+<hide_toolbar_item_id id="org.eclipse.ui.edit.text.toggleShowSelectedElementOnly"/>
+<view id="org.eclipse.ui.console.ConsoleView"/>
+<view id="org.eclipse.ui.views.TaskList"/>
+<view id="org.eclipse.ui.views.ProblemView"/>
+<view id="org.eclipse.cdt.debug.ui.executablesView"/>
+<view id="org.eclipse.debug.ui.DebugView"/>
+<view id="org.eclipse.debug.ui.VariableView"/>
+<view id="org.eclipse.debug.ui.BreakpointView"/>
+<view id="org.eclipse.ui.views.ContentOutline"/>
+<fastViewBars/>
+<layout>&#x0A;<mainWindow>&#x0A;<info folder="true" part="org.eclipse.debug.internal.ui.NavigatorFolderView">&#x0A;<folder activePageID="org.eclipse.debug.ui.DebugView" appearance="2" expanded="2">&#x0A;<page content="org.eclipse.debug.ui.DebugView" label="Debug"/>
+<page content="org.eclipse.ui.views.ResourceNavigator" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">&#x0A;<part id="0"/>
+</presentation>
+</folder>
+</info>
+<info folder="true" part="stickyFolderRight" ratio="0.75" ratioLeft="756" ratioRight="252" relationship="2" relative="org.eclipse.debug.internal.ui.NavigatorFolderView">&#x0A;<folder appearance="2" expanded="2">&#x0A;<page content="org.eclipse.help.ui.HelpView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.internal.introview" label="LabelNotFound"/>
+<page content="org.eclipse.ui.cheatsheets.views.CheatSheetView" label="LabelNotFound"/>
+</folder>
+</info>
+<info folder="true" part="org.eclipse.debug.internal.ui.ConsoleFolderView" ratio="0.74961597" ratioLeft="488" ratioRight="163" relationship="4" relative="org.eclipse.debug.internal.ui.NavigatorFolderView">&#x0A;<folder activePageID="org.eclipse.ui.console.ConsoleView" appearance="2" expanded="2">&#x0A;<page content="org.eclipse.ui.console.ConsoleView" label="Console"/>
+<page content="org.eclipse.ui.views.TaskList" label="Tasks"/>
+<page content="org.eclipse.ui.views.ProblemView" label="Problems"/>
+<page content="org.eclipse.cdt.debug.ui.executablesView" label="Executables"/>
+<page content="org.eclipse.ui.views.BookmarkView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.views.PropertySheet" label="LabelNotFound"/>
+<page content="org.eclipse.cdt.debug.ui.memory.memorybrowser.MemoryBrowser" label="LabelNotFound"/>
+<page content="org.eclipse.debug.ui.MemoryView" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">&#x0A;<part id="0"/>
+<part id="1"/>
+<part id="2"/>
+<part id="3"/>
+</presentation>
+</folder>
+</info>
+<info part="org.eclipse.ui.editorss" ratio="0.4487705" ratioLeft="219" ratioRight="269" relationship="4" relative="org.eclipse.debug.internal.ui.NavigatorFolderView"/>
+<info folder="true" part="org.eclipse.debug.internal.ui.OutlineFolderView" ratio="0.75" ratioLeft="756" ratioRight="252" relationship="2" relative="org.eclipse.ui.editorss">&#x0A;<folder activePageID="org.eclipse.ui.views.ContentOutline" appearance="2" expanded="2">&#x0A;<page content="org.eclipse.ui.views.ContentOutline" label="Outline"/>
+<page content="org.eclipse.cdt.debug.ui.DisassemblyView" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">&#x0A;<part id="0"/>
+</presentation>
+</folder>
+</info>
+<info folder="true" part="org.eclipse.debug.internal.ui.ToolsFolderView" ratio="0.5" ratioLeft="504" ratioRight="504" relationship="2" relative="org.eclipse.debug.internal.ui.NavigatorFolderView">&#x0A;<folder activePageID="org.eclipse.debug.ui.VariableView" appearance="2" expanded="2">&#x0A;<page content="org.eclipse.debug.ui.VariableView" label="Variables"/>
+<page content="org.eclipse.debug.ui.BreakpointView" label="Breakpoints"/>
+<page content="org.eclipse.debug.ui.ExpressionView" label="LabelNotFound"/>
+<page content="org.eclipse.debug.ui.RegisterView" label="LabelNotFound"/>
+<page content="org.eclipse.cdt.debug.ui.SignalsView" label="LabelNotFound"/>
+<page content="org.eclipse.debug.ui.ModuleView" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">&#x0A;<part id="0"/>
+<part id="1"/>
+</presentation>
+</folder>
+</info>
+</mainWindow>
+</layout>
+</perspective>
+<perspective editorAreaTrimState="2" editorAreaVisible="1" fixed="0" version="0.016">
+<descriptor class="org.eclipse.cdt.internal.ui.CPerspectiveFactory" id="org.eclipse.cdt.ui.CPerspective" label="C/C++"/>
+<alwaysOnActionSet id="org.eclipse.ui.cheatsheets.actionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.target.ui.actionset.log"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.updater"/>
+<alwaysOnActionSet id="org.eclipse.search.searchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.team.svn.ui.menu.help"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.annotationNavigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.navigation"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.convertLineDelimitersTo"/>
+<alwaysOnActionSet id="org.eclipse.ui.externaltools.ExternalToolsSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.keyBindings"/>
+<alwaysOnActionSet id="org.eclipse.ui.actionSet.openFiles"/>
+<alwaysOnActionSet id="org.eclipse.cdt.ui.SearchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.ui.CElementCreationActionSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.NavigateActionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.phab.ui.PhabActionSet"/>
+<alwaysOnActionSet id="com.qnx.tools.ide.qde.ui.extraActions"/>
+<alwaysOnActionSet id="org.eclipse.debug.ui.breakpointActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.make.ui.makeTargetActionSet"/>
+<alwaysOnActionSet id="org.eclipse.debug.ui.launchActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.ui.buildConfigActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.ui.NavigationActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.ui.OpenActionSet"/>
+<alwaysOnActionSet id="org.eclipse.cdt.ui.CodingActionSet"/>
+<alwaysOnActionSet id="org.eclipse.ui.edit.text.actionSet.presentation"/>
+<show_view_action id="org.eclipse.ui.console.ConsoleView"/>
+<show_view_action id="org.eclipse.search.ui.views.SearchView"/>
+<show_view_action id="org.eclipse.ui.views.ContentOutline"/>
+<show_view_action id="org.eclipse.ui.views.ProblemView"/>
+<show_view_action id="org.eclipse.cdt.ui.CView"/>
+<show_view_action id="org.eclipse.ui.views.ResourceNavigator"/>
+<show_view_action id="org.eclipse.ui.views.PropertySheet"/>
+<show_view_action id="org.eclipse.ui.views.TaskList"/>
+<show_view_action id="com.qnx.tools.ide.target.fsys"/>
+<show_view_action id="com.qnx.tools.ide.target.internal.ui.targetview"/>
+<show_view_action id="org.eclipse.cdt.make.ui.views.MakeView"/>
+<show_view_action id="org.eclipse.ui.navigator.ProjectExplorer"/>
+<show_view_action id="org.eclipse.cdt.ui.includeBrowser"/>
+<new_wizard_action id="com.qnx.tools.ide.qde.ui.MPQNXCWizard"/>
+<new_wizard_action id="com.qnx.tools.ide.qde.ui.MPQNXCCWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.ConvertToMakeWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewCWizard1"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewCWizard2"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewSourceFolderCreationWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewFolderCreationWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewSourceFileCreationWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewHeaderFileCreationWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewFileCreationWizard"/>
+<new_wizard_action id="org.eclipse.cdt.ui.wizards.NewClassCreationWizard"/>
+<perspective_action id="com.qnx.tools.ide.BSPPerspective"/>
+<perspective_action id="com.qnx.tools.ide.sysinfo.perspective"/>
+<perspective_action id="org.eclipse.debug.ui.DebugPerspective"/>
+<perspective_action id="org.eclipse.team.ui.TeamSynchronizingPerspective"/>
+<hide_toolbar_item_id id="org.eclipse.ui.edit.text.toggleShowSelectedElementOnly"/>
+<view id="org.eclipse.ui.navigator.ProjectExplorer"/>
+<view id="org.eclipse.ui.views.ContentOutline"/>
+<view id="org.eclipse.cdt.make.ui.views.MakeView"/>
+<view id="org.eclipse.ui.views.ProblemView"/>
+<view id="org.eclipse.ui.views.TaskList"/>
+<view id="org.eclipse.ui.console.ConsoleView"/>
+<view id="org.eclipse.ui.views.PropertySheet"/>
+<fastViewBars/>
+<layout>
+<mainWindow>
+<info folder="true" part="topLeft">
+<folder activePageID="org.eclipse.ui.navigator.ProjectExplorer" appearance="2" expanded="2">
+<page content="org.eclipse.ui.navigator.ProjectExplorer" label="Project Explorer"/>
+<page content="org.eclipse.cdt.ui.CView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.views.ResourceNavigator" label="LabelNotFound"/>
+<page content="org.eclipse.ui.views.BookmarkView" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">
+<part id="0"/>
+</presentation>
+</folder>
+</info>
+<info folder="true" part="org.eclipse.ui.internal.ViewStack@14b525c" ratio="0.75" ratioLeft="756" ratioRight="252" relationship="2" relative="topLeft">
+<folder appearance="2" expanded="2">
+<page content="org.eclipse.help.ui.HelpView" label="LabelNotFound"/>
+<page content="org.eclipse.ui.internal.introview" label="LabelNotFound"/>
+<page content="org.eclipse.ui.cheatsheets.views.CheatSheetView" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory"/>
+</folder>
+</info>
+<info part="org.eclipse.ui.editorss" ratio="0.25" ratioLeft="252" ratioRight="756" relationship="2" relative="topLeft"/>
+<info folder="true" part="topRight" ratio="0.6003628" ratioLeft="993" ratioRight="661" relationship="2" relative="org.eclipse.ui.editorss">
+<folder activePageID="org.eclipse.ui.views.ProblemView" appearance="2" expanded="2">
+<page content="org.eclipse.ui.views.ContentOutline" label="Outline"/>
+<page content="org.eclipse.cdt.make.ui.views.MakeView" label="Make Targets"/>
+<page content="org.eclipse.ui.views.ProblemView" label="Problems"/>
+<page content="org.eclipse.ui.views.TaskList" label="Tasks"/>
+<page content="org.eclipse.ui.console.ConsoleView" label="Console"/>
+<page content="org.eclipse.ui.views.PropertySheet" label="Properties"/>
+<page content="org.eclipse.search.ui.views.SearchView" label="LabelNotFound"/>
+<presentation id="org.eclipse.ui.presentations.WorkbenchPresentationFactory">
+<part id="2"/>
+<part id="4"/>
+<part id="0"/>
+<part id="1"/>
+<part id="3"/>
+<part id="5"/>
+</presentation>
+</folder>
+</info>
+</mainWindow>
+</layout>
+</perspective>
+</perspectives>
+<workingSets/>
+<navigationHistory>
+<editors>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_pdo.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/run_thread.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/shmem_mgr.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/sysinfo_svc.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_pdo.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/servocon_main.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/servocon_main.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/job_svc.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/sys_svc.c"/>
+<editor factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_coe.c"/>
+</editors>
+<item historyLabel="ecat_pdo.c" index="0">
+<position info="not_deleted" x="28816" y="0"/>
+</item>
+<item historyLabel="ecat_pdo.c" index="0">
+<position info="not_deleted" x="28971" y="0"/>
+</item>
+<item historyLabel="ecat_pdo.c" index="0">
+<position info="not_deleted" x="29351" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="30919" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="31296" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="30446" y="31"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="30811" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="31238" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="31492" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="31916" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="32077" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="32392" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33039" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33063" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33250" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33156" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33137" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33483" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33697" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33681" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="34068" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="34021" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33935" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="33762" y="0"/>
+</item>
+<item historyLabel="run_thread.c" index="1">
+<position info="not_deleted" x="34068" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1007" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1296" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1334" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1111" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1216" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1334" y="0"/>
+</item>
+<item historyLabel="sysinfo_svc.c" index="3">
+<position info="not_deleted" x="26578" y="0"/>
+</item>
+<item historyLabel="shmem_mgr.c" index="2">
+<position info="not_deleted" x="1052" y="0"/>
+</item>
+<item historyLabel="sysinfo_svc.c" index="3">
+<position info="not_deleted" x="26502" y="0"/>
+</item>
+<item historyLabel="ecat_pdo.c" index="4">
+<position info="not_deleted" x="1306" y="0"/>
+</item>
+<item historyLabel="ecat_pdo.c" index="4">
+<position info="not_deleted" x="8188" y="0"/>
+</item>
+<item historyLabel="servocon_main.c" index="5">
+<position info="not_deleted" x="12567" y="0"/>
+</item>
+<item historyLabel="servocon_main.c" index="5">
+<position info="not_deleted" x="16503" y="10"/>
+</item>
+<item historyLabel="ecat_pdo.c" index="4">
+<position info="not_deleted" x="7934" y="0"/>
+</item>
+<item historyLabel="servocon_main.c" index="6">
+<position info="not_deleted" x="17175" y="0"/>
+</item>
+<item historyLabel="job_svc.c" index="7">
+<position info="not_deleted" x="5909" y="0"/>
+</item>
+<item historyLabel="job_svc.c" index="7">
+<position info="not_deleted" x="6779" y="0"/>
+</item>
+<item historyLabel="job_svc.c" index="7">
+<position info="not_deleted" x="6779" y="0"/>
+</item>
+<item historyLabel="job_svc.c" index="7">
+<position info="not_deleted" x="7873" y="0"/>
+</item>
+<item historyLabel="job_svc.c" index="7">
+<position info="not_deleted" x="7898" y="0"/>
+</item>
+<item historyLabel="sys_svc.c" index="8">
+<position info="not_deleted" x="1303" y="20"/>
+</item>
+<item historyLabel="ecat_coe.c" index="9">
+<position info="not_deleted" x="16113" y="0"/>
+</item>
+<item historyLabel="sys_svc.c" index="8">
+<position info="not_deleted" x="1303" y="20"/>
+</item>
+<item active="true" historyLabel="ecat_coe.c" index="9">
+<position info="not_deleted" x="16113" y="0"/>
+</item>
+</navigationHistory>
+<input factoryID="org.eclipse.ui.internal.model.ResourceFactory" path="/" type="8"/>
+</page>
+<workbenchWindowAdvisor/>
+<actionBarAdvisor/>
+<trimLayout>
+<trimArea IMemento.internal.id="128">
+<trimItem IMemento.internal.id="org.eclipse.ui.internal.WorkbenchWindow.topBar"/>
+</trimArea>
+<trimArea IMemento.internal.id="1024">
+<trimItem IMemento.internal.id="org.eclise.ui.internal.FastViewBar"/>
+<trimItem IMemento.internal.id="org.eclipse.jface.action.StatusLineManager"/>
+<trimItem IMemento.internal.id="org.eclipse.ui.internal.progress.ProgressRegion"/>
+</trimArea>
+</trimLayout>
+</window>
+<mruList>
+<file factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" name="ecat_coe.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_coe.c">
+<persistable path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/ecat_coe.c"/>
+</file>
+<file factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" name="sys_svc.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/sys_svc.c">
+<persistable path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/sys_svc.c"/>
+</file>
+<file factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" name="job_svc.c" tooltip="robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/job_svc.c">
+<persistable path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/job_svc.c"/>
+</file>
+<file factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" name="servocon_main.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/servocon_main.c">
+<persistable path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/servocon_main.c"/>
+</file>
+<file factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" name="sysinfo_svc.c" tooltip="robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/sysinfo_svc.c">
+<persistable path="/robotmgr_qnx/EXTRA_SRCVPATH_robotmgr_src/sysinfo_svc.c"/>
+</file>
+<file factoryID="org.eclipse.ui.part.FileEditorInputFactory" id="org.eclipse.cdt.ui.editor.CEditor" name="run_thread.c" tooltip="servocon_qnx/EXTRA_SRCVPATH_servocon_src/run_thread.c">
+<persistable path="/servocon_qnx/EXTRA_SRCVPATH_servocon_src/run_thread.c"/>
+</file>
+</mruList>
+</workbench>

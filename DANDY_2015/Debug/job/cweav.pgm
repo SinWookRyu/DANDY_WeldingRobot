@@ -1,0 +1,11 @@
+T01    JOINT	00 30 30 0 -60 0 ; 713.09 0 410.36 180 -60 0	; BASIC POSE
+T02    CART	713.09  0 440  180 -90 0	; START
+T03    CART	712.09  0 497  180 -45 0	; VIA (x: start - touch_up(5) + weld_leg(3)
+T04    CART	0  60  0.     0   0 0	; END
+wvf01  WVF	w=20 p=20 s=20 a=45 sy=0 d1=1 d2=1 d3=0.5
+
+MOVJ   T01	V=10.0 PL=0 
+LABEL START
+MOVJ   T02	V=10.0 PL=0 
+CWEAV  T04 T03  V=5 H=5 WVF=wvf01 CRD=WORLD
+JUMP START

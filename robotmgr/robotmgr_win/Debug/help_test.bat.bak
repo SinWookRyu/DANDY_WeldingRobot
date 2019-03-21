@@ -1,0 +1,4 @@
+:robotmgr_win_d.exe /?%* > rm_help.txt
+:taskexec_win_d.exe -h%*
+servocon_win_d.exe -?%* > sc_help.txt
+pause

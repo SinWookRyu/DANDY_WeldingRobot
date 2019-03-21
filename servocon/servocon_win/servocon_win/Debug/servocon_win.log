@@ -1,0 +1,80 @@
+﻿Build started 2014-07-29 오전 8:46:00.
+     1>Project "F:\DANDY2015\Integrated_Project\servocon\servocon_win\servocon_win\servocon_win.vcxproj" on node 3 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "Debug\servocon_win.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "Debug\servocon_win.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IF:\DANDY2015\Lib\MIP_QNX_v1.5.180.0\scommon /IF:\DANDY2015\Lib\dandy_2015_140630\lib\include /IF:\DANDY2015\Lib\MIP_QNX_v1.5.180.0\include /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TC /analyze- /errorReport:prompt ..\..\servocon_src\arg_parsing.c ..\..\servocon_src\ecat_pdo.c ..\..\servocon_src\ecat_coe.c ..\..\servocon_src\ecat_network.c ..\..\servocon_src\ecat_lib.c ..\..\servocon_src\error_parsing.c ..\..\servocon_src\io_svc.c ..\..\servocon_src\motor_svc.c ..\..\servocon_src\msg_pass.c ..\..\servocon_src\save_file.c ..\..\servocon_src\scr_display.c ..\..\servocon_src\svc_handling.c ..\..\servocon_src\run_thread.c ..\..\servocon_src\servocon_main.c ..\..\servocon_src\shmem_mgr.c ..\..\servocon_src\sys_svc.c
+         sys_svc.c
+         shmem_mgr.c
+         servocon_main.c
+         run_thread.c
+         svc_handling.c
+         scr_display.c
+         save_file.c
+         msg_pass.c
+         motor_svc.c
+         io_svc.c
+         error_parsing.c
+         ecat_lib.c
+         ecat_network.c
+         ecat_coe.c
+         ecat_pdo.c
+         arg_parsing.c
+         Generating Code...
+       ResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /l"0x0409" /nologo /fo"Debug\servocon_win.res" servocon_win.rc 
+       ManifestResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\servocon_win_d.exe.embed.manifest.res" Debug\servocon_win_d_manifest.rc 
+       Link:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.exe" /INCREMENTAL /NOLOGO /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win_d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\servocon_win_d.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.lib" /MACHINE:X86 Debug\servocon_win.res
+         Debug\servocon_win_d.exe.embed.manifest.res
+         Debug\arg_parsing.obj
+         Debug\ecat_pdo.obj
+         Debug\ecat_coe.obj
+         Debug\ecat_network.obj
+         Debug\ecat_lib.obj
+         Debug\error_parsing.obj
+         Debug\io_svc.obj
+         Debug\motor_svc.obj
+         Debug\msg_pass.obj
+         Debug\save_file.obj
+         Debug\scr_display.obj
+         Debug\svc_handling.obj
+         Debug\run_thread.obj
+         Debug\servocon_main.obj
+         Debug\shmem_mgr.obj
+         Debug\sys_svc.obj
+       Manifest:
+         Deleting file "Debug\servocon_win_d.exe.embed.manifest".
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\servocon_win_d.exe.embed.manifest" /manifest Debug\servocon_win_d.exe.intermediate.manifest
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\servocon_win_d.exe.embed.manifest.res" Debug\servocon_win_d_manifest.rc 
+       LinkEmbedManifest:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.exe" /INCREMENTAL /NOLOGO /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win_d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\servocon_win_d.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.lib" /MACHINE:X86 Debug\servocon_win.res
+         Debug\servocon_win_d.exe.embed.manifest.res
+         Debug\arg_parsing.obj
+         Debug\ecat_pdo.obj
+         Debug\ecat_coe.obj
+         Debug\ecat_network.obj
+         Debug\ecat_lib.obj
+         Debug\error_parsing.obj
+         Debug\io_svc.obj
+         Debug\motor_svc.obj
+         Debug\msg_pass.obj
+         Debug\save_file.obj
+         Debug\scr_display.obj
+         Debug\svc_handling.obj
+         Debug\run_thread.obj
+         Debug\servocon_main.obj
+         Debug\shmem_mgr.obj
+         Debug\sys_svc.obj
+         servocon_win.vcxproj -> F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\servocon_win_d.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\servocon_win.unsuccessfulbuild".
+         Touching "Debug\servocon_win.lastbuildstate".
+     1>Done Building Project "F:\DANDY2015\Integrated_Project\servocon\servocon_win\servocon_win\servocon_win.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:04.87

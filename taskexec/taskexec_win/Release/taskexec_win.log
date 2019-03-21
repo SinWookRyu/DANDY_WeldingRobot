@@ -1,0 +1,100 @@
+﻿Build started 2014-07-28 AM 8:28:54.
+     1>Project "D:\Project\DANDY2015\Project\taskexec\taskexec_win\taskexec_win.vcxproj" on node 3 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "Release\taskexec_win.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "Release\taskexec_win.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /ID:\Project\DANDY2015\Lib\dandy_2015_140630\lib\include /ID:\Project\DANDY2015\Project\taskexec\src /ID:\Project\DANDY2015\Project\taskexec\taskexec_src /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm- /EHsc /MT /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TC /analyze- /errorReport:prompt ..\src\calc_weav_rot.c ..\src\geometry.c ..\src\kin_dandy2.c ..\src\motion.c ..\src\profile3.c ..\src\profile7.c ..\src\trajectory.c ..\src\weave.c ..\taskexec_src\argument.c ..\taskexec_src\arg_get.c ..\taskexec_src\arg_set.c ..\taskexec_src\arg_unit.c ..\taskexec_src\call_stack.c ..\taskexec_src\cmd.c ..\taskexec_src\cmd_branch.c ..\taskexec_src\cmd_coord.c ..\taskexec_src\cmd_cweav.c ..\taskexec_src\cmd_mov.c ..\taskexec_src\cmd_op.c ..\taskexec_src\cmd_port.c ..\taskexec_src\cmd_touch.c ..\taskexec_src\cmd_weld.c ..\taskexec_src\coord.c ..\taskexec_src\filemgr.c ..\taskexec_src\global.c ..\taskexec_src\init.c ..\taskexec_src\run_jog.c ..\taskexec_src\run_prog.c ..\taskexec_src\run_restart.c ..\taskexec_src\run_serv.c ..\taskexec_src\run_timetest.c ..\taskexec_src\sensor.c ..\taskexec_src\str_conv.c ..\taskexec_src\te_serv.c ..\taskexec_src\t_runtime.c ..\taskexec_src\t_taskexec.c ..\taskexec_src\t_vga.c
+         calc_weav_rot.c
+         geometry.c
+         kin_dandy2.c
+         motion.c
+         profile3.c
+         profile7.c
+         trajectory.c
+         weave.c
+         argument.c
+         arg_get.c
+         arg_set.c
+         arg_unit.c
+         call_stack.c
+         cmd.c
+         cmd_branch.c
+         cmd_coord.c
+         cmd_cweav.c
+         cmd_mov.c
+         cmd_op.c
+         cmd_port.c
+         Compiling...
+         cmd_touch.c
+         cmd_weld.c
+         coord.c
+         filemgr.c
+         global.c
+         init.c
+         run_jog.c
+         run_prog.c
+         run_restart.c
+         run_serv.c
+         run_timetest.c
+         sensor.c
+         str_conv.c
+         te_serv.c
+         t_runtime.c
+         t_taskexec.c
+         t_vga.c
+       ResourceCompile:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /D _UNICODE /D UNICODE /l"0x0409" /nologo /fo"Release\taskexec_win.res" taskexec_win.rc 
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"D:\Project\DANDY2015\Project\DANDY_2015\Release\taskexec_win.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:D:\Project\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\taskexec_win.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"D:\Project\DANDY2015\Project\DANDY_2015\Release\taskexec_win.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\Project\DANDY2015\Project\DANDY_2015\Release\taskexec_win.lib" /MACHINE:X86 Release\taskexec_win.res
+         Release\calc_weav_rot.obj
+         Release\geometry.obj
+         Release\kin_dandy2.obj
+         Release\motion.obj
+         Release\profile3.obj
+         Release\profile7.obj
+         Release\trajectory.obj
+         Release\weave.obj
+         Release\argument.obj
+         Release\arg_get.obj
+         Release\arg_set.obj
+         Release\arg_unit.obj
+         Release\call_stack.obj
+         Release\cmd.obj
+         Release\cmd_branch.obj
+         Release\cmd_coord.obj
+         Release\cmd_cweav.obj
+         Release\cmd_mov.obj
+         Release\cmd_op.obj
+         Release\cmd_port.obj
+         Release\cmd_touch.obj
+         Release\cmd_weld.obj
+         Release\coord.obj
+         Release\filemgr.obj
+         Release\global.obj
+         Release\init.obj
+         Release\run_jog.obj
+         Release\run_prog.obj
+         Release\run_restart.obj
+         Release\run_serv.obj
+         Release\run_timetest.obj
+         Release\sensor.obj
+         Release\str_conv.obj
+         Release\te_serv.obj
+         Release\t_runtime.obj
+         Release\t_taskexec.obj
+         Release\t_vga.obj
+         Generating code
+         Finished generating code
+         taskexec_win.vcxproj -> D:\Project\DANDY2015\Project\DANDY_2015\Release\taskexec_win.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"D:\Project\DANDY2015\Project\DANDY_2015\Release\taskexec_win.exe;#1" /manifest Release\taskexec_win.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "Release\taskexec_win.unsuccessfulbuild".
+         Touching "Release\taskexec_win.lastbuildstate".
+     1>Done Building Project "D:\Project\DANDY2015\Project\taskexec\taskexec_win\taskexec_win.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:04.40

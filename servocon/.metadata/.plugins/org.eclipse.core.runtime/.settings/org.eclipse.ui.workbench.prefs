@@ -1,0 +1,3 @@
+#Fri Sep 13 10:22:57 KST 2013
+eclipse.preferences.version=1
+org.eclipse.ui.commands=<?xml version\="1.0" encoding\="UTF-8"?>\r\n<org.eclipse.ui.commands>\r\n<keyBinding commandId\="org.eclipse.ui.project.cleanAction" contextId\="org.eclipse.cdt.ui.cEditorScope" keyConfigurationId\="org.eclipse.ui.defaultAcceleratorConfiguration" keySequence\="CTRL+SHIFT+B"/>\r\n</org.eclipse.ui.commands>

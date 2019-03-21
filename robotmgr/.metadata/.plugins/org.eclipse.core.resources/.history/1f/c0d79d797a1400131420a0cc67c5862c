@@ -1,0 +1,453 @@
+#include "servocon.h"
+#if defined (__QNXNTO__)
+#include "ecattypes.h"
+#endif
+
+int g_hShm_sc = DANDY_INVALID_SHMEM_HANDLE;
+int g_hShm_SysStatus_rm = DANDY_INVALID_SHMEM_HANDLE;
+int g_hShm_SysConfig_rm = DANDY_INVALID_SHMEM_HANDLE;
+int g_hShm_te = DANDY_INVALID_SHMEM_HANDLE;
+
+// shared memory
+volatile SHM_SC_SYSTEM*       g_pShmem_sc = NULL;
+volatile SHM_RM_SYSSTATUS*    g_pShmem_SysStatus_rm = NULL;
+volatile SHM_RM_SYSCONFIG*    g_pShmem_SysConfig_rm = NULL;
+volatile SHM_TE_STATUS*       g_pShmem_te = NULL;
+
+CONFIG_ECAT         g_nECATParam;
+
+int RM_SysStatusOpenShmem(void);            // open RM_SysStatusSHM
+int RM_SysConfigOpenShmem(void);            // open RM_SysConfigSHM
+int RM_SysStatusDestroyShmem(void);         // destroy RM_SysStatusSHM
+int RM_SysConfigDestroyShmem(void);         // open RM_SysConfigSHM
+int TE_OpenShmem(void);                     // open TE_SHM 
+int TE_DestroyShmem(void);                  // destroy TE_SHM
+int SC_CreateShmem(void);                   // create SC_SHM
+void SC_DestroyShmem(void);                 // destroy SC_SHM
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// SC_CreateShmem()
+//
+int SC_CreateShmem(void)
+{
+    // create SC_SHM
+    if (g_pShmem_sc != NULL)
+    {
+        VERBOSE_WARNING("SC shared memory already created.\n");
+        return 0;
+    }
+
+    g_hShm_sc = SHM_Create(SC_SHM_NAME, sizeof(SHM_SC_SYSTEM));
+    
+    if (g_hShm_sc == DANDY_INVALID_SHMEM_HANDLE)
+    {  
+    	g_fOpenShmSc = FALSE;   // flag of SC_SHM creation
+        VERBOSE_ERROR("Cannot create the SC shared memory.\n");
+        return -1;
+    }
+
+    // map the shared memory handle
+    //g_pShmem_sc = (volatile SHM_SC_SYSTEM*) SHM_Map(g_hShm_sc, sizeof(SHM_SC_SYSTEM));
+    g_pShmem_sc = (SHM_SC_SYSTEM*) SHM_Map(g_hShm_sc, sizeof(SHM_SC_SYSTEM));
+
+    if (g_pShmem_sc == NULL)
+    {
+        g_fOpenShmSc = FALSE;   // flag of SC_SHM creation
+        VERBOSE_ERROR("Cannot create the SC shared memory.\n");
+        return -1;
+    }
+
+    memset((void*) g_pShmem_sc, 0, sizeof(SHM_SC_SYSTEM));  // memory init.
+    g_pShmem_sc->nsize = sizeof(SHM_SC_SYSTEM);  // memory size
+
+    g_fOpenShmSc = TRUE;   // flag of SC_SHM creation
+
+    VERBOSE_VERBOSE("Created SC shared memory : size<%d bytes>\n", 
+                    g_pShmem_sc->nsize);
+
+    return 0;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// RM_SysStatusOpenShmem()
+//
+int RM_SysStatusOpenShmem(void)
+{
+    // RM shared memory open
+    if (g_pShmem_SysStatus_rm != NULL)
+    {
+        VERBOSE_WARNING("RM SysStatus shared memory already opened.\n");
+        return 0;
+    }
+
+    g_hShm_SysStatus_rm = SHM_Open(SHM_RM_SYSSTATUS_NAME);
+
+    if (g_hShm_SysStatus_rm == -1)
+    {
+        VERBOSE_ERROR("Failed to open RM SysStatus shared memory.!!!\n");
+        return -1;
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Opened the RM SysStatus shared memory. Name(%s)\n", 
+                        SHM_RM_SYSSTATUS_NAME);
+    }
+
+    // map
+    g_pShmem_SysStatus_rm = (SHM_RM_SYSSTATUS*) SHM_Map(g_hShm_SysStatus_rm, 
+                                                        sizeof(SHM_RM_SYSSTATUS));
+
+    if (g_pShmem_SysStatus_rm == NULL)
+    {
+        VERBOSE_ERROR("Cannot map the RM SysStatus shared memory.!!!\n");
+        return -1;
+    }
+    else
+    {
+        if (sizeof(SHM_RM_SYSSTATUS) == g_pShmem_SysStatus_rm->nSize)
+        {
+            g_fOpenSysStatusShmRm = TRUE;  // flag of open RM_SHM
+            
+            //g_pShmem_rm->fInitProcSC = TRUE;  // write 'Init' flag to RM_SHM
+
+            VERBOSE_VERBOSE("Mapped the RM SysStatus shared memory. Size(%dbytes), "
+                            "Chk(%dbytes)\n", 
+                            sizeof(SHM_RM_SYSSTATUS),
+                            g_pShmem_SysStatus_rm->nSize);
+        }
+        else
+        {
+            g_fOpenSysStatusShmRm = FALSE;  // flag of open RM_SHM
+            VERBOSE_ERROR("Mismatched the RM SysStatus shared memory. Size(%dbytes), "
+                          "Chk(%dbytes)\n",
+                          sizeof(SHM_RM_SYSSTATUS),
+                          g_pShmem_SysStatus_rm->nSize);
+
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// RM_SysConfigOpenShmem()
+//
+int RM_SysConfigOpenShmem(void)
+{
+    // RM shared memory open
+    if (g_pShmem_SysConfig_rm != NULL)
+    {
+        VERBOSE_WARNING("RM SysConfig shared memory already opened.\n");
+        return 0;
+    }
+
+    g_hShm_SysConfig_rm = SHM_Open(SHM_RM_SYSCONFIG_NAME);
+
+    if (g_hShm_SysConfig_rm == -1)
+    {
+        VERBOSE_ERROR("Failed to open RM SysConfig shared memory.!!!\n");
+        return -1;
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Opened the RM SysConfig shared memory. Name(%s)\n", 
+                        SHM_RM_SYSCONFIG_NAME);
+    }
+
+    // map
+    g_pShmem_SysConfig_rm = (SHM_RM_SYSCONFIG*) SHM_Map(g_hShm_SysConfig_rm, 
+                                                        sizeof(SHM_RM_SYSCONFIG));
+
+    if (g_pShmem_SysConfig_rm == NULL)
+    {
+        VERBOSE_ERROR("Cannot map the RM SysConfig shared memory.!!!\n");
+        return -1;
+    }
+    else
+    {
+        if (sizeof(SHM_RM_SYSCONFIG) == g_pShmem_SysConfig_rm->dwLength)
+        {
+            g_fOpenSysConfigShmRm = TRUE;  // flag of open RM_SHM
+
+            VERBOSE_VERBOSE("Mapped the RM SysConfig shared memory. Size(%dbytes), "
+                            "Chk(%ldbytes)\n",
+                            sizeof(SHM_RM_SYSCONFIG),
+                            g_pShmem_SysConfig_rm->dwLength);
+        }
+        else
+        {
+            g_fOpenSysConfigShmRm = FALSE;  // flag of open RM_SHM
+            VERBOSE_ERROR("Mismatched the RM SysConfig shared memory. Size(%dbytes), "
+                          "Chk(%ldbytes)\n",
+                          sizeof(SHM_RM_SYSCONFIG),
+                          g_pShmem_SysConfig_rm->dwLength);
+
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SHM_LoadSysConfigParam()
+//
+int SHM_LoadSysConfigParam(int nRobotIndex)
+{
+    if(g_pShmem_SysConfig_rm == NULL)
+    {
+        g_pszEcatConfigDir = DEF_ECAT_CONFIG_FILE_NAME;  // ECAT Config Dir
+        g_nAxisCount       = DEF_AXIS_COUNT;             // Axis Count
+        g_nSlaveCount      = DEF_SLAVE_COUNT;            // Slave Count
+        g_nWriteInitOffsetSize = DEF_WRITE_INIT_OFFSET_SIZE; // BeckHoff output size
+        g_nReadInitOffsetSize  = DEF_READ_INIT_OFFSET_SIZE;  // BeckHoff input size
+
+        VERBOSE_NOTIFY("\v<EtherCAT Parameter - Default Loaded>\n"
+                       "Slave Count : %d cnt\t"
+                       "Axis Count : %d cnt\n"
+                       "Write Offset Size: 0x%x \t"
+                       "Read Offset Size: 0x%x \n"
+                       "ECAT Conf File  : %s\n", 
+                       g_nSlaveCount,
+                       g_nAxisCount,
+                       g_nWriteInitOffsetSize,
+                       g_nReadInitOffsetSize,
+                       g_pszEcatConfigDir);
+
+        g_nWriteOffsetSize      = DEF_WRITE_OFFSET_SIZE;
+        g_nWriteOffsetControl   = DEF_WRITE_OFFSET_CONTROL;
+        g_nWirteOffsetPosition  = DEF_WRITE_OFFSET_POSITION;
+
+        g_nReadOffsetSize       = DEF_READ_OFFSET_SIZE;
+        g_nReadOffsetStatus     = DEF_READ_OFFSET_STATUS;
+        g_nReadOffsetPosition   = DEF_READ_OFFSET_POSITION;
+        g_nReadOffsetError      = DEF_READ_OFFSET_ERROR;
+    }
+    else if(g_pShmem_SysConfig_rm != NULL)
+    {
+        CRT_strcpy(g_pszEcatConfigDir, CONFIG_PATH_NAME_LEN, g_nECATParam.szPathName);
+
+        g_nAxisCount       = g_pShmem_SysConfig_rm->robot[nRobotIndex].nAxesCount;
+        g_nSlaveCount      = g_pShmem_SysConfig_rm->ecat.nSlaveCount;
+        g_nWriteInitOffsetSize = g_pShmem_SysConfig_rm->ecat.nWriteOffsetSize;
+        g_nReadInitOffsetSize  = g_pShmem_SysConfig_rm->ecat.nReadOffsetSize;
+
+        VERBOSE_NOTIFY("\v<EtherCAT Parameter - SHM Loaded>\n"
+                       "Slave Count : %d cnt\t"
+                       "Axis Count : %d cnt\n"
+                       "Write Offset Size: 0x%x \t"
+                       "Read Offset Size: 0x%x \n"
+                       "ECAT Conf File  : %s\n", 
+                       g_nSlaveCount,
+                       g_nAxisCount,
+                       g_nWriteInitOffsetSize,
+                       g_nReadInitOffsetSize,
+                       g_pszEcatConfigDir);
+
+        g_nWriteOffsetSize      = DEF_WRITE_OFFSET_SIZE;
+        g_nWriteOffsetControl   = g_nWriteInitOffsetSize + 0x00;
+        g_nWirteOffsetPosition  = g_nWriteInitOffsetSize + 0x10;
+
+        g_nReadOffsetSize       = DEF_READ_OFFSET_SIZE;
+        g_nReadOffsetStatus     = g_nReadInitOffsetSize + 0x00;
+        g_nReadOffsetPosition   = g_nReadInitOffsetSize + 0x10;
+        g_nReadOffsetError      = g_nReadInitOffsetSize + 0x30;
+    }
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// TE_OpenShmem()
+//
+int TE_OpenShmem(void)
+{
+    // TE shared memory open
+    if (g_pShmem_te != NULL)
+    {
+        VERBOSE_WARNING("TE shared memory already opened.\n");
+        return 0;
+    }
+
+    g_hShm_te = SHM_Open(SHMNAME_TE_TEST);
+
+    if (g_hShm_te == -1)
+    {
+        VERBOSE_ERROR("Failed to open TE shared memory.!!!\n");
+        return -1;
+    }
+    else
+    {
+        VERBOSE_VERBOSE("Opened the TE shared memory. Name(%s)\n", 
+                        SHMNAME_TE_TEST);
+    }
+
+    // map
+    g_pShmem_te = (SHM_TE_STATUS*) SHM_Map(g_hShm_te, sizeof(SHM_TE_STATUS));
+
+    if (g_pShmem_te == NULL)
+    {
+        VERBOSE_ERROR("Cannot map the TE shared memory.!!!\n");
+        return -1;
+    }
+    else
+    {
+        if (sizeof(SHM_TE_STATUS) == g_pShmem_te->size)
+        {
+            g_fOpenShmTe = TRUE;  // flag of open TE_SHM
+            
+            VERBOSE_VERBOSE("Mapped the TE shared memory. Size(%dbytes), "
+                            "Chk(%dbytes)\n", 
+                            sizeof(SHM_TE_STATUS),
+                            g_pShmem_te->size);
+        }
+        else
+        {
+            g_fOpenShmTe = FALSE;  // flag of open TE_SHM
+            VERBOSE_ERROR("Mismatched the TE shared memory. Size(%dbytes), "
+                          "Chk(%dbytes)\n",
+                          sizeof(SHM_TE_STATUS),
+                          g_pShmem_te->size);
+
+            return -1;
+        }
+    }    
+
+    return 0;
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// RM_SysStatusDestroyShmem()
+//
+int RM_SysStatusDestroyShmem(void)
+{
+    // unmap RM shared memory
+    if (g_pShmem_SysStatus_rm != NULL)
+    {
+        SHM_Unmap((void*) g_pShmem_SysStatus_rm, sizeof(SHM_RM_SYSSTATUS));
+        g_pShmem_SysStatus_rm = NULL;
+
+        VERBOSE_VERBOSE("Unmapped the RM SysStatus shared memory. Size(%dbytes)\n", 
+                        sizeof(SHM_RM_SYSSTATUS));
+    }
+
+    // close RM shared memory
+    if (g_hShm_SysStatus_rm != DANDY_INVALID_SHMEM_HANDLE)
+    {
+        SHM_Close(g_hShm_SysStatus_rm);
+        g_hShm_SysStatus_rm = DANDY_INVALID_SHMEM_HANDLE;
+        g_fOpenSysStatusShmRm = FALSE;  // flag of open RM_SHM
+
+        VERBOSE_VERBOSE("Destroyed the RM SysStatus shared memory. Name(%s)\n", 
+                        SHM_RM_SYSSTATUS_NAME);
+    }
+    
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// RM_SysConfigDestroyShmem()
+//
+int RM_SysConfigDestroyShmem(void)
+{
+    // unmap RM shared memory
+    if (g_pShmem_SysConfig_rm != NULL)
+    {
+        SHM_Unmap((void*) g_pShmem_SysConfig_rm, sizeof(SHM_RM_SYSCONFIG));
+        g_pShmem_SysConfig_rm = NULL;
+
+        VERBOSE_VERBOSE("Unmapped the RM SysConfig shared memory. Size(%dbytes)\n", 
+                        sizeof(SHM_RM_SYSCONFIG));
+    }
+
+    // close RM shared memory
+    if (g_hShm_SysConfig_rm != DANDY_INVALID_SHMEM_HANDLE)
+    {
+        SHM_Close(g_hShm_SysConfig_rm);
+        g_hShm_SysConfig_rm = DANDY_INVALID_SHMEM_HANDLE;
+        g_fOpenSysConfigShmRm = FALSE;  // flag of open RM_SHM
+
+        VERBOSE_VERBOSE("Destroyed the RM SysConfig shared memory. Name(%s)\n", 
+                        SHM_RM_SYSCONFIG_NAME);
+    }
+    
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// TE_DestroyShmem()
+//
+int TE_DestroyShmem(void)
+{
+    // unmap TE shared memory
+    if (g_pShmem_te != NULL)
+    {
+        SHM_Unmap((void*) g_pShmem_te, sizeof(SHM_TE_STATUS));
+        g_pShmem_te = NULL;
+
+        VERBOSE_VERBOSE("Unmapped the TE shared memory. Size(%dbytes)\n", 
+                        sizeof(SHM_TE_STATUS));
+    }
+
+    // close TE shared memory
+    if (g_hShm_te != DANDY_INVALID_SHMEM_HANDLE)
+    {
+        SHM_Close(g_hShm_te);
+        //SHM_Destroy(g_hShm_rm, RMGR_SYSSTATUS_RM_SHM_NAME);
+        g_hShm_te = DANDY_INVALID_SHMEM_HANDLE;
+        g_fOpenShmTe = FALSE;  // flag of open TE_SHM
+
+        VERBOSE_VERBOSE("Destroyed the TE shared memory. Name(%s)\n", 
+                        SHMNAME_TE_TEST);
+    }
+    
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SC_DestroyShmem()
+//
+void SC_DestroyShmem(void)
+{
+    if (g_pShmem_sc != NULL)
+    {
+        SHM_Unmap((void*) g_pShmem_sc, sizeof(SHM_SC_SYSTEM));
+        g_pShmem_sc = NULL;
+
+        VERBOSE_VERBOSE("Unmapped the SC shared memory. Size(%dbytes)\n", 
+                        sizeof(SHM_SC_SYSTEM));
+    }
+
+    if (g_hShm_sc != -1)
+    {
+        SHM_Destroy(g_hShm_sc, SC_SHM_NAME);
+        g_hShm_sc = -1;
+
+        VERBOSE_VERBOSE("Destroyed the SC shared memory. Name(%s)\n", 
+                        SC_SHM_NAME);
+    }
+
+    g_fOpenShmSc = FALSE;   // flag of SC_SHM creation
+    
+}

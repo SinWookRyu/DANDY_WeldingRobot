@@ -1,0 +1,32 @@
+LABEL JUMP
+SET    B1 1
+SET    B2 1
+SET    B3 1
+SET    B4 1
+SET    B5 1
+SET    R1 1.2
+SET    R2 1.5
+SET    R3 1.8
+SET    I1 1
+SET    I2 1
+SET    I3 1
+TIMER T=1.0
+SET    B1 2
+SET    B2 2
+SET    B3 2
+SET    B4 2
+SET    B5 2
+SET    R1 2.2
+SET    R2 2.5
+SET    R3 2.8
+SET    I1 2
+SET    I2 2
+SET    I3 2
+TIMER T=1.0
+SET    B1 0
+SET    B2 0
+SET    B3 0
+SET    B4 0
+SET    B5 0
+TIMER T=1.0
+JUMP JUMP

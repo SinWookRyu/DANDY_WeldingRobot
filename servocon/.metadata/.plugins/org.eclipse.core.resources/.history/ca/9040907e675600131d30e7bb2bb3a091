@@ -1,0 +1,1158 @@
+#define _USE_MATH_DEFINES
+
+#include "servocon_main.h"
+#include <math.h>
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// global variable & function
+//
+
+// thread
+THREAD_HANDLE hRuntimeThread;          // thread to receive timer pulse
+THREAD_HANDLE hEcatTraceThread;        // thread to ethercat trace
+THREAD_HANDLE hCheckTimeLimitThread;   // thread of receive time checking from RM
+THREAD_HANDLE hScanIOStateThread;      // thread to check slave state
+THREAD_HANDLE hScanServoStateThread;   // thread to monitoring E-stop state
+THREAD_HANDLE hVGADisplayThread;       // thread to VGA Display
+THREAD_HANDLE hServiceProcThread;      // thread to service receive & process
+
+BOOL g_fThreadRuntimeExitState     = FALSE; // flag of RcvTimerPulse thread exit
+BOOL g_fThreadEcatTraceExitState   = FALSE; // flag of EcatTrace thread exit
+BOOL g_fScanIOThreadExitState      = FALSE; // flag of SlaveState thread exit
+BOOL g_fScanServoThreadExitState   = FALSE; // flag of E-StopMon thread exit
+BOOL g_fDisplayThreadExitState     = FALSE; // flag of Display thread exit
+BOOL g_fServiceProcThreadExitState = FALSE; // flag of Service thread exit
+
+int  g_fHWLimitOnState = OFF;           // flag for H/W Limit State
+int  g_fAbsEncResetEventActive = OFF;   // flag for Abs Encoder Reset Event State
+int  g_nEmergencyCodeServo[ROB_AXIS_COUNT];   // emergency code of motor
+int  g_nErrAxis;
+ECAT_WORD               g_wEmergencyErrStateCode[ROB_AXIS_COUNT];
+ECAT_DWORD              g_dwWrongWC;          // Wrong working counter
+ECAT_WORD               g_wFramesPerSecond;   // Frame Count per sec.
+ECAT_STATISTICS         g_EcatStatistics;
+
+void FUNC_ConvertPosToPulse(int nAxis, int nOpt);
+void FUNC_ConvertPulseToPos(int nAxis, int nOpt);
+
+static void _loc_FUNC_ScanServoState(void);
+static void _loc_FUNC_ControlPannelLampControl(void);
+static void _loc_FUNC_ScanAllInputPort(void);
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// FUNC_ConvertPosToPulse()
+//  - rad -> pulse
+//
+void FUNC_ConvertPosToPulse(int nAxis, int nOpt)
+{
+    if(nOpt == ACTUAL_POS_IDX)
+        g_nAct_Pulse[nAxis] = (int)(g_rgnEcnoderHomeVal[nAxis] +
+                              (g_rgnEncRes[nAxis]/(2 * M_PI)) * g_rgnAxisDirection[nAxis] *
+                               g_rgdbGearRatio[nAxis] * g_dbAct_Pos[nAxis]);
+    else if(nOpt == TARGET_POS_IDX)
+        g_nTrg_Pulse[nAxis] = (int)(g_rgnEcnoderHomeVal[nAxis] +
+                              (g_rgnEncRes[nAxis]/(2 * M_PI)) * g_rgnAxisDirection[nAxis] *
+                               g_rgdbGearRatio[nAxis] * g_dbTrg_Pos[nAxis]);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// FUNC_ConvertPulseToPos()
+//  - pulse -> rad
+//
+void FUNC_ConvertPulseToPos(int nAxis, int nOpt)
+{
+    if(nOpt == ACTUAL_POS_IDX)
+        g_dbAct_Pos[nAxis] = (2 * M_PI / g_rgnEncRes[nAxis]) *
+                             (g_nAct_Pulse[nAxis] - g_rgnEcnoderHomeVal[nAxis]) /
+                             (g_rgnAxisDirection[nAxis] * g_rgdbGearRatio[nAxis]);
+    else if(nOpt == TARGET_POS_IDX)
+        g_dbTrg_Pos[nAxis] = (2 * M_PI / g_rgnEncRes[nAxis]) *
+                             (g_nTrg_Pulse[nAxis] - g_rgnEcnoderHomeVal[nAxis]) /
+                             (g_rgnAxisDirection[nAxis] * g_rgdbGearRatio[nAxis]);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_ReceiveIOCmdFromSHM()
+//  - Receive I/O Commmand from shared memory
+//
+
+#define ARCON_DO_PORT_NO                0
+#define GASON_DO_PORT_NO                1
+#define INCHPOS_DO_PORT_NO              2
+#define INCHNEG_DO_PORT_NO              3
+#define TOUCHSTART_DO_PORT_NO           4
+#define TOUCHREADY_DO_PORT_NO           5
+
+#define VOLT_AO_PORT_NO                 0
+#define CURR_AO_PORT_NO                 1
+
+static void _loc_FUNC_ReceiveIOCmdFromSHM(void)
+{
+    //////////////////////////
+    // Digital Output
+#if 0
+    // Servo ON Command
+    if(g_pShmem_sc->outputcmd.fServoOnOutCmd == ON &&
+       g_pShmem_sc->outputstate.fServoOnOutState == OFF)
+    {
+        SERV_ServoOnCmd(ON);
+    }
+    else if(g_pShmem_sc->outputcmd.fServoOnOutCmd == OFF &&
+            g_pShmem_sc->outputstate.fServoOnOutState == ON)
+    {
+        SERV_ServoOnCmd(OFF);
+    }
+#endif
+    // Arc ON Command
+    if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[ARCON_DO_PORT_NO] == ON ||
+        g_pShmem_sc->outputcmd.fArcOnOutCmd == ON) &&
+        g_pShmem_sc->outputstate.fArcOnOutState == OFF)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[ARCON_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputcmd.fArcOnOutCmd = ON;
+        SERV_ArcOn_out(ON);
+    }
+    else if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[ARCON_DO_PORT_NO] == OFF ||
+             g_pShmem_sc->outputcmd.fArcOnOutCmd == OFF) &&
+             g_pShmem_sc->outputstate.fArcOnOutState == ON)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[ARCON_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputcmd.fArcOnOutCmd = OFF;
+        SERV_ArcOn_out(OFF);
+    }
+    
+    // Gas ON Command
+    if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[GASON_DO_PORT_NO] == ON ||
+        g_pShmem_sc->outputcmd.fGasOnOutCmd == ON) &&
+        g_pShmem_sc->outputstate.fGasOnOutState == OFF)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[GASON_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputcmd.fGasOnOutCmd = ON;
+        SERV_GasOn_out(ON);
+    }
+    else if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[GASON_DO_PORT_NO] == OFF ||
+             g_pShmem_sc->outputcmd.fGasOnOutCmd == OFF) &&
+             g_pShmem_sc->outputstate.fGasOnOutState == ON)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[GASON_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputcmd.fGasOnOutCmd = OFF;
+        SERV_GasOn_out(OFF);
+    }
+    
+    // Inching Positive ON Command
+    if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHPOS_DO_PORT_NO] == ON ||
+        g_pShmem_sc->outputcmd.fInchingPosOutCmd == ON) &&
+        g_pShmem_sc->outputstate.fInchingPosOutState == OFF)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHPOS_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputcmd.fInchingPosOutCmd = ON;
+        SERV_InchingPos_out(ON);
+    }
+    else if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHPOS_DO_PORT_NO] == OFF ||
+             g_pShmem_sc->outputcmd.fInchingPosOutCmd == OFF) &&
+             g_pShmem_sc->outputstate.fInchingPosOutState == ON)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHPOS_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputcmd.fInchingPosOutCmd = OFF;
+        SERV_InchingPos_out(OFF);
+    }
+    
+    // Inching Negative ON Command
+    if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHNEG_DO_PORT_NO] == ON ||
+        g_pShmem_sc->outputcmd.fInchingNegOutCmd == ON) &&
+        g_pShmem_sc->outputstate.fInchingNegOutState == OFF)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHNEG_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputcmd.fInchingNegOutCmd = ON;
+        SERV_InchingNeg_out(ON);
+    }
+    else if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHNEG_DO_PORT_NO] == OFF ||
+             g_pShmem_sc->outputcmd.fInchingNegOutCmd == OFF) &&
+             g_pShmem_sc->outputstate.fInchingNegOutState == ON)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[INCHNEG_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputcmd.fInchingNegOutCmd = OFF;
+        SERV_InchingNeg_out(OFF);
+    }
+    
+    // Touch Start ON Command
+    if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHSTART_DO_PORT_NO] == ON ||
+        g_pShmem_sc->outputcmd.fTouchStartOutCmd == ON) &&
+        g_pShmem_sc->outputstate.fTouchStartOutState == OFF)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHSTART_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputcmd.fTouchStartOutCmd = ON;
+        SERV_TouchStart_out(ON);
+    }
+    else if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHSTART_DO_PORT_NO] == OFF ||
+             g_pShmem_sc->outputcmd.fTouchStartOutCmd == OFF) &&
+             g_pShmem_sc->outputstate.fTouchStartOutState == ON)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHSTART_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputcmd.fTouchStartOutCmd = OFF;
+        SERV_TouchStart_out(OFF);
+    }
+    
+    // Touch Ready ON Command
+    if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHREADY_DO_PORT_NO] == ON ||
+        g_pShmem_sc->outputcmd.fTouchReadyOutCmd == ON) &&
+        g_pShmem_sc->outputstate.fTouchReadyOutState == OFF)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHREADY_DO_PORT_NO] = ON;
+        g_pShmem_sc->outputcmd.fTouchReadyOutCmd = ON;
+        SERV_TouchReady_out(ON);
+    }
+    else if((g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHREADY_DO_PORT_NO] == OFF ||
+             g_pShmem_sc->outputcmd.fTouchReadyOutCmd == OFF) &&
+             g_pShmem_sc->outputstate.fTouchReadyOutState == ON)
+    {
+        g_pShmem_sc->outputcmd.weldDoutCmd.nWeldDOutPortVal[TOUCHREADY_DO_PORT_NO] = OFF;
+        g_pShmem_sc->outputcmd.fTouchReadyOutCmd = OFF;
+        SERV_TouchReady_out(OFF);
+    }
+
+    //////////////////////////
+    // Analog Output
+    
+    // Weld Voltage Command
+    if((g_pShmem_sc->outputcmd.weldAoutCmd.dbWeldAOutPortVal[VOLT_AO_PORT_NO] !=
+        g_pShmem_sc->outputstate.dbWeldVoltOutVal) ||
+       (g_pShmem_sc->outputcmd.dbWeldVoltOutCmd !=
+       g_pShmem_sc->outputstate.dbWeldVoltOutVal))
+    {
+        if(g_pShmem_sc->outputcmd.dbWeldVoltOutCmd == g_pShmem_sc->outputstate.dbWeldVoltOutVal)
+        {
+            g_pShmem_sc->outputcmd.dbWeldVoltOutCmd = g_pShmem_sc->outputcmd.weldAoutCmd.dbWeldAOutPortVal[VOLT_AO_PORT_NO];
+        }
+
+        SERV_WeldVolt_out(g_pShmem_sc->outputcmd.dbWeldVoltOutCmd);
+    }
+    
+    // Weld Current Command
+    if((g_pShmem_sc->outputcmd.weldAoutCmd.dbWeldAOutPortVal[CURR_AO_PORT_NO] !=
+        g_pShmem_sc->outputstate.dbWeldCurrOutVal) ||
+        (g_pShmem_sc->outputcmd.dbWeldCurrOutCmd !=
+        g_pShmem_sc->outputstate.dbWeldCurrOutVal))
+    {
+        if(g_pShmem_sc->outputcmd.dbWeldCurrOutCmd == g_pShmem_sc->outputstate.dbWeldCurrOutVal)
+        {
+            g_pShmem_sc->outputcmd.dbWeldCurrOutCmd = g_pShmem_sc->outputcmd.weldAoutCmd.dbWeldAOutPortVal[CURR_AO_PORT_NO];
+        }
+
+        SERV_WeldVolt_out(g_pShmem_sc->outputcmd.dbWeldCurrOutCmd);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// RuntimeThreadRoutine()
+//
+THREAD_ENTRY_TYPE RuntimeThreadRoutine(void* pParam)
+{
+    int rcvidFromTE;
+    SC_MSG      msg_packet;
+    SC_REPLY    reply_packet;
+    //int iAxis;
+
+    // receive timer pulse from TE
+    while(g_fExit == FALSE)
+    {
+        rcvidFromTE = MSG_Receive(g_chidSCTime,
+                                  &msg_packet,
+                                  sizeof(msg_packet),
+                                  NULL);
+
+        memcpy(&reply_packet, &msg_packet, sizeof(SC_MSG));
+                
+        if (g_pShmem_sc->sysstate.fEcatInitState == TRUE)
+        {
+            /* Scan Servo State */
+            _loc_FUNC_ScanServoState();
+
+            /* Control Box Lamp Control */
+            _loc_FUNC_ControlPannelLampControl();
+
+            /* Scan all Digital & Analog inport port */
+            //_loc_FUNC_ScanAllInputPort();
+            //ECATSERV_ReadTotalInput();
+
+            /* Write all */
+            //ECATSERV_WriteTotalOutput();
+
+            _loc_FUNC_UpdatePI_ALLInOut
+
+#if 0
+            if(g_pShmem_sc->outputstate.fServoOnOutState == TRUE)
+            {
+        	    /* write target position to servo */
+        	    for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        	    {
+        	    	g_dbTrg_Pos[iAxis] = g_pShmem_sc->outputcmd.dbTrgPos[iAxis];
+                    
+                    FUNC_ConvertPosToPulse(iAxis, TARGET_POS_IDX);
+
+                    ECATSERV_WriteTargetPosition(iAxis, EACH);
+        	    }
+                //ECATSERV_WriteTargetPosition(ALL_AXES, ALL);
+            }
+#endif
+            /* control I/O device, in case of auto mode */
+            if(g_pShmem_SysStatus_rm != NULL &&
+               g_pShmem_SysStatus_rm->nSystemMode == MODE_STAT_AUTORUN)
+            {
+                _loc_FUNC_ReceiveIOCmdFromSHM();
+            }
+        }
+        else
+        {
+            THREAD_Sleep(1);
+        }
+
+        // reply message
+        if (rcvidFromTE == 0)  // pulse
+        {
+        	reply_packet.size = 0;
+        }
+        else  // message
+        {
+        	MSG_Reply(rcvidFromTE, 0, &reply_packet, sizeof(reply_packet));
+        }
+
+        // send pulse to TE
+        if(g_Arg.bSingleExec != TRUE)
+        {
+            MSG_SendPulse(g_coidTE, RUNSERV_TIMER, 0);
+        }
+        
+        //THREAD_Sleep(g_nServoScanTime);  // period of Servo monitoring
+    } // end of while
+
+    g_fThreadRuntimeExitState = TRUE;
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// EcatTraceThreadRoutine()
+//
+THREAD_ENTRY_TYPE EcatTraceThreadRoutine(void* pParam)
+{
+#if defined (__QNXNTO__)
+    ECAT_DWORD dwID = 1;
+    int iAxis;
+    ECAT_UINT64 nErrData[ROB_AXIS_COUNT];
+    ECAT_UINT64 nTimeStamp[ROB_AXIS_COUNT];
+    ECAT_WORD   wErrStateCode[ROB_AXIS_COUNT];
+    ECAT_RESULT erResult = 0;
+    ECAT_DWORD  dwRealSize;
+    ECAT_WORD   wSeverity, wLocation;
+
+    EcatIODevSetTraceMode(g_hMaster, EcatErrorTraceEnabled, &dwID);
+    //EcatIODevSetTraceCategories(g_hMaster, 0xFFFF, 0xFFFF);
+    //EcatIODevSetTraceCategories(g_hMaster, TraceSeverity, EcatTraceCatGeneral);
+    EcatIODevSetTraceCategories(g_hMaster, ErrorSeverity, EcatTraceCatAll);
+    EcatIODevSetMaxTraceCount(g_hMaster, 128);
+
+    while(g_fExit == FALSE)
+    {
+        while(g_pShmem_sc->sysstate.fEcatInitState == TRUE &&
+              g_hMaster != NULL)
+        {
+            /* ------------------------- */
+            /* 1. Get Network Statistics */
+            /* ------------------------- */
+            if(ECAT_SUCCEEDED(erResult = EcatIODevGetStatistics(g_hMaster,
+                                                               &g_EcatStatistics)))
+            {
+                if(erResult == ECAT_S_OK)
+                {
+                    g_dwWrongWC = g_EcatStatistics.RTStat.dwWrongWC;
+                    g_wFramesPerSecond = g_EcatStatistics.LinkStat.wFramesPerSecond;
+                    //VERBOSE_ERROR("Wrong Working Counter: %ld\n", g_dwWrongWC);
+                }
+            }
+            else
+            {
+                VERBOSE_ERROR("Couldn't get statistics. Error code: %x (%s).\n",
+		                      erResult,
+		                      ECATLIB_GetErrorDescription(erResult));
+            }
+
+            /* ------------------------ */
+            /* 2. Get Error Message     */
+            /* ------------------------ */
+            if(ECAT_SUCCEEDED(erResult = EcatIODevGetLastError(g_hMaster,
+                                                               &wSeverity,
+                                                               &wLocation,
+                                                               g_szEcatErrorDescription,
+                                                               sizeof(g_szEcatErrorDescription) - 1,
+                                                               &dwRealSize)))
+		    {
+		        if (erResult != ECAT_S_NOITEMS)
+		        {
+		            if (dwRealSize < sizeof(g_szEcatErrorDescription))
+                    {
+		                g_szEcatErrorDescription[dwRealSize] = '\0';
+                    }
+		            VERBOSE_ERROR("Sever: %d, Loc: %d, Err: %s\n",
+		                          wSeverity, wLocation, g_szEcatErrorDescription);
+		        }
+		    }
+            else
+		    {
+#if 1
+		        VERBOSE_ERROR("Couldn't get last error. Error code: %x (%s).\n",
+		                      erResult,
+		                      ECATLIB_GetErrorDescription(erResult));
+#endif
+		    }
+            
+            /* ------------------------ */
+            /* 3. Get Emergency Message */
+            /* ------------------------ */
+            for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+            {
+                erResult = EcatIODevGetSlaveNextEmgMessage(g_hMaster,
+                                                           iAxis,   // SlaveID
+                                                           1,       // Delete: 1, No Delete: 0
+                                                           &wErrStateCode[iAxis],
+                                                           &nErrData[iAxis],
+                                                           &nTimeStamp[iAxis]);
+		        if((erResult & 0x8000) == 0)
+                {
+		            if (erResult != ECAT_S_NOITEMS)
+		            {
+                        if(wErrStateCode[iAxis] == 0xff00)
+                        {
+                            nErrData[iAxis] = (int) nErrData[iAxis] >> 8;   // Emergency Code Offset
+                            g_nEmergencyCodeServo[iAxis] = (int) nErrData[iAxis];
+                            g_wEmergencyErrStateCode[iAxis] = wErrStateCode[iAxis];
+                            g_nErrAxis = iAxis;
+                            VERBOSE_MESSAGE("nErrData(Ax: %d): %x\n", iAxis, (int) nErrData[iAxis]);    //for test
+                        }
+#if 1
+		                VERBOSE_ERROR("Axis %d: Emergency Code: %x, Data: %x, Time: %d\n"
+                                      "Error Content: %s\n",
+		                              iAxis, wErrStateCode[iAxis],
+                                      (int) nErrData[iAxis], (int) nTimeStamp[iAxis],
+                                      ERR_GetErrorDescription(g_nEmergencyCodeServo[iAxis]));
+#endif
+		            }
+		        }
+                else
+		        {
+#if 1
+		            VERBOSE_ERROR("Couldn't get Emergency Msg. Error code: %x (%s).\n",
+		                          erResult,
+		                          ECATLIB_GetErrorDescription(erResult));
+#endif
+		        }
+            }
+
+            /* ------------------------------- */
+            /* 4. Err Information input to SHM */
+            /* ------------------------------- */
+            if(g_pShmem_sc->sysstate.fErrorState == TRUE)
+            {
+                if(g_wEmergencyErrStateCode[g_nErrAxis] == 0xff00)
+                {
+                    g_pShmem_sc->sysstate.nErrorCode = g_nEmergencyCodeServo[g_nErrAxis];
+                }
+                else
+                {
+                    for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+                    {
+                        if(g_nErrCodeServo[iAxis] != 0)
+                        {
+                            g_nErrAxis = iAxis;
+                        }
+                    }
+
+                    g_pShmem_sc->sysstate.nErrorCode = g_nErrCodeServo[g_nErrAxis];
+                }
+                g_pShmem_sc->sysstate.nErrorAxis = g_nErrAxis;
+                CRT_strncpy(g_pShmem_sc->sysstate.g_szErrorDescription,
+                            ERROR_MESSAGE_BUFFER_SIZE,
+                            g_szEcatErrorDescription,
+                            ERROR_MESSAGE_BUFFER_SIZE);
+            }
+
+            THREAD_Sleep(50);
+        } // end of while
+
+        THREAD_Sleep(100);
+    } // end of while
+
+     EcatIODevSetTraceMode(g_hMaster, EcatErrorTraceDisabled, &dwID);
+
+#endif
+
+    g_fThreadEcatTraceExitState = TRUE;
+    
+	return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// SVC_ServiceProcThreadRoutine()
+//
+THREAD_ENTRY_TYPE SVC_ServiceProcThreadRoutine(void* pParam)
+{
+    int nRet = -1;             // return value of function
+    MSG_INFO info;
+
+    ////////////////////////////////////////////////////////////////////////////
+    // message receive & reply 
+    //
+    while(g_fExit == FALSE)
+    {
+        // receive message
+        g_rcvidSC = MSG_Receive(g_chidSC, &SC_msg, sizeof(SC_msg), &info);
+
+        if (SC_msg.code == SC_SERV_ALIVE)
+        {
+            ;
+        }
+        else
+        {
+            VERBOSE_VERBOSE("Received service code: <%d>, value: <%d>\n",
+            		        SC_msg.code, SC_msg.value);
+        }
+        
+        // set reply data(packet)
+        nRet = SERV_DoService(&SC_msg, &SC_reply);
+
+        // message reply
+        if (g_rcvidSC == RCVID_PULSE)   // pulse
+        {
+            SC_reply.size = 0;
+        }
+        else if (g_rcvidSC > 0)         // message
+        {
+            //MSG_Reply(g_rcvidSC, nRet, &SC_reply, sizeof(SC_reply));
+            MSG_Reply(g_rcvidSC, 0, &SC_reply, SC_REPLY_PACKET_SIZE);
+        }
+        else
+        {
+            VERBOSE_ERROR("Failed to receive data...\n");
+        }
+    
+        THREAD_Sleep(50);
+
+    } // end while
+    
+    g_fServiceProcThreadExitState = TRUE;
+
+    return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// CheckTimeLimitThreadRoutine()
+//
+THREAD_ENTRY_TYPE CheckTimeLimitThreadRoutine(void* pParam)
+{
+    int iCnt = 0;
+    
+    // check state of external initialization
+    while(iCnt < g_nTime_Limit)
+    {
+        iCnt++;
+        THREAD_Sleep(1000);
+
+        if (g_rcvidSC == INVALID_RCVID)
+        {
+            ;
+        }
+        else
+        {
+            break;
+        }
+
+        if (iCnt == g_nTime_Limit)
+        {
+            VERBOSE_WARNING("Elapsed time of receive message : %d [sec]\n", 
+                            g_nTime_Limit);
+
+            VERBOSE_ERROR("Disconnected RM process.\n");
+
+            if (g_coidSC != INVALID_COID)
+            {
+                // send exit cmd
+                MSG_SendPulse(g_coidSC, SC_SERV_EXIT, 0);
+            }
+            
+            THREAD_Sleep(100);
+            
+            break;
+        }
+    }
+
+    return 0;
+}
+
+#if 0
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_ScanAllInputPort()
+//
+static void _loc_FUNC_ScanAllInputPort(void)
+{
+    //int nSlave = 0;
+    //int nPort = 0;
+
+    // Digital Input Port Scan
+#if 0
+    for(nSlave = 0; nSlave < ECAT_READ_DI_SLAVE_COUNT; nSlave++)
+    {
+        for(nPort = 0; nPort < ECAT_READ_DI_PORT_COUNT; nPort++)
+        {
+            g_DinPortVal[nSlave][nPort] = ECATSERV_ReadDigitalIn(nSlave, nPort);
+        }
+    }
+#endif
+    //ECATSERV_ReadDigitalInPortAll();
+
+    // Analog Input Port Scan
+#if 0
+    for(nSlave = 0; nSlave < ECAT_READ_AI_SLAVE_COUNT; nSlave++)
+    {
+        for(nPort = 0; nPort < ECAT_READ_AI_PORT_COUNT; nPort++)
+        {
+            g_AinPortVal[nSlave][nPort] = ECATSERV_ReadAnalogIn(nSlave, nPort);
+        }
+    }
+#endif
+    //ECATSERV_ReadAnalogInPortAll();
+
+    ECATSERV_ReadTotalInput();
+}
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_UpdatePI_ALLInOut()
+//
+static void _loc_FUNC_UpdatePI_ALLInOut(void)
+{
+    ECATSERV_ReadTotalInput();
+    ECATSERV_WriteTotalOutput();
+
+#if defined (__QNXNTO__)
+    EcatIODevUpdateProcessImage(g_hMaster);
+#endif
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_InputScanResultLoadToShmem()
+//
+
+#define BRAKESTATE_DI_SLAVE_NO          0
+#define SYSTEMIO_DI_SLAVE_NO            0   // 6,7 port
+#define BRAKECLEAR_DI_SLAVE_NO          1
+#define WELD_DI_SLAVE_NO                2
+#define CART_DI_SLAVE_NO                3
+
+#define CONT_RESET_DI_PORT_NO           6
+#define CONT_ESTOP_DI_PORT_NO           7
+
+#define ARCON_DI_PORT_NO                0
+#define NOGAS_DI_PORT_NO                1
+#define NOWIRE_DI_PORT_NO               2
+#define WELDERPWRFAIL_DI_PORT_NO        3
+#define TOUCHPROCESS_DI_PORT_NO         4
+#define TOUCHSIGNAL_DI_PORT_NO          5
+
+#define TP_ESTOP_DI_PORT_NO             0
+#define DEADMAN_DI_PORT_NO              1
+#define SHOCKSENSOR_DI_PORT_NO          2
+
+#define WELD_AI_SLAVE_NO                0
+#define VOLT_AI_PORT_NO                 0
+#define CURR_AI_PORT_NO                 1
+
+static void _loc_FUNC_InputScanResultLoadToShmem(void)
+{
+    int iAxis;
+
+    for(iAxis = 0; iAxis < g_nAxisCount; iAxis ++)
+    {
+        // Din Slave 0 - Brake State
+        g_pShmem_sc->inputstate.fBrakeStatusInState[iAxis] =
+            g_DinPortVal[BRAKESTATE_DI_SLAVE_NO][iAxis];
+        // Din Slave 1 - Brake Clear
+        g_pShmem_sc->inputstate.fBrakeClearInState[iAxis] = 
+            g_DinPortVal[BRAKECLEAR_DI_SLAVE_NO][iAxis];
+    }
+
+    // Din Slave 0 - System I/O State
+    g_pShmem_sc->inputstate.fController_ResetButton =
+        g_DinPortVal[SYSTEMIO_DI_SLAVE_NO][CONT_RESET_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fController_EstopInState =
+        g_DinPortVal[SYSTEMIO_DI_SLAVE_NO][CONT_ESTOP_DI_PORT_NO];
+
+    // Din Slave 2  - Welder Input
+        // input to varialbes
+    g_pShmem_sc->inputstate.fArcOnInState = 
+        g_DinPortVal[WELD_DI_SLAVE_NO][ARCON_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fNoGasInState =
+        g_DinPortVal[WELD_DI_SLAVE_NO][NOGAS_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fNoWireInState =
+        g_DinPortVal[WELD_DI_SLAVE_NO][NOWIRE_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fWeldPowerFailInState=
+        g_DinPortVal[WELD_DI_SLAVE_NO][WELDERPWRFAIL_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fTouchProcessInState =
+        g_DinPortVal[WELD_DI_SLAVE_NO][TOUCHPROCESS_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fTouchSignalInState =
+        g_DinPortVal[WELD_DI_SLAVE_NO][TOUCHSIGNAL_DI_PORT_NO];
+
+    // Din Slave 3  - Cart Input
+    g_pShmem_sc->inputstate.fTP_EstopInState = 
+        g_DinPortVal[CART_DI_SLAVE_NO][TP_ESTOP_DI_PORT_NO];
+    g_pShmem_sc->inputstate.fDeadManSwithInState = 
+        g_DinPortVal[CART_DI_SLAVE_NO][DEADMAN_DI_PORT_NO];
+    //g_pShmem_sc->inputstate.fShockSensorInState = 
+    //    g_DinPortVal[CART_DI_SLAVE_NO][SHOCKSENSOR_DI_PORT_NO];
+    
+        // intput to array
+    g_pShmem_sc->inputstate.weldDinState.nWeldDInPortVal[ARCON_DI_PORT_NO] = 
+        g_DinPortVal[WELD_DI_SLAVE_NO][ARCON_DI_PORT_NO];
+    g_pShmem_sc->inputstate.weldDinState.nWeldDInPortVal[NOGAS_DI_PORT_NO] =
+        g_DinPortVal[WELD_DI_SLAVE_NO][NOGAS_DI_PORT_NO];
+    g_pShmem_sc->inputstate.weldDinState.nWeldDInPortVal[NOWIRE_DI_PORT_NO] =
+        g_DinPortVal[WELD_DI_SLAVE_NO][NOWIRE_DI_PORT_NO];
+    g_pShmem_sc->inputstate.weldDinState.nWeldDInPortVal[WELDERPWRFAIL_DI_PORT_NO]=
+        g_DinPortVal[WELD_DI_SLAVE_NO][WELDERPWRFAIL_DI_PORT_NO];
+    g_pShmem_sc->inputstate.weldDinState.nWeldDInPortVal[TOUCHPROCESS_DI_PORT_NO] =
+        g_DinPortVal[WELD_DI_SLAVE_NO][TOUCHPROCESS_DI_PORT_NO];
+    g_pShmem_sc->inputstate.weldDinState.nWeldDInPortVal[TOUCHSIGNAL_DI_PORT_NO] =
+        g_DinPortVal[WELD_DI_SLAVE_NO][TOUCHSIGNAL_DI_PORT_NO];
+
+    // Ain Slave 0  - Welder Input
+        // input to variables
+    g_pShmem_sc->inputstate.dbWeldVoltInVal =
+        g_AinPortVal[WELD_AI_SLAVE_NO][VOLT_AI_PORT_NO];
+    g_pShmem_sc->inputstate.dbWeldCurrInVal =
+        g_AinPortVal[WELD_AI_SLAVE_NO][CURR_AI_PORT_NO];
+    
+        // intput to array
+    g_pShmem_sc->inputstate.weldAinState.dbWeldAInPortVal[VOLT_AI_PORT_NO] =
+        g_AinPortVal[WELD_AI_SLAVE_NO][VOLT_AI_PORT_NO];
+    g_pShmem_sc->inputstate.weldAinState.dbWeldAInPortVal[CURR_AI_PORT_NO] =
+        g_AinPortVal[WELD_AI_SLAVE_NO][CURR_AI_PORT_NO];
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_ReplyPacketMapping()
+//
+static void _loc_FUNC_ReplyPacketMapping(void)
+{
+    SC_reply.data.servo_mon.servoout = SC_reply.data.servoout;
+    SC_reply.data.welder_mon.weldDout = SC_reply.data.weldDout;
+    SC_reply.data.welder_mon.weldAout = SC_reply.data.weldAout;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_ScanServoState()
+//
+static void _loc_FUNC_ScanServoState(void)
+{
+    int nCnt = 0;
+    //int nRet;
+    int iAxis = 0;
+    ECAT_DWORD dwReadBuff = 0;
+
+    /* 1. check error & servo */
+    
+        // Check Servo State
+    if(g_fServoOnEventActive == OFF)
+    {
+        //SERV_GetServoState();
+    }
+    
+        // Check Alarm Code
+    //SERV_GetServoAlarmCode();
+
+    if(g_pShmem_sc->outputstate.fServoOnOutState == ON)
+    {
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            // Check Alarm Code & Enter to E-Stop mode
+            if(g_nErrCodeServo[iAxis] != 0)
+            {
+                SERV_EStop(ON);
+                VERBOSE_ERROR("[Axis-%d] Err: %x, State: %x\n",
+                              iAxis, g_nErrCodeServo[iAxis], g_nReadStatusValue[iAxis]);
+            }
+        }
+    }
+    
+        // Check Error Register
+    if(nCnt >= 100)
+    {
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            g_nErrorRegister[iAxis] =
+                    ECATLIB_ReadSlaveCoEObjectInteger(iAxis, 0x1001, 0, dwReadBuff);
+        }
+    
+        nCnt = 0;
+    }
+    
+    // Counter for Register Check
+    nCnt++;
+#if 0
+    /* 2. read actual position from servo */
+    if(g_fAbsEncResetEventActive != ON && g_fServoOnEventActive != ON)
+    {
+        nRet = ECATSERV_ReadPosition();
+
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            if(nRet == RESULT_OK)
+            {
+                FUNC_ConvertPulseToPos(iAxis, ACTUAL_POS_IDX);
+    
+                // write actual position to SHM_SC
+                g_pShmem_sc->inputstate.dbActPos[iAxis] = g_dbAct_Pos[iAxis];
+
+                SC_reply.data.pos.dbActPos[iAxis] = g_dbAct_Pos[iAxis];
+            }
+        }
+    }
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// _loc_FUNC_ControlPannelLampControl()
+//
+static void _loc_FUNC_ControlPannelLampControl(void)
+{
+        /* 1. EtherCAT Run */
+    if(g_pShmem_sc->sysstate.fEcatInitState == ON)
+    {
+        SERV_LampEtherCATRun_out(ON);
+    }
+    else
+    {
+        SERV_LampEtherCATRun_out(OFF);
+    }
+    
+        /* 2. Servo On */
+    if(g_pShmem_sc->outputstate.fServoOnOutState == ON)
+    {
+        SERV_LampServoOn_out(ON);
+    }
+    else
+    {
+        SERV_LampServoOn_out(OFF);
+    }
+        /* 3. Controller Ready */
+    if(g_pShmem_sc->outputcmd.fLampControllerReadyCmd == ON)
+    {
+        SERV_LampControllerReady_out(ON);
+    }
+    else
+    {
+        SERV_LampControllerReady_out(OFF);
+    }
+    
+        /* 4. Under Operating */
+    if(g_pShmem_sc->outputcmd.fLampUnderOperatingCmd == ON)
+    {
+        SERV_LampUnderOperating_out(ON);
+    }
+    else
+    {
+        SERV_LampUnderOperating_out(OFF);
+    }
+    
+        /* 5. Error(Spare) */
+    if(g_pShmem_sc->sysstate.fErrorState == ON)
+    {
+        SERV_LampError_out(ON);
+    }
+    else
+    {
+        SERV_LampError_out(OFF);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ScanServoStateThreadRoutine()
+//
+THREAD_ENTRY_TYPE ScanServoStateThreadRoutine(void* pParam)
+{
+
+    while (g_fExit == FALSE)
+	{
+        THREAD_Sleep(1000);
+    }
+
+    g_fScanServoThreadExitState = TRUE;
+
+	return 0;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ScanIOStateThreadRoutine()
+//
+#define PERIOD_OF_NETWORK_STATE_CHECK       200
+
+THREAD_ENTRY_TYPE ScanIOStateThreadRoutine(void* pParam)
+{
+    int fResetSwtichStateChanged;
+    int oldResetwitchState = 0;
+    
+    int fEStopSwtichStateChanged;
+    int oldControllerEStopSwitchState = 0;
+    int oldTPEStopSwitchState = 0;
+    
+    int fDeadManSwtichStateChanged;
+    int oldDeadManSwitchState = 0;
+    
+    int fECATNetworkStateChanged;
+    int oldECATNetworkState = 0;
+    //int nRet;
+    //int nCnt = 0;
+    
+    int iAxis = 0;
+    int fHWLimitOnStateChanged;
+    int oldHWLimitOnState = 0;
+    
+	while (g_fExit == FALSE)
+	{
+        /* 1. Check E-Stop Button State(for triggering event) */
+        if(oldControllerEStopSwitchState != g_pShmem_sc->inputstate.fController_EstopInState ||
+           oldTPEStopSwitchState != g_pShmem_sc->inputstate.fTP_EstopInState)
+        {
+            fEStopSwtichStateChanged = ON;
+        }
+        else
+        {
+            fEStopSwtichStateChanged = OFF;
+        }
+
+        oldControllerEStopSwitchState = g_pShmem_sc->inputstate.fController_EstopInState;
+        oldTPEStopSwitchState = g_pShmem_sc->inputstate.fTP_EstopInState;
+
+        if(oldDeadManSwitchState != g_pShmem_sc->inputstate.fDeadManSwithInState)
+        {
+            fDeadManSwtichStateChanged = ON;
+        }
+        else
+        {
+            fDeadManSwtichStateChanged = OFF;
+        }
+
+        oldDeadManSwitchState = g_pShmem_sc->inputstate.fDeadManSwithInState;
+
+        /* 2. Check EtherCAT Network State(for triggering event) */
+        if(oldECATNetworkState != g_pShmem_sc->sysstate.fEcatInitState)
+        {
+            fECATNetworkStateChanged = ON;
+        }
+        else
+        {
+            fECATNetworkStateChanged = OFF;
+        }
+
+        oldECATNetworkState = g_pShmem_sc->sysstate.fEcatInitState;
+
+        /* 3. Check State for trigger event */
+        if(oldHWLimitOnState != g_fHWLimitOnState)
+        {
+            fHWLimitOnStateChanged = ON;
+        }
+        else
+        {
+            fHWLimitOnStateChanged = OFF;
+        }
+
+        oldHWLimitOnState = g_fHWLimitOnState;
+
+        /* 4. E-STOP Exec */
+        //if(fEStopSwtichStateChanged == ON && g_fHWLimitOnState != ON)
+        if(fEStopSwtichStateChanged == ON)
+        {
+            if(g_pShmem_sc->inputstate.fController_EstopInState == ESTOP_ACT ||
+               g_pShmem_sc->inputstate.fTP_EstopInState == TRUE)    //TP Estop High Active?
+            {
+                SERV_EStop(ON);
+            }
+            else if(g_pShmem_sc->inputstate.fController_EstopInState == ESTOP_DEACT ||
+               g_pShmem_sc->inputstate.fTP_EstopInState == FALSE)    //TP Estop High Active?
+            {
+                SERV_EStop(OFF);
+            }
+        }
+        
+        /* 5. Check Reset Button State(for triggering event) */
+        if(oldResetwitchState != g_pShmem_sc->inputstate.fController_ResetButton)
+        {
+            fResetSwtichStateChanged = ON;
+        }
+        else
+        {
+            fResetSwtichStateChanged = OFF;
+        }
+
+        oldResetwitchState = g_pShmem_sc->inputstate.fController_ResetButton;
+
+        /* 6. Reset */
+        if(fResetSwtichStateChanged == ON)
+        {
+            if(g_pShmem_sc->inputstate.fController_ResetButton == ON)
+            {
+                if(g_Arg.bSingleExec != TRUE)
+                {
+                    MSG_SendPulse(g_coidRM, RCON_SERV_ERROR_RESET, 0);
+                }
+                else
+                {
+                    SERV_ClearServoAlarm();
+                }
+            }
+        }
+
+        /* 7. DeadMan Swtich */
+        if(fDeadManSwtichStateChanged == ON)
+        {
+            if(g_pShmem_sc->inputstate.fDeadManSwithInState == TRUE)
+            {
+                MSG_SendPulse(g_coidSC, SC_SERV_SERVO, ON);
+            }
+            else if(g_pShmem_sc->inputstate.fDeadManSwithInState == FALSE)
+            {
+                MSG_SendPulse(g_coidSC, SC_SERV_SERVO, OFF);
+            }
+        }
+        
+        /* 8. Digital & Analog inport ports data copy to Packet & SHM */
+        _loc_FUNC_InputScanResultLoadToShmem();
+
+        _loc_FUNC_ReplyPacketMapping();
+
+        // if Single Exec mode, send pulse to Runtime Thread
+        if(g_Arg.bSingleExec == TRUE)
+        {
+            MSG_SendPulse(g_coidSCTime, RUNSERV_TIMER, 0);
+        }
+
+        /* 9. Check Slave Network State */
+#if 0
+        if(g_fMasterInitEventActive == OFF && nCnt >= PERIOD_OF_NETWORK_STATE_CHECK)
+        {
+            nRet = SERV_GetNetworkState();
+            
+            if(nRet == 0)
+            {
+                if(g_pShmem_sc != NULL)
+                {
+                    g_pShmem_sc->sysstate.fEcatInitState = TRUE;
+                }
+            }
+            else
+            {
+                if(g_pShmem_sc != NULL)
+                {
+                    // Can't Control Lamp at Error State
+                    g_pShmem_sc->sysstate.fEcatInitState = FALSE; 
+
+                    // Error State Inform
+                    if(fECATNetworkStateChanged == ON)
+                    {
+                        VERBOSE_ERROR("EtherCAT Network Unstable!\n");
+                        g_nErrCodeEcat = ECAT_ERR_SLAVE_CONNECTION_CLOSED;
+                        ERR_GetErrorDescription(ECAT_ERR_SLAVE_CONNECTION_CLOSED);
+                    }
+                }
+            }
+
+            nCnt = 0;
+        }
+
+        nCnt++;
+#endif
+        /* 10. H/W Limit Monitoring */
+        if(g_pShmem_sc->sysstate.fEcatInitState == TRUE)
+        {
+            if(g_fHWLimitMonAct == ON)
+            {
+                for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+                {
+                    if(g_rgfHwLimitUsed[iAxis][LIMIT_NEG] == ON &&
+                      (g_dbAct_Pos[iAxis] < g_rgdbHwLimit[iAxis][LIMIT_NEG]))
+                    //if(g_dbAct_Pos[iAxis] < g_rgdbHwLimit[iAxis][LIMIT_NEG])
+                    {
+                        g_fHWLimitOnState = ON;
+                        
+                        if(fHWLimitOnStateChanged == ON)
+                        {
+                            VERBOSE_ERROR("H/W Limit Negative(-) Detected!\n");
+                        }
+                    }
+                    if(g_rgfHwLimitUsed[iAxis][LIMIT_POS] == ON &&
+                           (g_dbAct_Pos[iAxis] > g_rgdbHwLimit[iAxis][LIMIT_POS]))
+                    //if(g_dbAct_Pos[iAxis] > g_rgdbHwLimit[iAxis][LIMIT_POS])
+                    {
+                        g_fHWLimitOnState = ON;
+                        
+                        if(fHWLimitOnStateChanged == ON)
+                        {
+                            VERBOSE_ERROR("H/W Limit Positive(+) Detected!\n");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                g_fHWLimitOnState = OFF;
+            }
+        }
+
+        if(fHWLimitOnStateChanged == ON)
+        {
+            if(g_fHWLimitOnState == ON)
+            {
+                SERV_EStop(ON);
+            }
+            else if(g_fHWLimitOnState == OFF)
+            {
+                SERV_EStop(OFF);
+            }
+        }
+
+        THREAD_Sleep(g_nIoScanTime);  // period of I/O monitoring
+	}
+
+    g_fScanIOThreadExitState = TRUE;
+
+	return 0;
+}

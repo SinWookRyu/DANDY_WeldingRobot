@@ -1,0 +1,15 @@
+;  possible pass 1
+
+T01 	JOINT	0, 0, 0, 0, 0 0
+T02 	JOINT	0, 0, 0, 0, 90 0
+T03 CART 520 -250 410 0 90 0
+T04	JOINT   30, -30, -30, 0, 0, 0
+T05   JOINT 0, 0, 0, 0, 90, 720
+
+
+MOVJ   T01 V=030.0 PL=0 
+MOVJ   T02 V=030.0 PL=0 
+;MOVJ   T05 V=030.0 PL=0 
+MOVL   T03 V=1 PL=0
+; MOVO   T03 V=30 PL=0
+

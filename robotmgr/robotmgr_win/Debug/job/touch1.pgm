@@ -1,0 +1,14 @@
+;
+; teaching points
+T1  CART    91 -652 248.5 177.4 1.5 0
+
+; move to where..??
+HOME V=30 HF=5
+MOVJ   T1 V=10.0 PL=0
+LABEL LOOP
+TOUCH  X=-1 Y=0 Z=0 L=50 P=P01 V=5	CRD=WORLD
+IMOVL  X=10 Y=0 Z=0 V=50		CRD=WORLD
+;add      i0 1
+;set       aop0   i0
+JUMP LOOP
+

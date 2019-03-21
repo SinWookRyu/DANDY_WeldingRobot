@@ -1,0 +1,3 @@
+@start	/b	dd2015_network_win_d.exe -q -port=2016 -verbose -dump
+:robotmgr_win_d.exe -wi=5 -k -wc=5 -d %*
+:@dandy_killer_win_d.exe -name=DD2015_NETWORK -code=0 -value=0

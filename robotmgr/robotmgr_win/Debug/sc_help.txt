@@ -1,0 +1,48 @@
+
+SERVOCON is control module of motor & IO device of dandy2015.
+Copyright(c) 2013 DSME Co.Ltd. All Rights Reserved.
+
+USAGE  : servocon_qnx(_win) [-help] [-time <time>] [-print <opt>]
+         (identical '/' command instead of '-')
+
+-help  : Help message option of servocon process
+         This option is prior to all the options.
+         (identical '-?' command instead of '-help')
+
+-time  : Initialization wait time option
+         if <time> second is <= 0, SERVOCON waits infinitly.
+         Default option is Inf.(= 0)
+         (identical '-t' command instead of '-time')
+
+-print : Message option control disply level
+         (identical '-p' command instead of '-print')
+         <opt> is disply level. (default option : 'v')
+           v : VERBOSE, MESSAGE, ERROR, WARNING, ALERT, NOTIFY
+           m : MESSAGE, ERROR, WARNING, ALERT, NOTIFY
+           w : ERROR, WARNING, ALERT, NOTIFY
+           e : WARNING, ALERT, NOTIFY
+
+-novga  : Prevent VGA display
+         (identical '-nv' command instead of '-novga')
+
+-single : Process execution without sibling process
+         (identical '-s' command instead of '-single')
+
+-hestop : Hard E-Stop mode without TE action
+         (identical '-he' command instead of '-hestop')
+
+-estat  : EtherCAT Statistics Display
+         (identical '-e' command instead of '-estat')
+
+-line   : Specify VGA display First line
+         (identical '-l' command instead of '-line')
+
+-notp   : Ignore TP ESTOP
+         (identical '-ntp' command instead of '-notp')
+
+-nocart : Ignore Cart ESTOP
+         (identical '-nc' command instead of '-nocart')
+
+-noshock: Ignore Shock Sensor
+         (identical '-ns' command instead of '-noshock')
+

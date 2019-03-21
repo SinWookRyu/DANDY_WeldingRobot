@@ -1,0 +1,106 @@
+#ifndef __ROBOT_MGR_H__
+#define __ROBOT_MGR_H__
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  robotmgr_main.h: RM module main header
+//                                            2013.04.11  Ryu SinWook
+
+///////////////////////////////////////
+//
+//  Version Information
+//
+
+#define SYS_RM_VERSION         "0.14b"
+#define SYS_RM_BUILD           "2013.05.07"
+
+///////////////////////////////////////
+//
+//  Value Definition
+//
+#if defined(_WIN32)
+#define     RMGR_WAIT_TIME_LIMIT        2000000
+#else if defined(_WIN32)
+#define     RMGR_WAIT_TIME_LIMIT        20000
+#endif
+#define     RMGR_WAIT_TIME_LIMIT_SEC    5
+
+///////////////////////////////////////
+//
+//  Service Related Definition
+//
+
+#define RESULT_OK            0
+#define RESULT_ERROR         1
+
+#define STOP                 1
+#define RUN                  2
+
+#define BASEADDR             0
+
+///////////////////////////////////////
+//
+//  ARGUMENT_OPTION
+//
+
+#pragma pack(push, 1)
+typedef struct
+{
+    BOOL        bVerbose;   // -verbose argument
+    BOOL        bQuiet;     // -quiet argument
+    const char* pszConfigName;
+} ARGUMENT_OPTION;
+#pragma pack(pop)
+
+///////////////////////////////////////
+//
+//  function proto-types
+//
+
+BOOL ParseArgument(int nArgc, char* rgpszArgv[], ARGUMENT_OPTION* pArg);
+extern  int SVC_ExecService(void);
+extern  int SVC_InitRMService(void);
+extern  int SVC_InitTEService(void);
+extern  int SVC_InitSCService(void);
+
+extern  int MSG_ConnectChannelServer(void);
+extern  int MSG_CloseConnection(void);
+extern  int MSG_CloseChannel(void);
+extern  int MSG_CreateRMChannel(void);
+extern  int MSG_ReplyRMVerToOtherProc(void);
+extern  int MSG_CheckOtherProcVersion(void);
+
+extern  int SHM_CreateSysStatusShmem(void);
+extern  int SHM_OpenTEShmem(void);
+extern  int SHM_OpenSCShmem(void);
+extern  int SHM_DestroySysStatusShmem(void);
+extern  int SHM_DestroyTEShmem(void);
+extern  int SHM_DestroySCShmem(void);
+extern  int SHM_OpenSharedMemory(void);
+extern  int SHM_CreateSharedMemory(void);
+
+extern  int PARAM_LoadSystemParameter(void);
+
+extern  int MAIN_Initialize(void);
+
+///////////////////////////////////////
+//
+//  global variables
+//
+
+extern  int g_coidTE;
+extern  int g_coidSC;
+extern  int g_chidRM;
+extern  int g_fSysStatus;
+extern  int g_fInitProcTE;
+extern  int g_fInitProcSC;
+extern  int g_fExitProcTE;
+extern  int g_fExitProcSC;
+
+extern  int g_hShm_SysStatus;
+extern  int g_hShmemTE;
+extern  int g_hShmemSC;
+extern  int g_fInitRet[5];
+extern  int g_retInitRM;
+
+#endif  // end of __ROBOT_MGR_H__

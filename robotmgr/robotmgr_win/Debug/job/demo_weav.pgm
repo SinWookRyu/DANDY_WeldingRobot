@@ -1,0 +1,27 @@
+;
+; teaching points
+T01 	CART	597.57 -195.86 568.32 179.32 -56.2 -21.79
+T02	CART	430.85 -580.8 722.73 138.62 -41.18 -28.72
+T03	CART	430.85 -580.8 244.43 138.62 -41.18 -28.72
+T04	CART	654.76 291.63 244.43 -134.26 -32.87 -24.56
+T05	CART	654.76 291.63 722.73 -134.26 -32.87 -24.56
+
+wvf01  WVF	w=50 p=50 s=50 a=0 sy=0 d1=1 d2=1 d3=0
+
+; move to where..??
+LABEL LOOP
+MOVJ   T01 V=10.0 PL=0
+MOVJ   T02 V=8.0 PL=0
+MOVL  T03 V=50 PL=0
+MOVL	T04 V=50 PL=0
+UWEAV  T05	WD=0 AD=0 ED=50.6 WVF=wvf01
+;IMOV	Z=500 V=50
+JUMP	LOOP
+
+
+#/** PhEDIT attribute block
+#-11:16777215
+#0:132:arial10:-3:-3:0
+#132:328:arial10:0:-1:0
+#328:512:arial10:-3:-3:0
+#**  PhEDIT attribute block ends (-0000161)**/

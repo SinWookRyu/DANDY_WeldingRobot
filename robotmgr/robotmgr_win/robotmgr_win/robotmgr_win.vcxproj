@@ -1,0 +1,150 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{48EF8181-9C30-4108-955D-789FCA42849A}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>robotmgr_win</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.exe</TargetExt>
+    <TargetName>$(ProjectName)_d</TargetName>
+    <OutDir>$(SolutionDir)\Debug\</OutDir>
+    <CustomBuildAfterTargets />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\scattered\win;F:\DANDY2015\Lib\dandy_2015_140630\lib\archive;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>dandy_all_win_d.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\include;D:\Work\DANDY2015\dandy_2015_130823\dandy_shared;D:\Work\DANDY2015\dandy_2015_130823\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\scattered\win;F:\DANDY2015\Lib\dandy_2015_140630\lib\archive;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>dandy_jobasm_win.lib;dandy_all_win.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\robotmgr_src\ascii_def.h" />
+    <ClInclude Include="..\..\robotmgr_src\CRT.h" />
+    <ClInclude Include="..\..\robotmgr_src\dandy_job.h" />
+    <ClInclude Include="..\..\robotmgr_src\dandy_network_proto.h" />
+    <ClInclude Include="..\..\robotmgr_src\error_def.h" />
+    <ClInclude Include="..\..\robotmgr_src\ipc_robotmgr.h" />
+    <ClInclude Include="..\..\robotmgr_src\conf_mgr.h" />
+    <ClInclude Include="..\..\robotmgr_src\ipc_jobshm.h" />
+    <ClInclude Include="..\..\robotmgr_src\robotmgr_main.h" />
+    <ClInclude Include="..\..\robotmgr_src\ipc_servocon.h" />
+    <ClInclude Include="..\..\robotmgr_src\service.h" />
+    <ClInclude Include="..\..\robotmgr_src\statistics.h" />
+    <ClInclude Include="..\..\robotmgr_src\sys_conf.h" />
+    <ClInclude Include="..\..\robotmgr_src\ipc_taskexec.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\robotmgr_src\arg_parsing.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_axis.c" />
+    <ClCompile Include="..\..\robotmgr_src\conf_check.c" />
+    <ClCompile Include="..\..\robotmgr_src\conf_default.c" />
+    <ClCompile Include="..\..\robotmgr_src\err_handling.c" />
+    <ClCompile Include="..\..\robotmgr_src\err_parsing.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_global.c" />
+    <ClCompile Include="..\..\robotmgr_src\job_compile.c" />
+    <ClCompile Include="..\..\robotmgr_src\paramfile_handle.c" />
+    <ClCompile Include="..\..\robotmgr_src\param_math.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_job_exe.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_job_mon.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_job_extra.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_motor.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_set_param.c" />
+    <ClCompile Include="..\..\robotmgr_src\par_parsing.c" />
+    <ClCompile Include="..\..\robotmgr_src\msg_pass.c" />
+    <ClCompile Include="..\..\robotmgr_src\conf_load.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_system.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_rcon.c" />
+    <ClCompile Include="..\..\robotmgr_src\robotmgr_main.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_robot.c" />
+    <ClCompile Include="..\..\robotmgr_src\scr_display.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_statis.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_handling.c" />
+    <ClCompile Include="..\..\robotmgr_src\shmem_mgr.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_show_param.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_sysinfo.c" />
+    <ClCompile Include="..\..\robotmgr_src\sysmon_err.c" />
+    <ClCompile Include="..\..\robotmgr_src\sysmon_stat.c" />
+    <ClCompile Include="..\..\robotmgr_src\svc_statistics.c" />
+    <ClCompile Include="..\..\robotmgr_src\sysmon_statis.c" />
+    <ClCompile Include="..\..\robotmgr_src\term_deco.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_param.c" />
+    <ClCompile Include="..\..\robotmgr_src\confpars_welder.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="robotmgr_win.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="robotmgr_win1.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

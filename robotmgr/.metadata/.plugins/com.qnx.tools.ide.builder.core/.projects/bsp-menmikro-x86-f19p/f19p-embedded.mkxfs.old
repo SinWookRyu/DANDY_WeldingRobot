@@ -1,0 +1,307 @@
+#
+#
+# GENERATED FILE - QNX System Builder Export
+#   Image Type:     ifs
+#   Image Sub-type: 
+#
+[search=D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\sbin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\sbin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\photon\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-embedded;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\bin;D:\QNX650\target\qnx6\x86\sbin;D:\QNX650\target\qnx6\x86\usr\bin;D:\QNX650\target\qnx6\x86\usr\sbin;D:\QNX650\target\qnx6\x86\usr\photon\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\lib\dll;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\photon\dll;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-embedded;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\lib\dll;D:\QNX650\target\qnx6\x86\usr\photon\dll;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\photon\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-embedded;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Reductions;D:\QNX650\target\qnx6\x86\lib;D:\QNX650\target\qnx6\x86\usr\lib;D:\QNX650\target\qnx6\x86\usr\photon\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\etc;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\etc;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\usr\photon;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\usr\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\usr\share;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-embedded;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\etc;D:\QNX650\target\qnx6\etc;D:\QNX650\target\qnx6\usr\photon;D:\QNX650\target\qnx6\usr\lib;D:\QNX650\target\qnx6\usr\share;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\boot\sys;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-embedded;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\boot\sys;]
+[image=0x800000]
+[compress=3]
+[virtual=x86,bios] .bootstrap = {
+    D:/QNX650/target/qnx6/x86/boot/sys/startup-bios -x -v
+     PATH=/proc/boot:/bin:/usr/bin:/opt/bin:/sbin:/usr/sbin:/usr/photon/bin LD_LIBRARY_PATH=/proc/boot D:/QNX650/target/qnx6/x86/boot/sys/procnto 
+}
+# Start-up script
+[+script] .script = {
+# Programs require the runtime linker (ldqnx.so) to be at a fixed location
+procmgr_symlink ../../proc/boot/libc.so.3 /usr/lib/ldqnx.so.2
+
+# Start up some consoles
+#	devc-con -n4 &
+#	reopen /dev/con1
+
+display_msg Welcome to QNX Neutrino on F19P test system
+
+slogger &
+
+# Start the pci server
+seedres
+pci-bios &
+waitfor /dev/pci
+
+# Some common servers
+pipe &
+mqueue &
+devc-pty &
+
+display_msg starting USB stack...
+io-usb -duhci -dehci &
+
+display_msg starting network driver...
+io-pkt-v4-hc -d e1000
+
+display_msg starting HID drivers driver...
+waitfor /dev/io-usb/io-usb 10
+waitfor /dev/io-usb/devu-uhci.so
+waitfor /dev/io-usb/devu-ehci.so
+io-hid -d usb /dev/io-usb/io-usb
+devc-con-hid -n4 &
+reopen /dev/con1
+
+#	devb-umass &
+
+# These env variables inherited by all the programs which follow
+SYSNAME=nto
+TERM=qansi
+
+PATH=./:/proc/boot:/bin:/usr/bin:/opt/bin:/sbin:/usr/sbin:/usr/photon/bin
+LD_LIBRARY_PATH=./:/proc/boot:/dev/shmem:/lib:/usr/lib:/usr/lib/mdis:/lib/dll:/usr/photon/lib
+
+#	display_msg starting MDIS Kernel...
+#	mdis_kernel_dbg &
+#	waitfor /dev/mdis
+
+devb-ram disk name=ram ram capacity=2000000
+waitfor /dev/ram0t77
+mount /dev/ram0t77 /fs/ram
+
+#    ifconfig wm1 192.168.39.172
+#    route add default 192.138.39.1
+netmanager &
+inetd
+
+# uncomment the next lines to start Photon and examples
+#	io-display -d vid=0x8086,did=0x2a42
+#	waitfor /dev/io-display
+#	Photon &
+#	waitfor /dev/photon
+#	io-graphics &
+#	waitfor /dev/phfont
+#	devi-hirun kbd fd -d/dev/kbd
+#	sleep 1
+#	devi-hid mouse kbd
+#	pwm &
+#	pterm -x10 -y350 -h350 -w800 &
+#	rebound -x500 -y10 -h400 -w200 &
+#	phcalc -x10 -y10 &
+
+# Start some extra shells on other consoles
+reopen /dev/con2
+[+session] sh &
+reopen /dev/con3
+[+session] sh &
+
+# Start a high priority shell just in case....
+reopen /dev/con4
+[pri=25 +session] sh &
+
+# Start the main shell
+reopen /dev/con1
+[+session] sh
+#	[+session] login -p
+}
+[dperms=0777 uid=0 gid=0]
+# Components
+
+[data=copy perms=0777] 
+
+/etc/config/ttys = {
+ser1 "/bin/login -f root" qansi-m on
+con1 "/bin/login -f root" qansi-m on
+con2 "/bin/login" qansi-m on
+con3 "/bin/login" qansi-m on
+con4 "/bin/login" qansi-m on
+}
+
+/etc/ftpusers = {
+
+}
+
+/etc/inetd.conf = {
+ftp     stream  tcp nowait  root  /proc/boot/ftpd          in.ftpd -l
+telnet  stream  tcp nowait  root  /proc/boot/telnetd       in.telnetd
+shell   stream  tcp nowait  root  /proc/boot/rshd          in.rshd
+login   stream  tcp nowait  root  /proc/boot/rlogind       in.rlogind
+}
+
+/etc/services = {
+ftp		21/tcp
+telnet		23/tcp
+login		513/tcp
+shell		514/tcp		cmd		# no passwords used
+}
+
+/etc/passwd = {
+root::0:0:Superuser:/root:/bin/sh
+ftpuser::0:0:FTP user:/fs/ram:/bin/sh
+}
+
+[perms=0400] /root/.rhosts = {
++ +
+}
+
+[perms=0444] /etc/shadow = {
+ftpuser:168wHs4wotyKQ:1001602700:0:0
+}
+
+[perms=0444] /etc/ftpusers = {
+# users that _are NOT_ allowed to do ftp
+}
+
+
+[type=link] /tmp = /dev/shmem
+[type=link] /bin/sh = /proc/boot/ksh
+[type=link] /bin/login = /proc/boot/login
+libc.so = D:\QNX650\target\qnx6\x86\lib\libc.so
+libc.so.2 = D:\QNX650\target\qnx6\x86\lib\libc.so.2
+libm.so.2 = D:\QNX650\target\qnx6\x86\lib\libm.so.2
+fpemu.so.2 = D:\QNX650\target\qnx6\x86\lib\dll\fpemu.so.2
+libcam.so = D:\QNX650\target\qnx6\x86\lib\libcam.so
+io-blk.so = D:\QNX650\target\qnx6\x86\lib\dll\io-blk.so
+cam-disk.so = D:\QNX650\target\qnx6\x86\lib\dll\cam-disk.so
+fs-qnx4.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-qnx4.so
+fs-qnx6.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-qnx6.so
+fs-dos.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-dos.so
+libusbdi.so = D:\QNX650\target\qnx6\x86\lib\libusbdi.so
+libhiddi.so = D:\QNX650\target\qnx6\x86\lib\libhiddi.so
+devu-ehci.so = D:\QNX650\target\qnx6\x86\lib\dll\devu-ehci.so
+devu-uhci.so = D:\QNX650\target\qnx6\x86\lib\dll\devu-uhci.so
+devh-usb.so = D:\QNX650\target\qnx6\x86\lib\dll\devh-usb.so
+devh-ps2ser.so = D:\QNX650\target\qnx6\x86\lib\dll\devh-ps2ser.so
+devnp-e1000.so = D:\QNX650\target\qnx6\x86\lib\dll\devnp-e1000.so
+libsocket.so = D:\QNX650\target\qnx6\x86\lib\libsocket.so
+lsm-qnet.so = D:\QNX650\target\qnx6\x86\lib\dll\lsm-qnet.so
+devg-i830.so = D:\QNX650\target\qnx6\x86\lib\dll\devg-i830.so
+devg-soft3d.so = D:\QNX650\target\qnx6\x86\lib\dll\devg-soft3d.so
+libGLES_CM.so = D:\QNX650\target\qnx6\x86\usr\lib\libGLES_CM.so
+libph.so.3 = D:\QNX650\target\qnx6\x86\usr\lib\libph.so.3
+libAp.so.3 = D:\QNX650\target\qnx6\x86\usr\lib\libAp.so.3
+libffb.so.2 = D:\QNX650\target\qnx6\x86\usr\lib\libffb.so.2
+libphexlib.so.3 = D:\QNX650\target\qnx6\x86\usr\lib\libphexlib.so.3
+libphrender.so.2 = D:\QNX650\target\qnx6\x86\usr\lib\libphrender.so.2
+libdisputil.so.2 = D:\QNX650\target\qnx6\x86\usr\lib\libdisputil.so.2
+phfont.so = D:\QNX650\target\qnx6\x86\lib\dll\phfont.so
+libFF-T2K.so = D:\QNX650\target\qnx6\x86\usr\lib\libFF-T2K.so
+libblkcache.so.2 = D:\QNX650\target\qnx6\x86\usr\lib\libblkcache.so.2
+libFF-T2K-fm.so.1 = D:\QNX650\target\qnx6\x86\usr\lib\libFF-T2K-fm.so.1
+libFF-T2K-cache.so.2 = D:\QNX650\target\qnx6\x86\usr\lib\libFF-T2K-cache.so.2
+libgf.so.1 = D:\QNX650\target\qnx6\x86\usr\lib\libgf.so.1
+libfont.so.1 = D:\QNX650\target\qnx6\x86\lib\libfont.so.1
+libimg.so = D:\QNX650\target\qnx6\x86\lib\libimg.so
+libexpat.so = D:\QNX650\target\qnx6\x86\usr\lib\libexpat.so
+libwlconfig.so = D:\QNX650\target\qnx6\x86\lib\libwlconfig.so
+devc-con = D:\QNX650\target\qnx6\x86\sbin\devc-con
+devc-pty = D:\QNX650\target\qnx6\x86\sbin\devc-pty
+pci-bios = D:\QNX650\target\qnx6\x86\sbin\pci-bios
+seedres = D:\QNX650\target\qnx6\x86\sbin\seedres
+sh = D:\QNX650\target\qnx6\x86\bin\ksh
+pdebug = D:\QNX650\target\qnx6\x86\usr\bin\pdebug
+pipe = D:\QNX650\target\qnx6\x86\sbin\pipe
+mqueue = D:\QNX650\target\qnx6\x86\sbin\mqueue
+devc-con-hid = D:\QNX650\target\qnx6\x86\sbin\devc-con-hid
+tinit = D:\QNX650\target\qnx6\x86\sbin\tinit
+cat = D:\QNX650\target\qnx6\x86\bin\cat
+devc-pty = D:\QNX650\target\qnx6\x86\sbin\devc-pty
+less = D:\QNX650\target\qnx6\x86\usr\bin\less
+login = D:\QNX650\target\qnx6\x86\bin\login
+ls = D:\QNX650\target\qnx6\x86\bin\ls
+mount = D:\QNX650\target\qnx6\x86\bin\mount
+pci = D:\QNX650\target\qnx6\x86\usr\sbin\pci
+pidin = D:\QNX650\target\qnx6\x86\bin\pidin
+pipe = D:\QNX650\target\qnx6\x86\sbin\pipe
+setconf = D:\QNX650\target\qnx6\x86\usr\bin\setconf
+shutdown = D:\QNX650\target\qnx6\x86\bin\shutdown
+slay = D:\QNX650\target\qnx6\x86\bin\slay
+sleep = D:\QNX650\target\qnx6\x86\usr\bin\sleep
+slogger = D:\QNX650\target\qnx6\x86\usr\sbin\slogger
+sloginfo = D:\QNX650\target\qnx6\x86\bin\sloginfo
+umount = D:\QNX650\target\qnx6\x86\bin\umount
+uname = D:\QNX650\target\qnx6\x86\bin\uname
+use = D:\QNX650\target\qnx6\x86\usr\bin\use
+cp = D:\QNX650\target\qnx6\x86\bin\cp
+rm = D:\QNX650\target\qnx6\x86\bin\rm
+chmod = D:\QNX650\target\qnx6\x86\bin\chmod
+ksh = D:\QNX650\target\qnx6\x86\bin\ksh
+touch = D:\QNX650\target\qnx6\x86\usr\bin\touch
+diff = D:\QNX650\target\qnx6\x86\usr\bin\diff
+date = D:\QNX650\target\qnx6\x86\usr\bin\date
+mkqnx6fs = D:\QNX650\target\qnx6\x86\sbin\mkqnx6fs
+devc-serusb = D:\QNX650\target\qnx6\x86\sbin\devc-serusb
+waitfor = D:\QNX650\target\qnx6\x86\bin\waitfor
+hogs = D:\QNX650\target\qnx6\x86\usr\bin\hogs
+fs-nfs3 = D:\QNX650\target\qnx6\x86\usr\sbin\fs-nfs3
+hostname = D:\QNX650\target\qnx6\x86\bin\hostname
+ifconfig = D:\QNX650\target\qnx6\x86\sbin\ifconfig
+inetd = D:\QNX650\target\qnx6\x86\usr\sbin\inetd
+ping = D:\QNX650\target\qnx6\x86\usr\bin\ping
+telnetd = D:\QNX650\target\qnx6\x86\usr\sbin\telnetd
+ftpd = D:\QNX650\target\qnx6\x86\usr\sbin\ftpd
+ftp = D:\QNX650\target\qnx6\x86\usr\bin\ftp
+nicinfo = D:\QNX650\target\qnx6\x86\usr\sbin\nicinfo
+io-pkt-v4-hc = D:\QNX650\target\qnx6\x86\sbin\io-pkt-v4-hc
+route = D:\QNX650\target\qnx6\x86\sbin\route
+find = D:\QNX650\target\qnx6\x86\usr\bin\find
+netmanager = D:\QNX650\target\qnx6\x86\bin\netmanager
+/usr/sbin/dhcp.client = D:\QNX650\target\qnx6\x86\usr\sbin\dhcp.client
+devb-eide = D:\QNX650\target\qnx6\x86\sbin\devb-eide
+devb-ram = D:\QNX650\target\qnx6\x86\sbin\devb-ram
+dd = D:\QNX650\target\qnx6\x86\bin\dd
+df = D:\QNX650\target\qnx6\x86\bin\df
+fdisk = D:\QNX650\target\qnx6\x86\sbin\fdisk
+dinit = D:\QNX650\target\qnx6\x86\sbin\dinit
+mkdosfs = D:\QNX650\target\qnx6\x86\sbin\mkdosfs
+usb = D:\QNX650\target\qnx6\x86\sbin\usb
+devb-umass = D:\QNX650\target\qnx6\x86\sbin\devb-umass
+io-usb = D:\QNX650\target\qnx6\x86\sbin\io-usb
+io-hid = D:\QNX650\target\qnx6\x86\sbin\io-hid
+vsync = D:\QNX650\target\qnx6\x86\usr\bin\vsync
+egl-gears = D:\QNX650\target\qnx6\x86\usr\bin\egl-gears
+io-display = D:\QNX650\target\qnx6\x86\sbin\io-display
+Photon = D:\QNX650\target\qnx6\x86\usr\photon\bin\Photon
+io-graphics = D:\QNX650\target\qnx6\x86\usr\photon\bin\io-graphics
+devi-hid = D:\QNX650\target\qnx6\x86\usr\photon\bin\devi-hid
+devi-hirun = D:\QNX650\target\qnx6\x86\usr\photon\bin\devi-hirun
+phfont = D:\QNX650\target\qnx6\x86\usr\photon\bin\phfont
+pwm = D:\QNX650\target\qnx6\x86\usr\photon\bin\pwm
+[search=../install/etc/system/config] /etc/system/config/display.conf = D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\etc\system\config\display.conf
+/usr/photon/font_repository/tt2009m_.ttf = D:/QNX650/target/qnx6/usr/photon/font_repository/tt2009m_.ttf
+/usr/photon/font_repository/phcursor.phf = D:/QNX650/target/qnx6/usr/photon/font_repository/phcursor.phf
+/usr/photon/font_repository/pcterm12.phf = D:/QNX650/target/qnx6/usr/photon/font_repository/pcterm12.phf
+/usr/photon/font_repository/fontopts = D:/QNX650/target/qnx6/usr/photon/font_repository/fontopts
+/usr/photon/config/wm/wm.menu = D:/QNX650/target/qnx6/usr/photon/config/wm/wm.menu
+/usr/photon/font_repository/fontdir = {
+;
+; fontdir config file
+;
+pcterm12,.phf,PC Terminal,12,,0000-00FF,Nf,6x12,13K
+phcursor,.phf,Photon Cursor,0,,E900-E921,Np,32x32,3K
+primasansmonobts,0@tt2009m_.ttf,PrimaSansMono BT,0,,0020-F002,f,79x170,109K
+}
+
+/usr/photon/font_repository/fontext = {
+;
+; fontext config file
+;
++normal = primasansmonobts, phcursor
+}
+
+/usr/photon/font_repository/fontmap = {
+;
+; fontmap config file
+;
+? = primasansmonobts
+}
+
+/lib/dll/font/ = D:/QNX650/target/qnx6/x86/lib/dll/font
+/usr/photon/config/crtc-settings = D:/QNX650/target/qnx6/usr/photon/config/crtc-settings
+
+[type=link] /etc/system/config/crtc-settings = /usr/photon/config/crtc-settings
+[type=link] /root/.ph/pterm = /dev/shmem
+[type=link] /root/.ph/wm/wm.cfg = /dev/shmem
+/usr/photon/keyboard/en_US_101.kbd = D:/QNX650/target/qnx6/usr/photon/keyboard/en_US_101.kbd
+/usr/photon/palette/default.pal = D:/QNX650/target/qnx6/usr/photon/palette/default.pal
+[perms=0755 +raw] phcalc = D:\QNX650\target\qnx6\x86\usr\photon\bin\phcalc
+[perms=0755 +raw] rebound = D:\QNX650\target\qnx6\x86\usr\photon\bin\rebound
+[perms=0755 +raw] pterm = D:\QNX650\target\qnx6\x86\usr\photon\bin\pterm
+/etc/termcap = D:/QNX650/target/qnx6/etc/termcap
+/usr/lib/terminfo/ = D:/QNX650/target/qnx6/usr/lib/terminfo

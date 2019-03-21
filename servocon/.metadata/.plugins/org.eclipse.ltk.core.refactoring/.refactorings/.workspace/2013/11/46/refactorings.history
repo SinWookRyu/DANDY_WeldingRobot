@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Delete resource &apos;robotmgr_qnx&apos;" deleteContents="false" description="Delete resource &apos;robotmgr_qnx&apos;" element1="/robotmgr_qnx" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1384233428484"/>&#x0A;<refactoring comment="Delete resource &apos;servocon_qnx&apos;" deleteContents="false" description="Delete resource &apos;servocon_qnx&apos;" element1="/servocon_qnx" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1384233434671"/>
+</session>

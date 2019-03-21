@@ -1,0 +1,758 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  shmem_mgr.c: shared memory management
+//                                            2013.04.11  Ryu SinWook
+
+#include <stdio.h>  // for printf
+#include <string.h> // for memset
+#include <stdlib.h>
+#include <assert.h>
+
+#include "dandy_platform.h" // for DANDY_SLEEP()
+#include "dandy_echo.h"     // for VERBOSE
+#include "dandy_shmem.h"
+
+#include "ipc_robotmgr.h"
+#include "ipc_taskexec.h"
+#include "ipc_servocon.h"
+
+#include "robotmgr_main.h"
+#include "sys_conf.h"
+#include "conf_mgr.h"
+#include "CRT.h"
+
+int g_hShm_SysStatus               = DANDY_INVALID_SHMEM_HANDLE;// RMhandle
+SHM_RM_SYSSTATUS* g_pShm_SysStatus = NULL;              // RM mapped memory
+int g_hShmemTE                     = DANDY_INVALID_SHMEM_HANDLE;// TEhandle
+SHM_TE_TEST* g_pShmemTE            = NULL;              // TE mapped memory
+int g_hShmemSC                     = DANDY_INVALID_SHMEM_HANDLE;// SChandle
+SHM_SC_SYSTEM* g_pShmemSC          = NULL;              // SC mapped memory
+int g_hShm_SysConfig               = DANDY_INVALID_SHMEM_HANDLE;// RMhandle
+SHM_RM_SYSCONFIG* g_pShm_SysConfig = NULL;              // RM mapped memory
+
+int g_retOpenShmemTE;
+int g_retOpenShmemSC;
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_BuildSysStatusShmem()
+//
+
+static int _loc_SHM_BuildSysStatusShmem(void)
+{
+    VERBOSE_MESSAGE("-------- Shared memory Creating ----------\n\n");
+
+    ///////////////////////////////////
+    //
+    //  create the shared memory
+    //
+
+    g_hShm_SysStatus = SHM_Create(SHM_RM_SYSSTATUS_NAME,
+                                    sizeof(SHM_RM_SYSSTATUS));
+
+    if (g_hShm_SysStatus == DANDY_INVALID_SHMEM_HANDLE)
+    {
+        printf("Cannot create System Status shared memory\n");
+        return -1;
+    }
+    else
+	{
+		VERBOSE_VERBOSE("Create System Status shared memory Done!\n"); 
+	}
+
+    ///////////////////////////////////
+    //
+    //  map the shared memory handle
+    //
+
+    g_pShm_SysStatus = (SHM_RM_SYSSTATUS*) SHM_Map(g_hShm_SysStatus,
+                        sizeof(SHM_RM_SYSSTATUS));
+    memset(g_pShm_SysStatus, 0, sizeof(SHM_RM_SYSSTATUS));
+    
+    if(g_pShm_SysStatus == NULL) 
+	{ 
+		VERBOSE_VERBOSE("Cannot map System Status shared memory.\n"); 
+		return -1; 
+	}
+	else
+	{
+		g_pShm_SysStatus->nSize = sizeof(SHM_RM_SYSSTATUS); 
+		VERBOSE_VERBOSE("Mapped System Status shared memory. Size:%d bytes\n",
+                        g_pShm_SysStatus->nSize); 
+	}
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_DestroySysStatusShmem()
+//
+
+static int _loc_SHM_DestroySysStatusShmem(void)
+{
+    if(g_pShm_SysStatus != NULL)
+	{
+		SHM_Unmap((void*)g_pShm_SysStatus, sizeof(SHM_RM_SYSSTATUS)); 
+		g_pShm_SysStatus = NULL; 
+
+		VERBOSE_VERBOSE("Unmapped System Status shared memory. Size:%dbytes\n",
+                        sizeof(SHM_RM_SYSSTATUS)); 
+	}
+	if(g_hShm_SysStatus != -1)
+	{
+		SHM_Destroy(g_hShm_SysStatus, SHM_RM_SYSSTATUS_NAME); 
+		g_hShm_SysStatus = -1; 
+
+		VERBOSE_VERBOSE("Destroyed the shared memory. Name:%s\n",
+                        SHM_RM_SYSSTATUS_NAME); 
+	}
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_OpenTEShmem()
+//     - TE Shared Memory Init
+
+int SHM_OpenTEShmem(void)
+{
+    ///////////////////////////////////
+    //
+    //  Open TE shared memory
+    //
+	g_hShmemTE = SHM_Open(SHMNAME_TE_TEST); 
+	if(g_hShmemTE == -1)
+	{
+		VERBOSE_ERROR("Failed to open the TE shared memory handle.\n"); 
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Open Done! the TE shared memory handle. Handle:%d\n",
+                        g_hShmemTE); 
+	}
+
+	g_pShmemTE = (SHM_TE_TEST*) SHM_Map(g_hShmemTE,
+                                              sizeof(SHM_TE_TEST)); 
+	
+    ///////////////////////////////////
+    //
+    //  Map TE shared memory
+    //
+	if(g_pShmemTE == NULL) 
+	{ 
+		VERBOSE_ERROR("Cannot map the TE shared memory.\n"); 
+		return -1; 
+	}
+	else
+	{		
+		VERBOSE_VERBOSE("Mapped the TE shared memory. Size:%dbytes\n",
+                        g_pShmemTE->nSize); 
+	}
+
+    ///////////////////////////////////
+    //
+    //  Size check TE shared memory
+    //
+	if(g_pShmemTE->nSize != sizeof(SHM_TE_TEST))
+	{
+		VERBOSE_ERROR("Mismatched the TE shared memory size."
+                      "Map:%dbytes Chk:%dbytes \n",
+                      sizeof(SHM_TE_TEST), g_pShmemTE->nSize); 
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Matched TE shared memory size."
+                        "Map:%dbytes Chk:%dbytes \n",
+                        sizeof(SHM_TE_TEST), g_pShmemTE->nSize); 
+	}
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_DestroyTEShmem()
+//
+
+static int _loc_SHM_DestroyTEShmem(void)
+{
+    if(g_pShmemTE != NULL)
+	{
+		SHM_Unmap((void*)g_pShmemTE, sizeof(SHM_TE_TEST)); 
+		g_pShmemTE = NULL; 
+		
+		VERBOSE_VERBOSE("Unmapped the TE shared memory. Size:%dbytes\n",
+                        sizeof(SHM_TE_TEST)); 
+	}
+	if(g_hShmemTE != -1)
+	{
+		//SHM_Destroy(g_hShmemTE, SHMNAME_TE_TEST); 
+        SHM_Close(g_hShmemTE); 
+		g_hShmemTE = -1; 
+
+		VERBOSE_VERBOSE("Destroyed the shared memory. Name:%s\n",
+                        SHMNAME_TE_TEST); 
+	}
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_OpenSCShmem()
+//    - SC Shared Memory Init
+
+int SHM_OpenSCShmem(void)
+{
+    ///////////////////////////////////
+    //
+    //  Open SC shared memory
+    //
+	g_hShmemSC = SHM_Open(SC_SHM_NAME); 
+	if(g_hShmemSC == -1)
+	{
+		VERBOSE_ERROR("Failed to open the SC shared memory handle.\n"); 
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Open Done! the SC shared memory handle. Handle:%d\n",
+                        g_hShmemSC); 
+	}
+
+	g_pShmemSC = (SHM_SC_SYSTEM*) SHM_Map(g_hShmemSC,
+                                             sizeof(SHM_SC_SYSTEM)); 
+	
+    ///////////////////////////////////
+    //
+    //  Map SC shared memory
+    //
+	if(g_pShmemSC == NULL) 
+	{ 
+		VERBOSE_ERROR("Cannot map the SC shared memory.\n"); 
+		return -1; 
+	}
+	else
+	{		
+		VERBOSE_VERBOSE("Mapped the SC shared memory. Size:%dbytes\n",
+                        g_pShmemSC->size); 
+	}
+
+    ///////////////////////////////////
+    //
+    //  Size check SC shared memory
+    //
+	if(g_pShmemSC->size != sizeof(SHM_SC_SYSTEM))
+	{
+		VERBOSE_ERROR("Mismatched the SC shared memory size."
+                      "Map:%dbytes Chk:%dbytes \n",
+                      sizeof(SHM_SC_SYSTEM), g_pShmemSC->size); 
+		return -1; 
+	}
+	else
+	{
+		VERBOSE_VERBOSE("Matched SC shared memory size."
+                        "Map:%dbytes Chk:%dbytes \n",
+                        sizeof(SHM_SC_SYSTEM), g_pShmemSC->size); 
+	}
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_DestroySCShmem()
+//
+
+static int _loc_SHM_DestroySCShmem(void)
+{
+    if(g_pShmemSC != NULL)
+	{
+		SHM_Unmap((void*)g_pShmemSC, sizeof(SHM_SC_SYSTEM)); 
+		g_pShmemSC = NULL; 
+		
+		VERBOSE_VERBOSE("Unmapped the SC shared memory. Size:%dbytes\n",
+                        sizeof(SHM_SC_SYSTEM)); 
+	}
+	if(g_hShmemSC != -1)
+	{
+		//SHM_Destroy(g_hShmemSC, SC_SHM_NAME); 
+        SHM_Close(g_hShmemSC);
+		g_hShmemSC = -1; 
+
+		VERBOSE_VERBOSE("Destroyed the shared memory. Name:%s\n", SC_SHM_NAME); 
+	}
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SYSC_LoadConfigToShmem()
+//      - copy configurations to shared memory
+
+int SYSC_LoadConfigToShmem(SHM_RM_SYSCONFIG* pSystemConfig)
+{
+    CONFIG_AXIS* pAxis;
+    CONFIG_MOTOR* pMotor;
+
+    int iRobot, iAxis, iMotor;
+    int iWelder;
+    int nAxesCount, nAxisIndex;
+
+    DANDY_ASSERT(pSystemConfig != NULL);
+
+    ///////////////////////////////////
+    // check validation
+
+    if (SYSC_ArrangeConfigGlobal() == -1)
+    {
+        VERBOSE_ERROR("Cannot arrange global config\n");
+        return -1;
+    }
+
+    if (SYSC_ArrangeConfigRobot() == -1)
+    {
+        VERBOSE_ERROR("Cannot arrange robot config\n");
+        return -1;
+    }
+
+    if (SYSC_ArrangeConfigAxis() == -1)
+    {
+        VERBOSE_ERROR("Cannot arrange axis config\n");
+        return -1;
+    }
+
+    if (SYSC_ArrangeConfigMotor() == -1)
+    {
+        VERBOSE_ERROR("Cannot arrange motor config\n");
+        return -1;
+    }
+
+    if (SYSC_ArrangeConfigWelder() == -1)
+    {
+        VERBOSE_ERROR("Cannot arrange welder config\n");
+        return -1;
+    }
+
+#if 0
+    if (SYSC_ArrangeConfigSensor() == -1)
+    {
+        VERBOSE_ERROR("Cannot arrange sensor config\n");
+        return -1;
+    }
+#endif
+
+    ///////////////////////////////////
+    // check validation
+
+    if (SYSC_CheckConfigGlobal() == -1)
+    {
+        VERBOSE_ERROR("Invalid global config\n");
+        return -1;
+    }
+
+    if (SYSC_CheckConfigRobot() == -1)
+    {
+        VERBOSE_ERROR("Invalid robot config\n");
+        return -1;
+    }
+
+    if (SYSC_CheckConfigAxis() == -1)
+    {
+        VERBOSE_ERROR("Invalid axis config\n");
+        return -1;
+    }
+
+    if (SYSC_CheckConfigMotor() == -1)
+    {
+        VERBOSE_ERROR("Invalid motor config\n");
+        return -1;
+    }
+
+    if (SYSC_CheckConfigWelder() == -1)
+    {
+        VERBOSE_ERROR("Invalid welder axis config\n");
+        return -1;
+    }
+#if 0
+    if (SYSC_CheckConfigSensor() == -1)
+    {
+        VERBOSE_ERROR("Invalid sensor axis config\n");
+        return -1;
+    }
+#endif
+    ///////////////////////////////////
+    // GLOBAL
+
+    g_nControlParam.nReqVersion     = g_nReqVersion;  DANDY_ASSERT(g_nReqVersion >= 0);
+    g_nControlParam.nServoScanTime  = g_nServoTime;   DANDY_ASSERT(g_nServoTime > 0);
+    g_nControlParam.nIoScanTime     = g_nIoTime;      DANDY_ASSERT(g_nIoTime > 0);
+    g_nControlParam.nTrajScanTime   = g_nTrajTime;    DANDY_ASSERT(g_nTrajTime > 0);
+    g_nControlParam.nTrajBufferUsed = g_nTrajBufferUsed;
+    DANDY_ASSERT(g_nTrajBufferUsed >= 2 && g_nTrajBufferUsed <= JOINT_CMD_RING_BUFFER_COUNT);
+
+    ///////////////////////////////////
+    // SYSIO
+
+    //SYSC_LoadSysIoStyle(&pSystemConfig->sysio);
+
+    ///////////////////////////////////
+    // ROBOT
+
+    for (iRobot = 0; iRobot < MAX_ROBOT_COUNT; iRobot++)
+    {
+        g_pRobot = pSystemConfig->robot + iRobot;
+
+        g_pRobot->fUsed = g_rgfRobotUsed[iRobot];
+        CRT_strcpy(g_pRobot->szRobotName, ROBOT_NAME_LEN, g_rgszRobotName[iRobot]);
+        g_pRobot->nRobotType = g_rgnRobotType[iRobot];
+        
+        // maximum speed
+        for (iAxis = 0; iAxis < g_rgnRobotAxisCount[iRobot]; iAxis++)
+        {
+            g_pRobot->dbMaxJointSpeed[iAxis]  =
+                               g_rgRobotMotion[iRobot].dbMaxJointSpeed[iAxis];
+        }
+        g_pRobot->dbMaxLinearSpeed = g_rgRobotMotion[iRobot].dbMaxLinearSpeed;
+        g_pRobot->dbMaxOrientSpeed = g_rgRobotMotion[iRobot].dbMaxOrientSpeed;
+        
+        // jerk
+        g_pRobot->dbJerk = g_rgRobotMotion[iRobot].dbJerk;
+
+        // accel/decel pattern determined by jerk(0: trapezoidal)
+        g_pRobot->dbAccel = g_rgRobotMotion[iRobot].dbAccel;
+        g_pRobot->dbDecel = g_rgRobotMotion[iRobot].dbDecel;
+        g_pRobot->dbDecel_Error = g_rgRobotMotion[iRobot].dbDecel_Error;
+        g_pRobot->dbDecel_Estop = g_rgRobotMotion[iRobot].dbDecel_Estop;
+        g_pRobot->dbDecel_Touch = g_rgRobotMotion[iRobot].dbDecel_Touch;
+        
+        pAxis = g_pRobot->axis + 0;
+        nAxesCount = 0;
+        nAxisIndex = 0;
+
+        g_pRobot->nAxesCount = g_rgnRobotAxisCount[iRobot];
+        
+        ///////////////////////////////////
+        // Axis
+
+        for (iAxis = 0; iAxis < g_rgnRobotAxisCount[iRobot]; iAxis++)
+        {
+            nAxesCount = g_pRobot->nAxesCount;
+            DANDY_ASSERT(nAxesCount >= 0 && nAxesCount < MAX_AXIS_COUNT);
+
+            pAxis = pSystemConfig->robot->axis + iAxis;
+            CRT_strcpy(pAxis->szName, AXIS_NAME_LEN, g_rgszAxisName[iAxis]);
+            pAxis->nAxisType  = g_rgnAxisType[iAxis];
+            pAxis->nAxisIndex = g_rgnAxisIndex[iAxis];
+
+            pAxis->fHwLim_min = g_rgnHwLimit[iAxis][0];
+            pAxis->fHwLim_max = g_rgnHwLimit[iAxis][1];
+
+            pAxis->fSwLim_min = g_rgfSwLimitUsed[iAxis][0];
+            pAxis->fSwLim_max = g_rgfSwLimitUsed[iAxis][1];
+            pAxis->pos_swlim_min = g_rgdbSwLimit[iAxis][0];
+            pAxis->pos_swlim_max = g_rgdbSwLimit[iAxis][1];
+
+            pAxis->ori[iAxis] = g_rgnEcnoderHomeVal[iAxis];
+            pAxis->red[iAxis] = g_rgdbGearRatio[iAxis];
+            pAxis->dir[iAxis] = g_rgnAxisDirection[iAxis];
+            pAxis->nMotorCount = g_nMotorCount[iAxis];
+
+            ///////////////////////////////////
+            // MOTOR
+    
+            for (iMotor = iAxis; iMotor < (iAxis+g_nMotorCount[iAxis]); iMotor++)
+            {
+                //pMotor = pSystemConfig->motor + iMotor + g_nMotorCount[iAxis];
+                pMotor = pSystemConfig->motor + iMotor;
+
+                CRT_strcpy(pMotor->szName, MOTOR_NAME_LEN, g_rgszMotorName[iMotor]);
+                pMotor->nMotorType  = g_rgnMotorType[iMotor];
+                pMotor->nMotorIndex = g_rgnMotorIndex[iMotor];
+
+                pMotor->jrk = g_rgMotorConfig[iMotor].jrk;
+
+                pMotor->acc = g_rgMotorConfig[iMotor].acc;
+                pMotor->dec = g_rgMotorConfig[iMotor].dec;
+
+                pMotor->dec_error = g_rgMotorConfig[iMotor].dec_error;
+                pMotor->dec_estop = g_rgMotorConfig[iMotor].dec_estop;
+
+                pMotor->vellim_max = g_rgMotorConfig[iMotor].vellim_max;
+                pMotor->nEncRes = g_rgMotorConfig[iMotor].nEncRes;
+            }
+
+            pAxis++;
+            nAxisIndex++;
+        }
+
+        // other
+        for (iAxis = 0; iAxis < MAX_AXIS_COUNT; iAxis++)
+        {
+            g_pRobot->dh->l[iAxis]  = g_rgRobotDHParam[iRobot].l[iAxis];
+            g_pRobot->dh->al[iAxis] = g_rgRobotDHParam[iRobot].al[iAxis];
+            g_pRobot->dh->d[iAxis]  = g_rgRobotDHParam[iRobot].d[iAxis];
+            g_pRobot->dh->th[iAxis] = g_rgRobotDHParam[iRobot].th[iAxis];
+        }
+
+        // world coord references
+        //pRobot->world = g_rgWorldCoordInfo[iRobot];
+
+        // Job program information
+#if 0
+        g_pRobot->job.dwCmdSize  = g_rgdwCmdSize[iRobot];
+        g_pRobot->job.dwTVarSize = g_rgdwTVarSize[iRobot];
+        g_pRobot->job.dwPVarSize = g_rgdwPVarSize[iRobot];
+        g_pRobot->job.dwIVarSize = g_rgdwIVarSize[iRobot];
+        g_pRobot->job.dwRVarSize = g_rgdwRVarSize[iRobot];
+#endif
+        // corresponding welders
+        g_pRobot->nWelderCount = g_rgnRobotWelderCount[iRobot];
+
+        for (iWelder = 0; iWelder < g_rgnRobotWelderCount[iRobot]; iWelder++)
+        {
+            //pRobot->rgnWelders[iWelder] = g_rgnRobotWelderList[iRobot][iWelder];
+            g_pRobot->welder[iWelder]->nWelder = g_rgnRobotWelderList[iRobot][iWelder];
+        }
+
+        // corresponding sensors
+#if 0
+        pRobot->nSensorCount = g_rgnRobotSensorCount[iRobot];
+
+        for (iSensor = 0; iSensor < g_rgnRobotSensorCount[iRobot]; iSensor++)
+        {
+            pRobot->rgnSensors[iSensor] = g_rgnRobotSensorList[iRobot][iSensor];
+        }
+#endif
+    }
+
+    ///////////////////////////////////
+    // WELDER
+    memcpy(pSystemConfig->welder,
+           g_rgWelderConfig,
+           sizeof(CONFIG_WELDER) * MAX_WELDER_COUNT);
+
+    
+    //////////////////////////////////
+    // Sensor
+#if 0
+    memcpy(pSystemConfig->sensors,
+           g_rgSensorConfig,
+           sizeof(CONFIG_SENSOR) * MAX_SENSOR_COUNT);
+#endif
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_BuildSysConfigShmem()
+//
+
+STATIC  int s_hShm_SysConfig = -1;
+
+static int _loc_SHM_BuildSysConfigShmem(void)
+{
+    int hMem;
+    SHM_RM_SYSCONFIG* pMem;
+
+    DANDY_ASSERT(s_hShm_SysConfig == -1);
+    DANDY_ASSERT(g_pShm_SysConfig == NULL);
+
+    ///////////////////////////////////
+    //
+    //  create the shared memory
+    //
+
+    hMem = SHM_Create(SHM_RM_SYSCONFIG_NAME, sizeof(SHM_RM_SYSCONFIG));
+
+    if (hMem == DANDY_INVALID_SHMEM_HANDLE)
+    {
+        VERBOSE_ERROR("Cannot create System Config shared memory\n");
+
+        return -1;
+    }
+    else
+	{
+		VERBOSE_VERBOSE("Create System Config shared memory Done!\n"); 
+	}
+
+    ///////////////////////////////////
+    //
+    //  map the shared memory handle
+    //
+
+    pMem = (SHM_RM_SYSCONFIG*) SHM_Map(hMem, sizeof(SHM_RM_SYSCONFIG));
+
+    memset(pMem, 0, sizeof(SHM_RM_SYSCONFIG));
+
+    if(pMem == NULL)
+    {
+        VERBOSE_ERROR("Cannot map System Config shared memory\n");
+		return -1; 
+	}
+	else
+	{
+        pMem->dwLength = sizeof(SHM_RM_SYSCONFIG);
+        VERBOSE_VERBOSE("Mapped System Config shared memory. Size:%ld bytes\n",
+                        pMem->dwLength); 
+    }
+
+    ///////////////////////////////////
+    //
+    //  Load Config Data to Shared Memory
+    //
+
+    if (SYSC_LoadConfigToShmem(pMem) == -1)
+    {
+        memset(pMem, 0, sizeof(SHM_RM_SYSCONFIG));
+
+        SHM_Unmap(pMem, sizeof(SHM_RM_SYSCONFIG));
+        SHM_Destroy(hMem, SHM_RM_SYSCONFIG_NAME);
+
+        return -1;
+    }
+
+    s_hShm_SysConfig = hMem;
+    g_pShm_SysConfig = pMem;
+
+    VERBOSE_VERBOSE("System Config Data Loading to shared memory was Done!\n");
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SHM_DestroySysConfigShmem()
+//
+
+static int _loc_SHM_DestroySysConfigShmem(void)
+{
+    int hMem;
+    SHM_RM_SYSCONFIG* pMem;
+
+    hMem = s_hShm_SysConfig;
+    pMem = g_pShm_SysConfig;
+
+    //VERBOSE_VERBOSE("Robot Config shared memory is destroying\n");
+
+    g_pShm_SysConfig = NULL;
+    s_hShm_SysConfig = -1;
+
+    if (pMem != NULL)
+    {
+        DANDY_ASSERT(hMem != -1);
+
+        SHM_Unmap(pMem, sizeof(SHM_RM_SYSCONFIG));
+        VERBOSE_VERBOSE("Unmapped Robot Config shared memory. Size:%dbytes\n",
+                        sizeof(SHM_RM_SYSCONFIG)); 
+        SHM_Destroy(hMem, SHM_RM_SYSCONFIG_NAME);
+        VERBOSE_VERBOSE("Destroyed the shared memory. Name:%s\n",
+                                                        SHM_RM_SYSCONFIG_NAME);
+    }
+
+    //VERBOSE_VERBOSE("Robot Config shared memory is destroyed\n");
+    //VERBOSE_VERBOSE("Destroyed the shared memory. Name:%s\n", SHM_RM_SYSCONFIG_NAME);
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_CreateSharedMemory()
+//
+
+int SHM_CreateSharedMemory(void)
+{
+    // create the RM shared memory
+    if (_loc_SHM_BuildSysStatusShmem() == -1)
+    {
+        VERBOSE_ERROR("System Status shared memory create fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    if (_loc_SHM_BuildSysConfigShmem() == -1)
+    {
+        VERBOSE_ERROR("System Config shared memory create fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_OpenSharedMemory()
+//
+
+int SHM_OpenSharedMemory(void)
+{
+    // open the TE shared memory
+    g_retOpenShmemTE = SHM_OpenTEShmem();
+
+    // open the SC shared memory
+    g_retOpenShmemSC = SHM_OpenSCShmem();
+
+    if(g_retOpenShmemTE == -1 || g_retOpenShmemSC == -1)
+    {
+        return -1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SHM_DestroyShmem()
+//
+
+int SHM_DestroyShmem(void)
+{
+    // destroy the System Status shared memory
+    if (_loc_SHM_DestroySysStatusShmem() == -1)
+    {
+        VERBOSE_ERROR("System Status shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    // destroy the System Config shared memory
+    if (_loc_SHM_DestroySysConfigShmem() == -1)
+    {
+        VERBOSE_ERROR("System Config shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    // destroy the TE shared memory
+    if (_loc_SHM_DestroyTEShmem() == -1)
+    {
+        VERBOSE_ERROR("TE shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    // destroy the SC shared memory
+    if (_loc_SHM_DestroySCShmem() == -1)
+    {
+        VERBOSE_ERROR("SC shared memory destroy fail!\n");
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sessionList>
+<session id="mat1377130058171" name="robotmgr_qnx_g" startTime="1377130058171">
+<dataCollection>
+<property name="id" value="com.qnx.tools.ide.mat.core.NTODerbyDataCollection"/>
+</dataCollection>
+<dataCollector>
+<property name="derby.storage.pageCacheSize" value="10000"/>
+<property name="derby.storage.pageSize" value="4096"/>
+<property name="subProtocol" value="derby"/>
+<property name="driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+<property name="databaseName" value="D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\.metadata\.plugins\com.qnx.tools.ide.mat.core\MAT10962"/>
+<property name="protocol" value="jdbc"/>
+</dataCollector>
+<dataCollectionCapabilities>
+<property name="canDumpLeaks" value="true"/>
+<property name="canDumpSnapshots" value="true"/>
+<property name="canDumpTrace" value="true"/>
+</dataCollectionCapabilities>
+<dataCollectionControls/>
+<dataCollectionOptions/>
+<sourceFolderList/>
+</session>
+<session id="mat1377130070437" name="robotmgr_qnx_g" startTime="1377130070437">
+<dataCollection>
+<property name="id" value="com.qnx.tools.ide.mat.core.NTODerbyDataCollection"/>
+</dataCollection>
+<dataCollector>
+<property name="derby.storage.pageCacheSize" value="10000"/>
+<property name="derby.storage.pageSize" value="4096"/>
+<property name="subProtocol" value="derby"/>
+<property name="driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+<property name="databaseName" value="D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\.metadata\.plugins\com.qnx.tools.ide.mat.core\MAT10963"/>
+<property name="protocol" value="jdbc"/>
+</dataCollector>
+<dataCollectionCapabilities>
+<property name="canDumpLeaks" value="true"/>
+<property name="canDumpSnapshots" value="true"/>
+<property name="canDumpTrace" value="true"/>
+</dataCollectionCapabilities>
+<dataCollectionControls/>
+<dataCollectionOptions/>
+<sourceFolderList/>
+</session>
+<session id="mat1377130120453" name="robotmgr_qnx_g" startTime="1377130120453">
+<dataCollection>
+<property name="id" value="com.qnx.tools.ide.mat.core.NTODerbyDataCollection"/>
+</dataCollection>
+<dataCollector>
+<property name="derby.storage.pageCacheSize" value="10000"/>
+<property name="derby.storage.pageSize" value="4096"/>
+<property name="subProtocol" value="derby"/>
+<property name="driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+<property name="databaseName" value="D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\.metadata\.plugins\com.qnx.tools.ide.mat.core\MAT10964"/>
+<property name="protocol" value="jdbc"/>
+</dataCollector>
+<dataCollectionCapabilities>
+<property name="canDumpLeaks" value="true"/>
+<property name="canDumpSnapshots" value="true"/>
+<property name="canDumpTrace" value="true"/>
+</dataCollectionCapabilities>
+<dataCollectionControls/>
+<dataCollectionOptions/>
+<sourceFolderList/>
+</session>
+<session id="mat1377130451046" name="robotmgr_qnx_g" startTime="1377130451046">
+<dataCollection>
+<property name="id" value="com.qnx.tools.ide.mat.core.NTODerbyDataCollection"/>
+</dataCollection>
+<dataCollector>
+<property name="derby.storage.pageCacheSize" value="10000"/>
+<property name="derby.storage.pageSize" value="4096"/>
+<property name="subProtocol" value="derby"/>
+<property name="driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+<property name="databaseName" value="D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\.metadata\.plugins\com.qnx.tools.ide.mat.core\MAT10966"/>
+<property name="protocol" value="jdbc"/>
+</dataCollector>
+<dataCollectionCapabilities>
+<property name="canDumpLeaks" value="true"/>
+<property name="canDumpSnapshots" value="true"/>
+<property name="canDumpTrace" value="true"/>
+</dataCollectionCapabilities>
+<dataCollectionControls/>
+<dataCollectionOptions/>
+<sourceFolderList/>
+</session>
+</sessionList>

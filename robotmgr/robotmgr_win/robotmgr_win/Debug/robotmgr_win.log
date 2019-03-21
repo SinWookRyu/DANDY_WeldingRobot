@@ -1,0 +1,139 @@
+﻿Build started 2014-07-29 오전 8:46:00.
+     1>Project "F:\DANDY2015\Integrated_Project\robotmgr\robotmgr_win\robotmgr_win\robotmgr_win.vcxproj" on node 4 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "Debug\robotmgr_win.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "Debug\robotmgr_win.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IF:\DANDY2015\Lib\dandy_2015_140630\lib\include /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _MBCS /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TC /analyze- /errorReport:prompt ..\..\robotmgr_src\arg_parsing.c ..\..\robotmgr_src\confpars_axis.c ..\..\robotmgr_src\conf_check.c ..\..\robotmgr_src\conf_default.c ..\..\robotmgr_src\err_handling.c ..\..\robotmgr_src\err_parsing.c ..\..\robotmgr_src\confpars_global.c ..\..\robotmgr_src\job_compile.c ..\..\robotmgr_src\paramfile_handle.c ..\..\robotmgr_src\param_math.c ..\..\robotmgr_src\svc_job_exe.c ..\..\robotmgr_src\svc_job_mon.c ..\..\robotmgr_src\svc_job_extra.c ..\..\robotmgr_src\confpars_motor.c ..\..\robotmgr_src\svc_set_param.c ..\..\robotmgr_src\par_parsing.c ..\..\robotmgr_src\msg_pass.c ..\..\robotmgr_src\conf_load.c ..\..\robotmgr_src\svc_system.c ..\..\robotmgr_src\svc_rcon.c ..\..\robotmgr_src\robotmgr_main.c ..\..\robotmgr_src\confpars_robot.c ..\..\robotmgr_src\scr_display.c ..\..\robotmgr_src\confpars_statis.c ..\..\robotmgr_src\svc_handling.c ..\..\robotmgr_src\shmem_mgr.c ..\..\robotmgr_src\svc_show_param.c ..\..\robotmgr_src\svc_sysinfo.c ..\..\robotmgr_src\sysmon_err.c ..\..\robotmgr_src\sysmon_stat.c ..\..\robotmgr_src\svc_statistics.c ..\..\robotmgr_src\sysmon_statis.c ..\..\robotmgr_src\term_deco.c ..\..\robotmgr_src\confpars_param.c ..\..\robotmgr_src\confpars_welder.c
+         confpars_welder.c
+         confpars_param.c
+         term_deco.c
+         sysmon_statis.c
+         svc_statistics.c
+         sysmon_stat.c
+         sysmon_err.c
+         svc_sysinfo.c
+         svc_show_param.c
+         shmem_mgr.c
+         svc_handling.c
+         confpars_statis.c
+         scr_display.c
+         confpars_robot.c
+         robotmgr_main.c
+         svc_rcon.c
+         svc_system.c
+         conf_load.c
+         msg_pass.c
+         par_parsing.c
+         Generating Code...
+         Compiling...
+         svc_set_param.c
+         confpars_motor.c
+         svc_job_extra.c
+         svc_job_mon.c
+         svc_job_exe.c
+         param_math.c
+         paramfile_handle.c
+         job_compile.c
+         confpars_global.c
+         err_parsing.c
+         err_handling.c
+         conf_default.c
+         conf_check.c
+         confpars_axis.c
+         arg_parsing.c
+         Generating Code...
+       ResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /l"0x0409" /nologo /fo"Debug\robotmgr_win1.res" robotmgr_win1.rc 
+       ManifestResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\robotmgr_win_d.exe.embed.manifest.res" Debug\robotmgr_win_d_manifest.rc 
+       Link:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\robotmgr_win_d.exe" /INCREMENTAL /NOLOGO /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\scattered\win /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win_d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\robotmgr_win_d.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\robotmgr_win_d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\robotmgr_win_d.lib" /MACHINE:X86 Debug\robotmgr_win1.res
+         Debug\robotmgr_win_d.exe.embed.manifest.res
+         Debug\arg_parsing.obj
+         Debug\confpars_axis.obj
+         Debug\conf_check.obj
+         Debug\conf_default.obj
+         Debug\err_handling.obj
+         Debug\err_parsing.obj
+         Debug\confpars_global.obj
+         Debug\job_compile.obj
+         Debug\paramfile_handle.obj
+         Debug\param_math.obj
+         Debug\svc_job_exe.obj
+         Debug\svc_job_mon.obj
+         Debug\svc_job_extra.obj
+         Debug\confpars_motor.obj
+         Debug\svc_set_param.obj
+         Debug\par_parsing.obj
+         Debug\msg_pass.obj
+         Debug\conf_load.obj
+         Debug\svc_system.obj
+         Debug\svc_rcon.obj
+         Debug\robotmgr_main.obj
+         Debug\confpars_robot.obj
+         Debug\scr_display.obj
+         Debug\confpars_statis.obj
+         Debug\svc_handling.obj
+         Debug\shmem_mgr.obj
+         Debug\svc_show_param.obj
+         Debug\svc_sysinfo.obj
+         Debug\sysmon_err.obj
+         Debug\sysmon_stat.obj
+         Debug\svc_statistics.obj
+         Debug\sysmon_statis.obj
+         Debug\term_deco.obj
+         Debug\confpars_param.obj
+         Debug\confpars_welder.obj
+       Manifest:
+         Deleting file "Debug\robotmgr_win_d.exe.embed.manifest".
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\robotmgr_win_d.exe.embed.manifest" /manifest Debug\robotmgr_win_d.exe.intermediate.manifest
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\robotmgr_win_d.exe.embed.manifest.res" Debug\robotmgr_win_d_manifest.rc 
+       LinkEmbedManifest:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\robotmgr_win_d.exe" /INCREMENTAL /NOLOGO /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\scattered\win /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win_d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\robotmgr_win_d.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\robotmgr_win_d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\robotmgr_win_d.lib" /MACHINE:X86 Debug\robotmgr_win1.res
+         Debug\robotmgr_win_d.exe.embed.manifest.res
+         Debug\arg_parsing.obj
+         Debug\confpars_axis.obj
+         Debug\conf_check.obj
+         Debug\conf_default.obj
+         Debug\err_handling.obj
+         Debug\err_parsing.obj
+         Debug\confpars_global.obj
+         Debug\job_compile.obj
+         Debug\paramfile_handle.obj
+         Debug\param_math.obj
+         Debug\svc_job_exe.obj
+         Debug\svc_job_mon.obj
+         Debug\svc_job_extra.obj
+         Debug\confpars_motor.obj
+         Debug\svc_set_param.obj
+         Debug\par_parsing.obj
+         Debug\msg_pass.obj
+         Debug\conf_load.obj
+         Debug\svc_system.obj
+         Debug\svc_rcon.obj
+         Debug\robotmgr_main.obj
+         Debug\confpars_robot.obj
+         Debug\scr_display.obj
+         Debug\confpars_statis.obj
+         Debug\svc_handling.obj
+         Debug\shmem_mgr.obj
+         Debug\svc_show_param.obj
+         Debug\svc_sysinfo.obj
+         Debug\sysmon_err.obj
+         Debug\sysmon_stat.obj
+         Debug\svc_statistics.obj
+         Debug\sysmon_statis.obj
+         Debug\term_deco.obj
+         Debug\confpars_param.obj
+         Debug\confpars_welder.obj
+         robotmgr_win.vcxproj -> F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\robotmgr_win_d.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\robotmgr_win.unsuccessfulbuild".
+         Touching "Debug\robotmgr_win.lastbuildstate".
+     1>Done Building Project "F:\DANDY2015\Integrated_Project\robotmgr\robotmgr_win\robotmgr_win\robotmgr_win.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:07.64

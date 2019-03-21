@@ -1,0 +1,12 @@
+; jump test1
+; jump test2
+; jump test3
+; jump test4
+LABEL  TEST
+MOVJ   T001 V=10(%)
+MOVL   T002 V=500
+MOVL   T003 V=1000
+JUMP   TEST
+T001 JOINT 0 0 0 0 15
+T002 JOINT -30 15 15 -15 15 -15
+T003 JOINT 30 15 15 15 15 15

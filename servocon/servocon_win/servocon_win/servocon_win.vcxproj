@@ -1,0 +1,125 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="servocon_win.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="servocon_win.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\servocon_src\arg_parsing.c" />
+    <ClCompile Include="..\..\servocon_src\ecat_pdo.c" />
+    <ClCompile Include="..\..\servocon_src\ecat_coe.c" />
+    <ClCompile Include="..\..\servocon_src\ecat_network.c" />
+    <ClCompile Include="..\..\servocon_src\ecat_lib.c" />
+    <ClCompile Include="..\..\servocon_src\error_parsing.c" />
+    <ClCompile Include="..\..\servocon_src\io_svc.c" />
+    <ClCompile Include="..\..\servocon_src\motor_svc.c" />
+    <ClCompile Include="..\..\servocon_src\msg_pass.c" />
+    <ClCompile Include="..\..\servocon_src\save_file.c" />
+    <ClCompile Include="..\..\servocon_src\scr_display.c" />
+    <ClCompile Include="..\..\servocon_src\svc_handling.c" />
+    <ClCompile Include="..\..\servocon_src\run_thread.c" />
+    <ClCompile Include="..\..\servocon_src\servocon_main.c" />
+    <ClCompile Include="..\..\servocon_src\shmem_mgr.c" />
+    <ClCompile Include="..\..\servocon_src\sys_svc.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\servocon_src\CRT.h" />
+    <ClInclude Include="..\..\servocon_src\dandy_job.h" />
+    <ClInclude Include="..\..\servocon_src\ecat_def.h" />
+    <ClInclude Include="..\..\servocon_src\error_def.h" />
+    <ClInclude Include="..\..\servocon_src\ipc_jobshm.h" />
+    <ClInclude Include="..\..\servocon_src\ipc_robotmgr.h" />
+    <ClInclude Include="..\..\servocon_src\ipc_servocon.h" />
+    <ClInclude Include="..\..\servocon_src\ipc_taskexec.h" />
+    <ClInclude Include="..\..\servocon_src\service.h" />
+    <ClInclude Include="..\..\servocon_src\servocon_main.h" />
+    <ClInclude Include="..\..\servocon_src\sys_conf.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{FF8E881D-8561-4533-B413-987FC293D2B5}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>servocon_win</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)_d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\DANDY2015\Lib\MIP_QNX_v1.5.180.0\scommon;F:\DANDY2015\Lib\dandy_2015_140630\lib\include;F:\DANDY2015\Lib\MIP_QNX_v1.5.180.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\archive;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>dandy_all_win_d.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\DANDY2015\Lib\MIP_QNX_v1.5.180.0\scommon;F:\DANDY2015\Lib\dandy_2015_140630\lib\include;F:\DANDY2015\Lib\MIP_QNX_v1.5.180.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\archive;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>dandy_all_win.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

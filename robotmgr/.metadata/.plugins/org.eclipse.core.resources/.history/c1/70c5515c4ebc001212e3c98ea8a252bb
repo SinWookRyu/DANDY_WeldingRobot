@@ -1,0 +1,498 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  robot_service.c: Robot Service Manage
+//                                            2013.04.11  Ryu SinWook
+
+#include <string.h>     // for memcpy()
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "dandy_echo.h"
+#include "dandy_msgpass.h"
+#include "dandy_ansi.h"
+#include "dandy_thread.h"   // for service request thread
+
+#include "ipc_taskexec.h"
+#include "ipc_servocon.h"
+#include "ipc_robotmgr.h"
+#include "dandy_platform.h"
+
+#include "robotmgr_main.h"
+#include "sys_conf.h"
+#include "ascii_def.h"
+#include "CRT_def.h"
+#include "error_def.h"
+
+///////////////////////////////////////
+//Global_variable
+
+static int g_retTEcoid;
+static int g_retSCcoid;
+static int g_fServiceStatus;
+int g_retTEmsg = 0;
+int g_retSCmsg = 0;
+
+RMGR_PACKET                    RM_packet;
+RMGR_REPLY_PACKET              RM_reply_packet;
+MSG_INFO                       info_msg;
+TE_MSG                         TE_msg;
+SC_MSG                         SC_msg;
+TE_REPLY                       TE_reply;
+SC_REPLY                       SC_reply;
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExitTEService()
+//      - Service Name: RMGR_SERV_SYSEXIT
+static int _loc_SVC_ExitTEService(void)
+{
+    if(g_coidTE != INVALID_COID)
+    {
+        g_fSysAliveThRun = PAUSE;
+        TE_msg.code = TESERV_EXIT;
+        g_retTEmsg = MSG_Send(g_coidTE,
+                              &TE_msg,
+                              sizeof(TE_msg),
+                              &TE_reply,
+                              sizeof(TE_reply));
+	    VERBOSE_VERBOSE("TE Quit\n"); 
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to MSG Sending, TE Connection is not valid\n"); 
+    }
+    
+    //Error Flag Check
+    if(g_retTEmsg == RESULT_ERROR)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_TE] = 1;
+        g_fErrorState = TRUE;
+    }
+    else if(g_retTEmsg == RESULT_OK)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_TE] = -1;
+        g_fErrorState = FALSE;
+    }
+
+    // Close connection
+    MSG_CloseConnection(g_coidTE, g_coidTEalive);
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExitSCService()
+//      - Service Name: RMGR_SERV_SYSEXIT
+static int _loc_SVC_ExitSCService(void)
+{
+	if(g_coidSC != INVALID_COID)
+    {
+        g_fSysAliveThRun = PAUSE;
+        SC_msg.code = SC_SERV_EXIT;
+        g_retSCmsg = MSG_Send(g_coidSC,
+                              &SC_msg,
+                              sizeof(SC_msg),
+                              &SC_reply,
+                              sizeof(SC_reply));
+	    VERBOSE_VERBOSE("SC Quit\n"); 
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to MSG Sending, SC Connection is not valid\n"); 
+    }
+
+    //Error Flag Check
+    if(g_retSCmsg == RESULT_ERROR)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_SC] = 1;
+        g_fErrorState = TRUE;
+    }
+    else if(g_retTEmsg == RESULT_OK)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_SC] = -1;
+        g_fErrorState = FALSE;
+    }
+
+    // Close connection
+    MSG_CloseConnection(g_coidSC, g_coidSCalive);
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_InitTEService()
+//
+int SVC_InitTEService(void)
+{
+    if(g_coidTE != INVALID_COID)
+    {
+        TE_msg.code = TESERV_INIT;
+        g_retTEmsg = MSG_Send(g_coidTE,
+                              &TE_msg,
+                              sizeof(TE_msg),
+                              &TE_reply,
+                              sizeof(TE_reply));
+	    VERBOSE_VERBOSE("TE INIT Sended! (return: %d)\n", g_retTEmsg); 
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to MSG Send, TE Connection is not Valid!\n"); 
+        VERBOSE_ERROR("Retry Connection!\n");
+        MSG_ConnectChannelServer(g_coidTE);
+    }
+
+    //Error Flag Check
+    if(g_retTEmsg == RESULT_ERROR)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_TE] = 1;
+        g_fErrorState = TRUE;
+    }
+    else if(g_retTEmsg == RESULT_OK)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_TE] = -1;
+        g_fErrorState = FALSE;
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_InitSCService()
+//
+int SVC_InitSCService(void)
+{
+	if(g_coidSC != INVALID_COID)
+    {
+        SC_msg.code = SC_SERV_INIT;
+        g_retSCmsg = MSG_Send(g_coidSC,
+                              &SC_msg,
+                              sizeof(SC_msg),
+                              &SC_reply,
+                              sizeof(SC_reply));
+	    VERBOSE_VERBOSE("SC INIT Sended! (return: %d)\n", g_retSCmsg); 
+    }
+    else
+    {
+        VERBOSE_ERROR("Fail to MSG Send, SC Connection is not Valid!\n");
+        VERBOSE_ERROR("Retry Connection!\n");
+        MSG_ConnectChannelServer(g_coidSC);
+    }
+    
+    //Error Flag Check
+    if(g_retSCmsg == RESULT_ERROR)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_SC] = 1;
+        g_fErrorState = TRUE;
+    }
+    else if(g_retTEmsg == RESULT_OK)
+    {
+        RM_reply_packet.Data.reply_state.nErrCode[SYS_ERR_INIT_SC] = -1;
+        g_fErrorState = FALSE;
+    }
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_TimerTest()
+//
+
+static int _loc_SVC_TimerTest(void)
+{
+    MSG_SendPulse(g_coidTE, TESERV_TIMETEST, 0); 
+	VERBOSE_VERBOSE("Timer Test Start!\n"); 
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_RetryInitProcess()
+//      - Service Name: RMGR_SERV_SYSINIT
+
+static int _loc_SVC_RetryInitProcess(void)
+{
+    // Load system parameters
+    if(g_fInitRet[0] == -1)
+    {
+        VERBOSE_VERBOSE("Retry RM Shared Memory Create!\n");
+        SHM_CreateSharedMemory();
+    }
+    
+    // Create shared memory
+    if(g_fInitRet[1] == -1)
+    {
+        VERBOSE_VERBOSE("Retry Parameter Loading!\n");
+        PARAM_LoadSystemParameter();
+    }
+
+    // Connect to other proc channel
+    if(g_fInitRet[2] == -1)
+    {
+        VERBOSE_VERBOSE("Retry Connect Channel Server!\n");
+        MSG_ConnectChannelServer(g_coidTE);
+        MSG_ConnectChannelServer(g_coidSC);
+    }
+
+    // Init RM Services
+    if(g_fInitRet[3] == -1)
+    {
+        VERBOSE_VERBOSE("Retry RM Service Initialize!\n");
+        SVC_InitRMService();
+    }
+            
+    // Open shared memory
+    if(g_fInitRet[4] == -1)
+    {
+        VERBOSE_VERBOSE("Retry Open Shared Memory!\n");
+        SHM_OpenSharedMemory();
+    }
+            
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_SetSystemStateInform()
+//      - Service Name: RMGR_SERV_SYSSTATE
+
+static int _loc_SVC_SetSystemStateInform(void)
+{
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = RMGR_REPLY_PACKET_DATA_LEN;
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_SendVersionInform()
+//      - Service Name: RMGR_SERV_SYSVERSION
+
+static int _loc_SVC_SendVersionInform(void)
+{
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = RMGR_REPLY_PACKET_DATA_LEN;
+    CRT_strcpy(RM_reply_packet.Data.reply_ver.rgchRM_vers,
+               RMGR_VERSION_DATA_LEN,
+               SYS_RM_VERSION);
+    CRT_strcpy(RM_reply_packet.Data.reply_ver.rgchRM_build,
+               RMGR_BUILD_DATA_LEN,
+               SYS_RM_BUILD);
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: _loc_SVC_ExternSVCCheckThread()
+//
+
+static THREAD_ENTRY_TYPE _loc_SVC_ExternSVCCheckThread(void* pParam)
+{
+    int rgRcvid;
+    int nDataSize;
+    void* pReplyData;
+
+    while(g_fSysStatus == RUN)
+	{
+        rgRcvid = MSG_Receive(g_chidRM,
+                              &RM_packet,
+                              sizeof(RM_packet),
+                              &info_msg);
+        if(g_fSysStatus == STOP)
+        {
+            return 0;
+        }
+        VERBOSE_VERBOSE("Recevied service(code: %d, value: %d)"
+                        "from pid: %d.\n",
+                        RM_packet.nCode,
+                        RM_packet.nValue,
+                        info_msg.pid);
+
+        nDataSize = 0;
+        pReplyData = NULL;
+
+        // set reply data(packet)
+        switch(RM_packet.nCode)
+        {
+        case RMGR_SERV_SYSEXIT:            /////// svc code : 0
+			if(RM_packet.nValue == 0)      // svc value: 0
+            {
+                g_fServiceStatus = STOP;
+			    VERBOSE_VERBOSE("RM Service Quit\n"); 
+                _loc_SVC_ExitSCService();
+                _loc_SVC_ExitTEService();
+                return 0;
+            }
+            else if(RM_packet.nValue == 1) // svc value: 1
+            {
+                _loc_SVC_ExitTEService();
+            }
+            else if(RM_packet.nValue == 2) // svc value: 2
+            {
+                _loc_SVC_ExitSCService();
+            }
+            break;
+
+        case RMGR_SERV_SYSVERSION:         /////// svc code : 1
+            _loc_SVC_SendVersionInform();
+            break;
+
+        case RMGR_SERV_SYSINIT:            /////// svc code : 2
+            if(RM_packet.nValue == 0)      // svc value: 0
+            {
+                if(g_retInitRM == -1)
+                {
+                    _loc_SVC_RetryInitProcess();
+                }
+                else
+                {
+                    VERBOSE_WARNING("RM already INIT state!\n");
+                }
+                SVC_InitTEService();
+                SVC_InitSCService();
+            }
+            else if(RM_packet.nValue == 1) // svc value: 1
+            {
+                SVC_InitTEService();
+            }
+            else if(RM_packet.nValue == 2) // svc value: 2
+            {
+                SVC_InitSCService();
+            }
+            break;
+        
+        case RMGR_SERV_SYSSTATE:           /////// svc code : 3
+            _loc_SVC_SetSystemStateInform();
+            break;
+
+        default:
+            VERBOSE_WARNING("Not defined service code : code=<%d>\n", 
+                            RM_packet.nCode);
+        }
+
+        nDataSize = RMGR_REPLY_PACKET_LEN;
+        pReplyData = &RM_reply_packet;
+
+        // message reply
+        if (rgRcvid == 0)       // pulse
+        {
+            ;            
+        }
+        else if (rgRcvid > 0)   // massage
+        {
+            MSG_Reply(rgRcvid, 0, pReplyData, nDataSize);
+        }
+        else
+        {
+            VERBOSE_ERROR("Failed to receive data...\n");
+        }
+
+        THREAD_SleepMicrosec(1000);
+    }
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SVC_ExecService()
+//
+
+int SVC_ExecService(void)
+{
+    int nKeyInput;
+    THREAD_HANDLE svccheck_thread;
+    int iCount;
+
+    g_fServiceStatus = RUN;
+
+    VERBOSE_VERBOSE("Usage: Ctrl+Q [RM Exit]\n"); 
+    VERBOSE_VERBOSE("Usage: Ctrl+E [TE INIT]\t Ctrl+R [SC INIT]\n"); 
+    VERBOSE_VERBOSE("Usage: Ctrl+D [TE Exit]\t Ctrl+F [SC Exit]\n"); 
+    VERBOSE_VERBOSE("Usage: Ctrl+S [Sys State]\n"); 
+    VERBOSE_VERBOSE("Usage: Ctrl+T [Timer Test]\t Ctrl+V [RM Ver]\n\n");
+
+    //  launch external service check thread
+    svccheck_thread = THREAD_Create(_loc_SVC_ExternSVCCheckThread,
+                                    NULL,
+                                    0,                 // auto stack size
+                                    0,                 // normal priority
+                                    THREAD_DETACHED,   // detach thread
+                                    THREAD_POLICY_RR); // round-robin
+
+	while(g_fServiceStatus == RUN)
+	{
+        if(g_fSysStatus == STOP)
+        {
+            return 0;
+        }
+		nKeyInput = CIO_getch();
+
+        switch(nKeyInput)
+		{
+        case ASCII_CTRL_Q:
+            g_fServiceStatus = STOP;
+            VERBOSE_VERBOSE("RM Service Quit\n"); 
+            //_loc_SVC_ExitSCService();
+            //_loc_SVC_ExitTEService();
+            break; 
+
+        case ASCII_CTRL_D:
+            _loc_SVC_ExitTEService();
+            break; 
+
+        case ASCII_CTRL_E:
+            SVC_InitTEService();
+		    break; 
+
+        case ASCII_CTRL_F:
+			_loc_SVC_ExitSCService();
+		    break; 
+
+        case ASCII_CTRL_R:
+            SVC_InitSCService();
+            break; 
+
+        case ASCII_CTRL_V:
+            VERBOSE_VERBOSE("Version Information: %s - %s\n",
+                                                            SYS_RM_VERSION,
+                                                            SYS_RM_BUILD);
+            break;
+
+        case ASCII_CTRL_T:
+            _loc_SVC_TimerTest();
+            break;
+
+        case ASCII_CTRL_S:
+            _loc_SVC_SetSystemStateInform();
+            VERBOSE_VERBOSE("System Info ExecStat : %d\n"
+                            "       WorkType : %d\n"
+                            "       ErrorCode: ", 
+                            RM_packet.Data.reply_state.nExecStat,
+                            RM_packet.Data.reply_state.nWorkType);
+            for(iCount = 0; iCount < RMGR_ERROR_DATA_LEN-1; iCount++)
+            {
+                VERBOSE_VERBOSE("\v %d",
+                                RM_packet.Data.reply_state.nErrCode[iCount]);
+            }
+            VERBOSE_VERBOSE("\n\n");
+            break;
+
+		default:
+			VERBOSE_VERBOSE("Unsupported Service! Key(%d)\n", nKeyInput); ;
+		}
+      
+        THREAD_SleepMicrosec(10000);
+	}
+
+    return 0;
+}

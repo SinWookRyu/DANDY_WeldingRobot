@@ -1,0 +1,173 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{EE276182-92DF-4509-AD0F-E772A9EDB0BC}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>taskexec_win</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)\Debug\</OutDir>
+    <TargetName>$(ProjectName)_d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\include;F:\DANDY2015\Integrated_Project\taskexec\taskexec_src;F:\DANDY2015\Integrated_Project\taskexec\src;D:\Project\DANDY2015\Project\taskexec\taskexec_src;D:\Project\DANDY2015\Project\taskexec\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\archive;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>dandy_all_win.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\include;F:\DANDY2015\Integrated_Project\taskexec\taskexec_src;F:\DANDY2015\Integrated_Project\taskexec\src;D:\Project\DANDY2015\Project\taskexec\src;D:\Project\DANDY2015\Project\taskexec\taskexec_src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>dandy_all_win.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>F:\DANDY2015\Lib\dandy_2015_140630\lib\archive;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\calc_weav_rot.c" />
+    <ClCompile Include="..\src\geometry.c" />
+    <ClCompile Include="..\src\kin_dandy2.c" />
+    <ClCompile Include="..\src\motion.c" />
+    <ClCompile Include="..\src\profile3.c" />
+    <ClCompile Include="..\src\profile7.c" />
+    <ClCompile Include="..\src\trajectory.c" />
+    <ClCompile Include="..\src\weave.c" />
+    <ClCompile Include="..\taskexec_src\argument.c" />
+    <ClCompile Include="..\taskexec_src\arg_get.c" />
+    <ClCompile Include="..\taskexec_src\arg_set.c" />
+    <ClCompile Include="..\taskexec_src\arg_unit.c" />
+    <ClCompile Include="..\taskexec_src\call_stack.c" />
+    <ClCompile Include="..\taskexec_src\cmd.c" />
+    <ClCompile Include="..\taskexec_src\cmd_branch.c" />
+    <ClCompile Include="..\taskexec_src\cmd_coord.c" />
+    <ClCompile Include="..\taskexec_src\cmd_cweav.c" />
+    <ClCompile Include="..\taskexec_src\cmd_mov.c" />
+    <ClCompile Include="..\taskexec_src\cmd_op.c" />
+    <ClCompile Include="..\taskexec_src\cmd_port.c" />
+    <ClCompile Include="..\taskexec_src\cmd_touch.c" />
+    <ClCompile Include="..\taskexec_src\cmd_weld.c" />
+    <ClCompile Include="..\taskexec_src\coord.c" />
+    <ClCompile Include="..\taskexec_src\filemgr.c" />
+    <ClCompile Include="..\taskexec_src\global.c" />
+    <ClCompile Include="..\taskexec_src\init.c" />
+    <ClCompile Include="..\taskexec_src\run_jog.c" />
+    <ClCompile Include="..\taskexec_src\run_prog.c" />
+    <ClCompile Include="..\taskexec_src\run_restart.c" />
+    <ClCompile Include="..\taskexec_src\run_serv.c" />
+    <ClCompile Include="..\taskexec_src\run_timetest.c" />
+    <ClCompile Include="..\taskexec_src\sensor.c" />
+    <ClCompile Include="..\taskexec_src\str_conv.c" />
+    <ClCompile Include="..\taskexec_src\te_serv.c" />
+    <ClCompile Include="..\taskexec_src\t_runtime.c" />
+    <ClCompile Include="..\taskexec_src\t_taskexec.c" />
+    <ClCompile Include="..\taskexec_src\t_vga.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\lib\include\dandy_platform.h" />
+    <ClInclude Include="..\src\CRT.h" />
+    <ClInclude Include="..\src\dandy_job.h" />
+    <ClInclude Include="..\src\geometry.h" />
+    <ClInclude Include="..\src\ipc_robotmgr.h" />
+    <ClInclude Include="..\src\ipc_servocon.h" />
+    <ClInclude Include="..\src\ipc_taskexec.h" />
+    <ClInclude Include="..\src\kinematics.h" />
+    <ClInclude Include="..\src\motion.h" />
+    <ClInclude Include="..\src\profile3.h" />
+    <ClInclude Include="..\src\profile7.h" />
+    <ClInclude Include="..\src\sys_conf.h" />
+    <ClInclude Include="..\src\trajectory.h" />
+    <ClInclude Include="..\src\utility.h" />
+    <ClInclude Include="..\src\weave.h" />
+    <ClInclude Include="..\taskexec_src\arg.h" />
+    <ClInclude Include="..\taskexec_src\argument.h" />
+    <ClInclude Include="..\taskexec_src\call_stack.h" />
+    <ClInclude Include="..\taskexec_src\cmd.h" />
+    <ClInclude Include="..\taskexec_src\coord.h" />
+    <ClInclude Include="..\taskexec_src\filemgr.h" />
+    <ClInclude Include="..\taskexec_src\init.h" />
+    <ClInclude Include="..\taskexec_src\runtime.h" />
+    <ClInclude Include="..\taskexec_src\run_serv.h" />
+    <ClInclude Include="..\taskexec_src\sensor.h" />
+    <ClInclude Include="..\taskexec_src\str_conv.h" />
+    <ClInclude Include="..\taskexec_src\taskexec_def.h" />
+    <ClInclude Include="..\taskexec_src\te_serv.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="taskexec_win.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="icon1.ico" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

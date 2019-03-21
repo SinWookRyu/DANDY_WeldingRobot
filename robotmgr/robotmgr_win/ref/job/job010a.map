@@ -1,0 +1,1018 @@
+Dandy 2015 assembler map file.
+Build Time : Wed Feb 05 16:25:09 2014
+Command  (CMD) : 177
+Position (POS) : 26
+Weaving  (WVF) : 60
+SWelding (SWF) : 60
+MWelding (MWF) : 60
+EWelding (EWF) : 60
+
+============================================================
+* Global Symbols : 0 symbols
+============================================================
+
+============================================================
+* module 0 : 266 symbols
+============================================================
+'T01' : type=10 ('T_VAR'), val=T001, scope='local'
+'T02' : type=10 ('T_VAR'), val=T002, scope='local'
+'T03' : type=10 ('T_VAR'), val=T003, scope='local'
+'T04' : type=10 ('T_VAR'), val=T004, scope='local'
+'T05' : type=10 ('T_VAR'), val=T005, scope='local'
+'T06' : type=10 ('T_VAR'), val=T006, scope='local'
+'T07' : type=10 ('T_VAR'), val=T007, scope='local'
+'T08' : type=10 ('T_VAR'), val=T008, scope='local'
+'T09' : type=10 ('T_VAR'), val=T009, scope='local'
+'T10' : type=10 ('T_VAR'), val=T010, scope='local'
+'T11' : type=10 ('T_VAR'), val=T011, scope='local'
+'T12' : type=10 ('T_VAR'), val=T012, scope='local'
+'T13' : type=10 ('T_VAR'), val=T013, scope='local'
+'T14' : type=10 ('T_VAR'), val=T014, scope='local'
+'T15' : type=10 ('T_VAR'), val=T015, scope='local'
+'T16' : type=10 ('T_VAR'), val=T016, scope='local'
+'T17' : type=10 ('T_VAR'), val=T017, scope='local'
+'T18' : type=10 ('T_VAR'), val=T018, scope='local'
+'T19' : type=10 ('T_VAR'), val=T019, scope='local'
+'T20' : type=10 ('T_VAR'), val=T020, scope='local'
+'T21' : type=10 ('T_VAR'), val=T021, scope='local'
+'T22' : type=10 ('T_VAR'), val=T022, scope='local'
+'T23' : type=10 ('T_VAR'), val=T023, scope='local'
+'T24' : type=10 ('T_VAR'), val=T024, scope='local'
+'T25' : type=10 ('T_VAR'), val=T025, scope='local'
+'T26' : type=10 ('T_VAR'), val=T026, scope='local'
+'S01' : type=16 ('SWF_VAR'), val=SWF001, scope='local'
+'S02' : type=16 ('SWF_VAR'), val=SWF002, scope='local'
+'S03' : type=16 ('SWF_VAR'), val=SWF003, scope='local'
+'S04' : type=16 ('SWF_VAR'), val=SWF004, scope='local'
+'S05' : type=16 ('SWF_VAR'), val=SWF005, scope='local'
+'S11' : type=16 ('SWF_VAR'), val=SWF011, scope='local'
+'S12' : type=16 ('SWF_VAR'), val=SWF012, scope='local'
+'S13' : type=16 ('SWF_VAR'), val=SWF013, scope='local'
+'S14' : type=16 ('SWF_VAR'), val=SWF014, scope='local'
+'S15' : type=16 ('SWF_VAR'), val=SWF015, scope='local'
+'S21' : type=16 ('SWF_VAR'), val=SWF021, scope='local'
+'S22' : type=16 ('SWF_VAR'), val=SWF022, scope='local'
+'S23' : type=16 ('SWF_VAR'), val=SWF023, scope='local'
+'S24' : type=16 ('SWF_VAR'), val=SWF024, scope='local'
+'S25' : type=16 ('SWF_VAR'), val=SWF025, scope='local'
+'S31' : type=16 ('SWF_VAR'), val=SWF031, scope='local'
+'S32' : type=16 ('SWF_VAR'), val=SWF032, scope='local'
+'S33' : type=16 ('SWF_VAR'), val=SWF033, scope='local'
+'S34' : type=16 ('SWF_VAR'), val=SWF034, scope='local'
+'S35' : type=16 ('SWF_VAR'), val=SWF035, scope='local'
+'S41' : type=16 ('SWF_VAR'), val=SWF041, scope='local'
+'S42' : type=16 ('SWF_VAR'), val=SWF042, scope='local'
+'S43' : type=16 ('SWF_VAR'), val=SWF043, scope='local'
+'S44' : type=16 ('SWF_VAR'), val=SWF044, scope='local'
+'S45' : type=16 ('SWF_VAR'), val=SWF045, scope='local'
+'S51' : type=16 ('SWF_VAR'), val=SWF051, scope='local'
+'S52' : type=16 ('SWF_VAR'), val=SWF052, scope='local'
+'S53' : type=16 ('SWF_VAR'), val=SWF053, scope='local'
+'S54' : type=16 ('SWF_VAR'), val=SWF054, scope='local'
+'S55' : type=16 ('SWF_VAR'), val=SWF055, scope='local'
+'M01' : type=17 ('MWF_VAR'), val=MWF001, scope='local'
+'M02' : type=17 ('MWF_VAR'), val=MWF002, scope='local'
+'M03' : type=17 ('MWF_VAR'), val=MWF003, scope='local'
+'M04' : type=17 ('MWF_VAR'), val=MWF004, scope='local'
+'M05' : type=17 ('MWF_VAR'), val=MWF005, scope='local'
+'M11' : type=17 ('MWF_VAR'), val=MWF011, scope='local'
+'M12' : type=17 ('MWF_VAR'), val=MWF012, scope='local'
+'M13' : type=17 ('MWF_VAR'), val=MWF013, scope='local'
+'M14' : type=17 ('MWF_VAR'), val=MWF014, scope='local'
+'M15' : type=17 ('MWF_VAR'), val=MWF015, scope='local'
+'M21' : type=17 ('MWF_VAR'), val=MWF021, scope='local'
+'M22' : type=17 ('MWF_VAR'), val=MWF022, scope='local'
+'M23' : type=17 ('MWF_VAR'), val=MWF023, scope='local'
+'M24' : type=17 ('MWF_VAR'), val=MWF024, scope='local'
+'M25' : type=17 ('MWF_VAR'), val=MWF025, scope='local'
+'M31' : type=17 ('MWF_VAR'), val=MWF031, scope='local'
+'M32' : type=17 ('MWF_VAR'), val=MWF032, scope='local'
+'M33' : type=17 ('MWF_VAR'), val=MWF033, scope='local'
+'M34' : type=17 ('MWF_VAR'), val=MWF034, scope='local'
+'M35' : type=17 ('MWF_VAR'), val=MWF035, scope='local'
+'M41' : type=17 ('MWF_VAR'), val=MWF041, scope='local'
+'M42' : type=17 ('MWF_VAR'), val=MWF042, scope='local'
+'M43' : type=17 ('MWF_VAR'), val=MWF043, scope='local'
+'M44' : type=17 ('MWF_VAR'), val=MWF044, scope='local'
+'M45' : type=17 ('MWF_VAR'), val=MWF045, scope='local'
+'M51' : type=17 ('MWF_VAR'), val=MWF051, scope='local'
+'M52' : type=17 ('MWF_VAR'), val=MWF052, scope='local'
+'M53' : type=17 ('MWF_VAR'), val=MWF053, scope='local'
+'M54' : type=17 ('MWF_VAR'), val=MWF054, scope='local'
+'M55' : type=17 ('MWF_VAR'), val=MWF055, scope='local'
+'W01' : type=15 ('WVF_VAR'), val=WVF001, scope='local'
+'W02' : type=15 ('WVF_VAR'), val=WVF002, scope='local'
+'W03' : type=15 ('WVF_VAR'), val=WVF003, scope='local'
+'W04' : type=15 ('WVF_VAR'), val=WVF004, scope='local'
+'W05' : type=15 ('WVF_VAR'), val=WVF005, scope='local'
+'W11' : type=15 ('WVF_VAR'), val=WVF011, scope='local'
+'W12' : type=15 ('WVF_VAR'), val=WVF012, scope='local'
+'W13' : type=15 ('WVF_VAR'), val=WVF013, scope='local'
+'W14' : type=15 ('WVF_VAR'), val=WVF014, scope='local'
+'W15' : type=15 ('WVF_VAR'), val=WVF015, scope='local'
+'W21' : type=15 ('WVF_VAR'), val=WVF021, scope='local'
+'W22' : type=15 ('WVF_VAR'), val=WVF022, scope='local'
+'W23' : type=15 ('WVF_VAR'), val=WVF023, scope='local'
+'W24' : type=15 ('WVF_VAR'), val=WVF024, scope='local'
+'W25' : type=15 ('WVF_VAR'), val=WVF025, scope='local'
+'W31' : type=15 ('WVF_VAR'), val=WVF031, scope='local'
+'W32' : type=15 ('WVF_VAR'), val=WVF032, scope='local'
+'W33' : type=15 ('WVF_VAR'), val=WVF033, scope='local'
+'W34' : type=15 ('WVF_VAR'), val=WVF034, scope='local'
+'W35' : type=15 ('WVF_VAR'), val=WVF035, scope='local'
+'W41' : type=15 ('WVF_VAR'), val=WVF041, scope='local'
+'W42' : type=15 ('WVF_VAR'), val=WVF042, scope='local'
+'W43' : type=15 ('WVF_VAR'), val=WVF043, scope='local'
+'W44' : type=15 ('WVF_VAR'), val=WVF044, scope='local'
+'W45' : type=15 ('WVF_VAR'), val=WVF045, scope='local'
+'W51' : type=15 ('WVF_VAR'), val=WVF051, scope='local'
+'W52' : type=15 ('WVF_VAR'), val=WVF052, scope='local'
+'W53' : type=15 ('WVF_VAR'), val=WVF053, scope='local'
+'W54' : type=15 ('WVF_VAR'), val=WVF054, scope='local'
+'W55' : type=15 ('WVF_VAR'), val=WVF055, scope='local'
+'E01' : type=18 ('EWF_VAR'), val=EWF001, scope='local'
+'E02' : type=18 ('EWF_VAR'), val=EWF002, scope='local'
+'E03' : type=18 ('EWF_VAR'), val=EWF003, scope='local'
+'E04' : type=18 ('EWF_VAR'), val=EWF004, scope='local'
+'E05' : type=18 ('EWF_VAR'), val=EWF005, scope='local'
+'E11' : type=18 ('EWF_VAR'), val=EWF011, scope='local'
+'E12' : type=18 ('EWF_VAR'), val=EWF012, scope='local'
+'E13' : type=18 ('EWF_VAR'), val=EWF013, scope='local'
+'E14' : type=18 ('EWF_VAR'), val=EWF014, scope='local'
+'E15' : type=18 ('EWF_VAR'), val=EWF015, scope='local'
+'E21' : type=18 ('EWF_VAR'), val=EWF021, scope='local'
+'E22' : type=18 ('EWF_VAR'), val=EWF022, scope='local'
+'E23' : type=18 ('EWF_VAR'), val=EWF023, scope='local'
+'E24' : type=18 ('EWF_VAR'), val=EWF024, scope='local'
+'E25' : type=18 ('EWF_VAR'), val=EWF025, scope='local'
+'E31' : type=18 ('EWF_VAR'), val=EWF031, scope='local'
+'E32' : type=18 ('EWF_VAR'), val=EWF032, scope='local'
+'E33' : type=18 ('EWF_VAR'), val=EWF033, scope='local'
+'E34' : type=18 ('EWF_VAR'), val=EWF034, scope='local'
+'E35' : type=18 ('EWF_VAR'), val=EWF035, scope='local'
+'E41' : type=18 ('EWF_VAR'), val=EWF041, scope='local'
+'E42' : type=18 ('EWF_VAR'), val=EWF042, scope='local'
+'E43' : type=18 ('EWF_VAR'), val=EWF043, scope='local'
+'E44' : type=18 ('EWF_VAR'), val=EWF044, scope='local'
+'E45' : type=18 ('EWF_VAR'), val=EWF045, scope='local'
+'E51' : type=18 ('EWF_VAR'), val=EWF051, scope='local'
+'E52' : type=18 ('EWF_VAR'), val=EWF052, scope='local'
+'E53' : type=18 ('EWF_VAR'), val=EWF053, scope='local'
+'E54' : type=18 ('EWF_VAR'), val=EWF054, scope='local'
+'E55' : type=18 ('EWF_VAR'), val=EWF055, scope='local'
+'S06' : type=16 ('SWF_VAR'), val=SWF006, scope='local'
+'S07' : type=16 ('SWF_VAR'), val=SWF007, scope='local'
+'S08' : type=16 ('SWF_VAR'), val=SWF008, scope='local'
+'S09' : type=16 ('SWF_VAR'), val=SWF009, scope='local'
+'S10' : type=16 ('SWF_VAR'), val=SWF010, scope='local'
+'S16' : type=16 ('SWF_VAR'), val=SWF016, scope='local'
+'S17' : type=16 ('SWF_VAR'), val=SWF017, scope='local'
+'S18' : type=16 ('SWF_VAR'), val=SWF018, scope='local'
+'S19' : type=16 ('SWF_VAR'), val=SWF019, scope='local'
+'S20' : type=16 ('SWF_VAR'), val=SWF020, scope='local'
+'S26' : type=16 ('SWF_VAR'), val=SWF026, scope='local'
+'S27' : type=16 ('SWF_VAR'), val=SWF027, scope='local'
+'S28' : type=16 ('SWF_VAR'), val=SWF028, scope='local'
+'S29' : type=16 ('SWF_VAR'), val=SWF029, scope='local'
+'S30' : type=16 ('SWF_VAR'), val=SWF030, scope='local'
+'S36' : type=16 ('SWF_VAR'), val=SWF036, scope='local'
+'S37' : type=16 ('SWF_VAR'), val=SWF037, scope='local'
+'S38' : type=16 ('SWF_VAR'), val=SWF038, scope='local'
+'S39' : type=16 ('SWF_VAR'), val=SWF039, scope='local'
+'S40' : type=16 ('SWF_VAR'), val=SWF040, scope='local'
+'S46' : type=16 ('SWF_VAR'), val=SWF046, scope='local'
+'S47' : type=16 ('SWF_VAR'), val=SWF047, scope='local'
+'S48' : type=16 ('SWF_VAR'), val=SWF048, scope='local'
+'S49' : type=16 ('SWF_VAR'), val=SWF049, scope='local'
+'S50' : type=16 ('SWF_VAR'), val=SWF050, scope='local'
+'S56' : type=16 ('SWF_VAR'), val=SWF056, scope='local'
+'S57' : type=16 ('SWF_VAR'), val=SWF057, scope='local'
+'S58' : type=16 ('SWF_VAR'), val=SWF058, scope='local'
+'S59' : type=16 ('SWF_VAR'), val=SWF059, scope='local'
+'S60' : type=16 ('SWF_VAR'), val=SWF060, scope='local'
+'M06' : type=17 ('MWF_VAR'), val=MWF006, scope='local'
+'M07' : type=17 ('MWF_VAR'), val=MWF007, scope='local'
+'M08' : type=17 ('MWF_VAR'), val=MWF008, scope='local'
+'M09' : type=17 ('MWF_VAR'), val=MWF009, scope='local'
+'M10' : type=17 ('MWF_VAR'), val=MWF010, scope='local'
+'M16' : type=17 ('MWF_VAR'), val=MWF016, scope='local'
+'M17' : type=17 ('MWF_VAR'), val=MWF017, scope='local'
+'M18' : type=17 ('MWF_VAR'), val=MWF018, scope='local'
+'M19' : type=17 ('MWF_VAR'), val=MWF019, scope='local'
+'M20' : type=17 ('MWF_VAR'), val=MWF020, scope='local'
+'M26' : type=17 ('MWF_VAR'), val=MWF026, scope='local'
+'M27' : type=17 ('MWF_VAR'), val=MWF027, scope='local'
+'M28' : type=17 ('MWF_VAR'), val=MWF028, scope='local'
+'M29' : type=17 ('MWF_VAR'), val=MWF029, scope='local'
+'M30' : type=17 ('MWF_VAR'), val=MWF030, scope='local'
+'M36' : type=17 ('MWF_VAR'), val=MWF036, scope='local'
+'M37' : type=17 ('MWF_VAR'), val=MWF037, scope='local'
+'M38' : type=17 ('MWF_VAR'), val=MWF038, scope='local'
+'M39' : type=17 ('MWF_VAR'), val=MWF039, scope='local'
+'M40' : type=17 ('MWF_VAR'), val=MWF040, scope='local'
+'M46' : type=17 ('MWF_VAR'), val=MWF046, scope='local'
+'M47' : type=17 ('MWF_VAR'), val=MWF047, scope='local'
+'M48' : type=17 ('MWF_VAR'), val=MWF048, scope='local'
+'M49' : type=17 ('MWF_VAR'), val=MWF049, scope='local'
+'M50' : type=17 ('MWF_VAR'), val=MWF050, scope='local'
+'M56' : type=17 ('MWF_VAR'), val=MWF056, scope='local'
+'M57' : type=17 ('MWF_VAR'), val=MWF057, scope='local'
+'M58' : type=17 ('MWF_VAR'), val=MWF058, scope='local'
+'M59' : type=17 ('MWF_VAR'), val=MWF059, scope='local'
+'M60' : type=17 ('MWF_VAR'), val=MWF060, scope='local'
+'W06' : type=15 ('WVF_VAR'), val=WVF006, scope='local'
+'W07' : type=15 ('WVF_VAR'), val=WVF007, scope='local'
+'W08' : type=15 ('WVF_VAR'), val=WVF008, scope='local'
+'W09' : type=15 ('WVF_VAR'), val=WVF009, scope='local'
+'W10' : type=15 ('WVF_VAR'), val=WVF010, scope='local'
+'W16' : type=15 ('WVF_VAR'), val=WVF016, scope='local'
+'W17' : type=15 ('WVF_VAR'), val=WVF017, scope='local'
+'W18' : type=15 ('WVF_VAR'), val=WVF018, scope='local'
+'W19' : type=15 ('WVF_VAR'), val=WVF019, scope='local'
+'W20' : type=15 ('WVF_VAR'), val=WVF020, scope='local'
+'W26' : type=15 ('WVF_VAR'), val=WVF026, scope='local'
+'W27' : type=15 ('WVF_VAR'), val=WVF027, scope='local'
+'W28' : type=15 ('WVF_VAR'), val=WVF028, scope='local'
+'W29' : type=15 ('WVF_VAR'), val=WVF029, scope='local'
+'W30' : type=15 ('WVF_VAR'), val=WVF030, scope='local'
+'W36' : type=15 ('WVF_VAR'), val=WVF036, scope='local'
+'W37' : type=15 ('WVF_VAR'), val=WVF037, scope='local'
+'W38' : type=15 ('WVF_VAR'), val=WVF038, scope='local'
+'W39' : type=15 ('WVF_VAR'), val=WVF039, scope='local'
+'W40' : type=15 ('WVF_VAR'), val=WVF040, scope='local'
+'W46' : type=15 ('WVF_VAR'), val=WVF046, scope='local'
+'W47' : type=15 ('WVF_VAR'), val=WVF047, scope='local'
+'W48' : type=15 ('WVF_VAR'), val=WVF048, scope='local'
+'W49' : type=15 ('WVF_VAR'), val=WVF049, scope='local'
+'W50' : type=15 ('WVF_VAR'), val=WVF050, scope='local'
+'W56' : type=15 ('WVF_VAR'), val=WVF056, scope='local'
+'W57' : type=15 ('WVF_VAR'), val=WVF057, scope='local'
+'W58' : type=15 ('WVF_VAR'), val=WVF058, scope='local'
+'W59' : type=15 ('WVF_VAR'), val=WVF059, scope='local'
+'W60' : type=15 ('WVF_VAR'), val=WVF060, scope='local'
+'E06' : type=18 ('EWF_VAR'), val=EWF006, scope='local'
+'E07' : type=18 ('EWF_VAR'), val=EWF007, scope='local'
+'E08' : type=18 ('EWF_VAR'), val=EWF008, scope='local'
+'E09' : type=18 ('EWF_VAR'), val=EWF009, scope='local'
+'E10' : type=18 ('EWF_VAR'), val=EWF010, scope='local'
+'E16' : type=18 ('EWF_VAR'), val=EWF016, scope='local'
+'E17' : type=18 ('EWF_VAR'), val=EWF017, scope='local'
+'E18' : type=18 ('EWF_VAR'), val=EWF018, scope='local'
+'E19' : type=18 ('EWF_VAR'), val=EWF019, scope='local'
+'E20' : type=18 ('EWF_VAR'), val=EWF020, scope='local'
+'E26' : type=18 ('EWF_VAR'), val=EWF026, scope='local'
+'E27' : type=18 ('EWF_VAR'), val=EWF027, scope='local'
+'E28' : type=18 ('EWF_VAR'), val=EWF028, scope='local'
+'E29' : type=18 ('EWF_VAR'), val=EWF029, scope='local'
+'E30' : type=18 ('EWF_VAR'), val=EWF030, scope='local'
+'E36' : type=18 ('EWF_VAR'), val=EWF036, scope='local'
+'E37' : type=18 ('EWF_VAR'), val=EWF037, scope='local'
+'E38' : type=18 ('EWF_VAR'), val=EWF038, scope='local'
+'E39' : type=18 ('EWF_VAR'), val=EWF039, scope='local'
+'E40' : type=18 ('EWF_VAR'), val=EWF040, scope='local'
+'E46' : type=18 ('EWF_VAR'), val=EWF046, scope='local'
+'E47' : type=18 ('EWF_VAR'), val=EWF047, scope='local'
+'E48' : type=18 ('EWF_VAR'), val=EWF048, scope='local'
+'E49' : type=18 ('EWF_VAR'), val=EWF049, scope='local'
+'E50' : type=18 ('EWF_VAR'), val=EWF050, scope='local'
+'E56' : type=18 ('EWF_VAR'), val=EWF056, scope='local'
+'E57' : type=18 ('EWF_VAR'), val=EWF057, scope='local'
+'E58' : type=18 ('EWF_VAR'), val=EWF058, scope='local'
+'E59' : type=18 ('EWF_VAR'), val=EWF059, scope='local'
+'E60' : type=18 ('EWF_VAR'), val=EWF060, scope='local'
+
+============================================================
+* binary buffer infomation
+============================================================
+* Information for 'T_VAR'
+'T001' : attr=0x0003, refer=2 Dandy-1996='T01'
+'T002' : attr=0x0003, refer=6 Dandy-1996='T02'
+'T003' : attr=0x0003, refer=4 Dandy-1996='T03'
+'T004' : attr=0x0003, refer=4 Dandy-1996='T04'
+'T005' : attr=0x0003, refer=2 Dandy-1996='T05'
+'T006' : attr=0x0003, refer=1 Dandy-1996='T06'
+'T007' : attr=0x0003, refer=0 Dandy-1996='T07'
+'T008' : attr=0x0003, refer=0 Dandy-1996='T08'
+'T009' : attr=0x0003, refer=3 Dandy-1996='T09'
+'T010' : attr=0x0003, refer=1 Dandy-1996='T10'
+'T011' : attr=0x0003, refer=4 Dandy-1996='T11'
+'T012' : attr=0x0003, refer=1 Dandy-1996='T12'
+'T013' : attr=0x0003, refer=1 Dandy-1996='T13'
+'T014' : attr=0x0003, refer=1 Dandy-1996='T14'
+'T015' : attr=0x0003, refer=0 Dandy-1996='T15'
+'T016' : attr=0x0003, refer=1 Dandy-1996='T16'
+'T017' : attr=0x0003, refer=3 Dandy-1996='T17'
+'T018' : attr=0x0003, refer=2 Dandy-1996='T18'
+'T019' : attr=0x0003, refer=1 Dandy-1996='T19'
+'T020' : attr=0x0003, refer=1 Dandy-1996='T20'
+'T021' : attr=0x0003, refer=4 Dandy-1996='T21'
+'T022' : attr=0x0003, refer=1 Dandy-1996='T22'
+'T023' : attr=0x0003, refer=1 Dandy-1996='T23'
+'T024' : attr=0x0003, refer=1 Dandy-1996='T24'
+'T025' : attr=0x0003, refer=1 Dandy-1996='T25'
+'T026' : attr=0x0003, refer=0 Dandy-1996='T26'
+* Information for 'WVF_VAR'
+'WVF001' : attr=0x0003, refer=0 Dandy-1996='W01'
+'WVF002' : attr=0x0003, refer=0 Dandy-1996='W02'
+'WVF003' : attr=0x0003, refer=0 Dandy-1996='W03'
+'WVF004' : attr=0x0003, refer=0 Dandy-1996='W04'
+'WVF005' : attr=0x0003, refer=0 Dandy-1996='W05'
+'WVF006' : attr=0x0003, refer=2 Dandy-1996='W06'
+'WVF007' : attr=0x0003, refer=0 Dandy-1996='W07'
+'WVF008' : attr=0x0003, refer=0 Dandy-1996='W08'
+'WVF009' : attr=0x0003, refer=0 Dandy-1996='W09'
+'WVF010' : attr=0x0003, refer=0 Dandy-1996='W10'
+'WVF011' : attr=0x0003, refer=0 Dandy-1996='W11'
+'WVF012' : attr=0x0003, refer=0 Dandy-1996='W12'
+'WVF013' : attr=0x0003, refer=0 Dandy-1996='W13'
+'WVF014' : attr=0x0003, refer=0 Dandy-1996='W14'
+'WVF015' : attr=0x0003, refer=0 Dandy-1996='W15'
+'WVF016' : attr=0x0003, refer=0 Dandy-1996='W16'
+'WVF017' : attr=0x0003, refer=0 Dandy-1996='W17'
+'WVF018' : attr=0x0003, refer=0 Dandy-1996='W18'
+'WVF019' : attr=0x0003, refer=0 Dandy-1996='W19'
+'WVF020' : attr=0x0003, refer=0 Dandy-1996='W20'
+'WVF021' : attr=0x0003, refer=0 Dandy-1996='W21'
+'WVF022' : attr=0x0003, refer=0 Dandy-1996='W22'
+'WVF023' : attr=0x0003, refer=0 Dandy-1996='W23'
+'WVF024' : attr=0x0003, refer=0 Dandy-1996='W24'
+'WVF025' : attr=0x0003, refer=0 Dandy-1996='W25'
+'WVF026' : attr=0x0003, refer=0 Dandy-1996='W26'
+'WVF027' : attr=0x0003, refer=0 Dandy-1996='W27'
+'WVF028' : attr=0x0003, refer=0 Dandy-1996='W28'
+'WVF029' : attr=0x0003, refer=0 Dandy-1996='W29'
+'WVF030' : attr=0x0003, refer=0 Dandy-1996='W30'
+'WVF031' : attr=0x0003, refer=0 Dandy-1996='W31'
+'WVF032' : attr=0x0003, refer=0 Dandy-1996='W32'
+'WVF033' : attr=0x0003, refer=0 Dandy-1996='W33'
+'WVF034' : attr=0x0003, refer=0 Dandy-1996='W34'
+'WVF035' : attr=0x0003, refer=0 Dandy-1996='W35'
+'WVF036' : attr=0x0003, refer=0 Dandy-1996='W36'
+'WVF037' : attr=0x0003, refer=0 Dandy-1996='W37'
+'WVF038' : attr=0x0003, refer=0 Dandy-1996='W38'
+'WVF039' : attr=0x0003, refer=0 Dandy-1996='W39'
+'WVF040' : attr=0x0003, refer=0 Dandy-1996='W40'
+'WVF041' : attr=0x0003, refer=0 Dandy-1996='W41'
+'WVF042' : attr=0x0003, refer=0 Dandy-1996='W42'
+'WVF043' : attr=0x0003, refer=0 Dandy-1996='W43'
+'WVF044' : attr=0x0003, refer=0 Dandy-1996='W44'
+'WVF045' : attr=0x0003, refer=0 Dandy-1996='W45'
+'WVF046' : attr=0x0003, refer=0 Dandy-1996='W46'
+'WVF047' : attr=0x0003, refer=0 Dandy-1996='W47'
+'WVF048' : attr=0x0003, refer=0 Dandy-1996='W48'
+'WVF049' : attr=0x0003, refer=0 Dandy-1996='W49'
+'WVF050' : attr=0x0003, refer=0 Dandy-1996='W50'
+'WVF051' : attr=0x0003, refer=0 Dandy-1996='W51'
+'WVF052' : attr=0x0003, refer=0 Dandy-1996='W52'
+'WVF053' : attr=0x0003, refer=0 Dandy-1996='W53'
+'WVF054' : attr=0x0003, refer=0 Dandy-1996='W54'
+'WVF055' : attr=0x0003, refer=0 Dandy-1996='W55'
+'WVF056' : attr=0x0003, refer=0 Dandy-1996='W56'
+'WVF057' : attr=0x0003, refer=0 Dandy-1996='W57'
+'WVF058' : attr=0x0003, refer=0 Dandy-1996='W58'
+'WVF059' : attr=0x0003, refer=0 Dandy-1996='W59'
+'WVF060' : attr=0x0003, refer=0 Dandy-1996='W60'
+* Information for 'SWF_VAR'
+'SWF001' : attr=0x0003, refer=0 Dandy-1996='S01'
+'SWF002' : attr=0x0003, refer=1 Dandy-1996='S02'
+'SWF003' : attr=0x0003, refer=0 Dandy-1996='S03'
+'SWF004' : attr=0x0003, refer=0 Dandy-1996='S04'
+'SWF005' : attr=0x0003, refer=0 Dandy-1996='S05'
+'SWF006' : attr=0x0003, refer=1 Dandy-1996='S06'
+'SWF007' : attr=0x0003, refer=1 Dandy-1996='S07'
+'SWF008' : attr=0x0003, refer=0 Dandy-1996='S08'
+'SWF009' : attr=0x0003, refer=0 Dandy-1996='S09'
+'SWF010' : attr=0x0003, refer=0 Dandy-1996='S10'
+'SWF011' : attr=0x0003, refer=0 Dandy-1996='S11'
+'SWF012' : attr=0x0003, refer=0 Dandy-1996='S12'
+'SWF013' : attr=0x0003, refer=0 Dandy-1996='S13'
+'SWF014' : attr=0x0003, refer=0 Dandy-1996='S14'
+'SWF015' : attr=0x0003, refer=0 Dandy-1996='S15'
+'SWF016' : attr=0x0003, refer=0 Dandy-1996='S16'
+'SWF017' : attr=0x0003, refer=0 Dandy-1996='S17'
+'SWF018' : attr=0x0003, refer=0 Dandy-1996='S18'
+'SWF019' : attr=0x0003, refer=0 Dandy-1996='S19'
+'SWF020' : attr=0x0003, refer=0 Dandy-1996='S20'
+'SWF021' : attr=0x0003, refer=0 Dandy-1996='S21'
+'SWF022' : attr=0x0003, refer=0 Dandy-1996='S22'
+'SWF023' : attr=0x0003, refer=0 Dandy-1996='S23'
+'SWF024' : attr=0x0003, refer=0 Dandy-1996='S24'
+'SWF025' : attr=0x0003, refer=0 Dandy-1996='S25'
+'SWF026' : attr=0x0003, refer=0 Dandy-1996='S26'
+'SWF027' : attr=0x0003, refer=0 Dandy-1996='S27'
+'SWF028' : attr=0x0003, refer=0 Dandy-1996='S28'
+'SWF029' : attr=0x0003, refer=0 Dandy-1996='S29'
+'SWF030' : attr=0x0003, refer=0 Dandy-1996='S30'
+'SWF031' : attr=0x0003, refer=0 Dandy-1996='S31'
+'SWF032' : attr=0x0003, refer=0 Dandy-1996='S32'
+'SWF033' : attr=0x0003, refer=0 Dandy-1996='S33'
+'SWF034' : attr=0x0003, refer=0 Dandy-1996='S34'
+'SWF035' : attr=0x0003, refer=0 Dandy-1996='S35'
+'SWF036' : attr=0x0003, refer=0 Dandy-1996='S36'
+'SWF037' : attr=0x0003, refer=0 Dandy-1996='S37'
+'SWF038' : attr=0x0003, refer=0 Dandy-1996='S38'
+'SWF039' : attr=0x0003, refer=0 Dandy-1996='S39'
+'SWF040' : attr=0x0003, refer=0 Dandy-1996='S40'
+'SWF041' : attr=0x0003, refer=0 Dandy-1996='S41'
+'SWF042' : attr=0x0003, refer=0 Dandy-1996='S42'
+'SWF043' : attr=0x0003, refer=0 Dandy-1996='S43'
+'SWF044' : attr=0x0003, refer=0 Dandy-1996='S44'
+'SWF045' : attr=0x0003, refer=0 Dandy-1996='S45'
+'SWF046' : attr=0x0003, refer=0 Dandy-1996='S46'
+'SWF047' : attr=0x0003, refer=0 Dandy-1996='S47'
+'SWF048' : attr=0x0003, refer=0 Dandy-1996='S48'
+'SWF049' : attr=0x0003, refer=0 Dandy-1996='S49'
+'SWF050' : attr=0x0003, refer=0 Dandy-1996='S50'
+'SWF051' : attr=0x0003, refer=0 Dandy-1996='S51'
+'SWF052' : attr=0x0003, refer=0 Dandy-1996='S52'
+'SWF053' : attr=0x0003, refer=0 Dandy-1996='S53'
+'SWF054' : attr=0x0003, refer=0 Dandy-1996='S54'
+'SWF055' : attr=0x0003, refer=0 Dandy-1996='S55'
+'SWF056' : attr=0x0003, refer=0 Dandy-1996='S56'
+'SWF057' : attr=0x0003, refer=0 Dandy-1996='S57'
+'SWF058' : attr=0x0003, refer=0 Dandy-1996='S58'
+'SWF059' : attr=0x0003, refer=0 Dandy-1996='S59'
+'SWF060' : attr=0x0003, refer=0 Dandy-1996='S60'
+* Information for 'MWF_VAR'
+'MWF001' : attr=0x0003, refer=1 Dandy-1996='M01'
+'MWF002' : attr=0x0003, refer=0 Dandy-1996='M02'
+'MWF003' : attr=0x0003, refer=1 Dandy-1996='M03'
+'MWF004' : attr=0x0003, refer=0 Dandy-1996='M04'
+'MWF005' : attr=0x0003, refer=0 Dandy-1996='M05'
+'MWF006' : attr=0x0003, refer=2 Dandy-1996='M06'
+'MWF007' : attr=0x0003, refer=0 Dandy-1996='M07'
+'MWF008' : attr=0x0003, refer=0 Dandy-1996='M08'
+'MWF009' : attr=0x0003, refer=2 Dandy-1996='M09'
+'MWF010' : attr=0x0003, refer=2 Dandy-1996='M10'
+'MWF011' : attr=0x0003, refer=0 Dandy-1996='M11'
+'MWF012' : attr=0x0003, refer=0 Dandy-1996='M12'
+'MWF013' : attr=0x0003, refer=0 Dandy-1996='M13'
+'MWF014' : attr=0x0003, refer=0 Dandy-1996='M14'
+'MWF015' : attr=0x0003, refer=0 Dandy-1996='M15'
+'MWF016' : attr=0x0003, refer=0 Dandy-1996='M16'
+'MWF017' : attr=0x0003, refer=0 Dandy-1996='M17'
+'MWF018' : attr=0x0003, refer=0 Dandy-1996='M18'
+'MWF019' : attr=0x0003, refer=0 Dandy-1996='M19'
+'MWF020' : attr=0x0003, refer=0 Dandy-1996='M20'
+'MWF021' : attr=0x0003, refer=0 Dandy-1996='M21'
+'MWF022' : attr=0x0003, refer=0 Dandy-1996='M22'
+'MWF023' : attr=0x0003, refer=0 Dandy-1996='M23'
+'MWF024' : attr=0x0003, refer=0 Dandy-1996='M24'
+'MWF025' : attr=0x0003, refer=0 Dandy-1996='M25'
+'MWF026' : attr=0x0003, refer=0 Dandy-1996='M26'
+'MWF027' : attr=0x0003, refer=0 Dandy-1996='M27'
+'MWF028' : attr=0x0003, refer=0 Dandy-1996='M28'
+'MWF029' : attr=0x0003, refer=0 Dandy-1996='M29'
+'MWF030' : attr=0x0003, refer=0 Dandy-1996='M30'
+'MWF031' : attr=0x0003, refer=0 Dandy-1996='M31'
+'MWF032' : attr=0x0003, refer=0 Dandy-1996='M32'
+'MWF033' : attr=0x0003, refer=0 Dandy-1996='M33'
+'MWF034' : attr=0x0003, refer=0 Dandy-1996='M34'
+'MWF035' : attr=0x0003, refer=0 Dandy-1996='M35'
+'MWF036' : attr=0x0003, refer=0 Dandy-1996='M36'
+'MWF037' : attr=0x0003, refer=0 Dandy-1996='M37'
+'MWF038' : attr=0x0003, refer=0 Dandy-1996='M38'
+'MWF039' : attr=0x0003, refer=0 Dandy-1996='M39'
+'MWF040' : attr=0x0003, refer=0 Dandy-1996='M40'
+'MWF041' : attr=0x0003, refer=0 Dandy-1996='M41'
+'MWF042' : attr=0x0003, refer=0 Dandy-1996='M42'
+'MWF043' : attr=0x0003, refer=0 Dandy-1996='M43'
+'MWF044' : attr=0x0003, refer=0 Dandy-1996='M44'
+'MWF045' : attr=0x0003, refer=0 Dandy-1996='M45'
+'MWF046' : attr=0x0003, refer=0 Dandy-1996='M46'
+'MWF047' : attr=0x0003, refer=0 Dandy-1996='M47'
+'MWF048' : attr=0x0003, refer=0 Dandy-1996='M48'
+'MWF049' : attr=0x0003, refer=0 Dandy-1996='M49'
+'MWF050' : attr=0x0003, refer=0 Dandy-1996='M50'
+'MWF051' : attr=0x0003, refer=0 Dandy-1996='M51'
+'MWF052' : attr=0x0003, refer=0 Dandy-1996='M52'
+'MWF053' : attr=0x0003, refer=0 Dandy-1996='M53'
+'MWF054' : attr=0x0003, refer=0 Dandy-1996='M54'
+'MWF055' : attr=0x0003, refer=0 Dandy-1996='M55'
+'MWF056' : attr=0x0003, refer=0 Dandy-1996='M56'
+'MWF057' : attr=0x0003, refer=0 Dandy-1996='M57'
+'MWF058' : attr=0x0003, refer=0 Dandy-1996='M58'
+'MWF059' : attr=0x0003, refer=0 Dandy-1996='M59'
+'MWF060' : attr=0x0003, refer=0 Dandy-1996='M60'
+* Information for 'EWF_VAR'
+'EWF001' : attr=0x0003, refer=0 Dandy-1996='E01'
+'EWF002' : attr=0x0003, refer=1 Dandy-1996='E02'
+'EWF003' : attr=0x0003, refer=0 Dandy-1996='E03'
+'EWF004' : attr=0x0003, refer=0 Dandy-1996='E04'
+'EWF005' : attr=0x0003, refer=0 Dandy-1996='E05'
+'EWF006' : attr=0x0003, refer=0 Dandy-1996='E06'
+'EWF007' : attr=0x0003, refer=2 Dandy-1996='E07'
+'EWF008' : attr=0x0003, refer=0 Dandy-1996='E08'
+'EWF009' : attr=0x0003, refer=0 Dandy-1996='E09'
+'EWF010' : attr=0x0003, refer=0 Dandy-1996='E10'
+'EWF011' : attr=0x0003, refer=0 Dandy-1996='E11'
+'EWF012' : attr=0x0003, refer=0 Dandy-1996='E12'
+'EWF013' : attr=0x0003, refer=0 Dandy-1996='E13'
+'EWF014' : attr=0x0003, refer=0 Dandy-1996='E14'
+'EWF015' : attr=0x0003, refer=0 Dandy-1996='E15'
+'EWF016' : attr=0x0003, refer=0 Dandy-1996='E16'
+'EWF017' : attr=0x0003, refer=0 Dandy-1996='E17'
+'EWF018' : attr=0x0003, refer=0 Dandy-1996='E18'
+'EWF019' : attr=0x0003, refer=0 Dandy-1996='E19'
+'EWF020' : attr=0x0003, refer=0 Dandy-1996='E20'
+'EWF021' : attr=0x0003, refer=0 Dandy-1996='E21'
+'EWF022' : attr=0x0003, refer=0 Dandy-1996='E22'
+'EWF023' : attr=0x0003, refer=0 Dandy-1996='E23'
+'EWF024' : attr=0x0003, refer=0 Dandy-1996='E24'
+'EWF025' : attr=0x0003, refer=0 Dandy-1996='E25'
+'EWF026' : attr=0x0003, refer=0 Dandy-1996='E26'
+'EWF027' : attr=0x0003, refer=0 Dandy-1996='E27'
+'EWF028' : attr=0x0003, refer=0 Dandy-1996='E28'
+'EWF029' : attr=0x0003, refer=0 Dandy-1996='E29'
+'EWF030' : attr=0x0003, refer=0 Dandy-1996='E30'
+'EWF031' : attr=0x0003, refer=0 Dandy-1996='E31'
+'EWF032' : attr=0x0003, refer=0 Dandy-1996='E32'
+'EWF033' : attr=0x0003, refer=0 Dandy-1996='E33'
+'EWF034' : attr=0x0003, refer=0 Dandy-1996='E34'
+'EWF035' : attr=0x0003, refer=0 Dandy-1996='E35'
+'EWF036' : attr=0x0003, refer=0 Dandy-1996='E36'
+'EWF037' : attr=0x0003, refer=0 Dandy-1996='E37'
+'EWF038' : attr=0x0003, refer=0 Dandy-1996='E38'
+'EWF039' : attr=0x0003, refer=0 Dandy-1996='E39'
+'EWF040' : attr=0x0003, refer=0 Dandy-1996='E40'
+'EWF041' : attr=0x0003, refer=0 Dandy-1996='E41'
+'EWF042' : attr=0x0003, refer=0 Dandy-1996='E42'
+'EWF043' : attr=0x0003, refer=0 Dandy-1996='E43'
+'EWF044' : attr=0x0003, refer=0 Dandy-1996='E44'
+'EWF045' : attr=0x0003, refer=0 Dandy-1996='E45'
+'EWF046' : attr=0x0003, refer=0 Dandy-1996='E46'
+'EWF047' : attr=0x0003, refer=0 Dandy-1996='E47'
+'EWF048' : attr=0x0003, refer=0 Dandy-1996='E48'
+'EWF049' : attr=0x0003, refer=0 Dandy-1996='E49'
+'EWF050' : attr=0x0003, refer=0 Dandy-1996='E50'
+'EWF051' : attr=0x0003, refer=0 Dandy-1996='E51'
+'EWF052' : attr=0x0003, refer=0 Dandy-1996='E52'
+'EWF053' : attr=0x0003, refer=0 Dandy-1996='E53'
+'EWF054' : attr=0x0003, refer=0 Dandy-1996='E54'
+'EWF055' : attr=0x0003, refer=0 Dandy-1996='E55'
+'EWF056' : attr=0x0003, refer=0 Dandy-1996='E56'
+'EWF057' : attr=0x0003, refer=0 Dandy-1996='E57'
+'EWF058' : attr=0x0003, refer=0 Dandy-1996='E58'
+'EWF059' : attr=0x0003, refer=0 Dandy-1996='E59'
+'EWF060' : attr=0x0003, refer=0 Dandy-1996='E60'
+============================================================
+* command : 177
+============================================================
+000 0x0000 HOME   V=30(%) HF=1
+001 0x0000 GETPOS P001 X=0 Y=0 Z=0 CRD=WORLD
+002 0x0000 MOVL   T001 V=150 O=INCLINE PL=0 CRD=WORLD
+003 0x0000 MOVJ   T002 V=30(%) PL=0 CRD=WORLD
+004 0x0000 MOVL   T003 V=50 O=INCLINE PL=0 CRD=WORLD
+005 0x0000 MOVL   T004 V=30 O=INCLINE PL=0 CRD=WORLD
+006 0x0000 WIREB  V=2 T=2
+007 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+008 0x0000 IMOVL  X=0 Y=0 Z=16 V=30 PL=0 CRD=WORLD
+009 0x0000 WIREF  V=5 T=3 TCH=ON
+010 0x0000 WAIT   DIP000 == 0 T=1
+011 0x0000 MOVL   T004 V=30 O=INCLINE PL=0 CRD=WORLD
+012 0x0000 MOVL   T003 V=50 O=INCLINE PL=0 CRD=WORLD
+013 0x0000 MOVL   T005 V=30 O=INCLINE PL=0 CRD=WORLD
+014 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+015 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+016 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+017 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+018 0x0000 GETPOS P002 X=7 Y=0 Z=-7 CRD=WORLD
+019 0x0000 MOVL   T005 V=30 O=INCLINE PL=0 CRD=WORLD
+020 0x0000 MOVL   T006 V=30 O=INCLINE PL=0 CRD=WORLD
+021 0x0000 SET    B010 1
+022 0x0000 MOVL   T009 V=150 O=INCLINE PL=0 CRD=WORLD
+023 0x0000 MOVL   T010 V=150 O=INCLINE PL=0 CRD=WORLD
+024 0x0000 TOUCH  X=0 Y=1 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+025 0x0000 IMOVL  X=0 Y=-10 Z=0 V=30 PL=0 CRD=WORLD
+026 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+027 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+028 0x0000 GETPOS P003 X=7 Y=7 Z=0 CRD=WORLD
+029 0x0000 IMOVL  X=-20 Y=-20 Z=0 V=30 PL=0 CRD=WORLD
+030 0x0000 MOVL   T009 V=150 O=INCLINE PL=0 CRD=WORLD
+031 0x0000 SET    B010 0
+032 0x0000 MOVL   T011 V=50 O=INCLINE PL=0 CRD=WORLD
+033 0x0000 SET    B010 1
+034 0x0000 MOVL   T012 V=150 O=INCLINE PL=0 CRD=WORLD
+035 0x0000 TOUCH  X=0 Y=1 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+036 0x0000 IMOVL  X=0 Y=-10 Z=0 V=30 PL=0 CRD=WORLD
+037 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+038 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+039 0x0000 GETPOS P004 X=7 Y=7 Z=0 CRD=WORLD
+040 0x0000 SET    B010 0
+041 0x0000 MOVL   T013 V=50 O=INCLINE PL=0 CRD=WORLD
+042 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+043 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+044 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+045 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+046 0x0000 IMOVL  X=0 Y=40 Z=0 V=30 PL=0 CRD=WORLD
+047 0x0000 IMOVL  X=13 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+048 0x0000 TOUCH  X=0 Y=-1 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+049 0x0000 IMOVL  X=0 Y=10 Z=0 V=30 PL=0 CRD=WORLD
+050 0x0000 GETPOS P005 X=0 Y=0 Z=0 CRD=WORLD
+051 0x0000 GETPOS P006 X=0 Y=-6 Z=-7 CRD=WORLD
+052 0x0000 IMOVL  X=-6 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+053 0x0000 GETPOS P007 X=0 Y=-6 Z=-7 CRD=WORLD
+054 0x0000 IMOVL  X=-10 Y=-15 Z=10 V=30 PL=0 CRD=WORLD
+055 0x0000 MOVO   T014 V=100 PL=0 CRD=WORLD
+056 0x0000 IMOVL  X=0 Y=-10 Z=0 V=30 PL=0 CRD=WORLD
+057 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+058 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+059 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+060 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+061 0x0000 GETPOS P008 X=7 Y=10 Z=-7 CRD=WORLD
+062 0x0000 IMOVL  X=-30 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+063 0x0000 MOVL   T011 V=150 O=INCLINE PL=0 CRD=WORLD
+064 0x0000 MOVL   T003 V=50 O=INCLINE PL=0 CRD=WORLD
+065 0x0000 MOVL   T004 V=30 O=INCLINE PL=0 CRD=WORLD
+066 0x0000 WIREB  V=2 T=2
+067 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+068 0x0000 IMOVL  X=0 Y=0 Z=16 V=30 PL=0 CRD=WORLD
+069 0x0000 WIREF  V=5 T=3 TCH=ON
+070 0x0000 WAIT   DIP000 == 0 T=1
+071 0x0000 MOVL   T004 V=30 O=INCLINE PL=0 CRD=WORLD
+072 0x0000 MOVL   T003 V=50 O=INCLINE PL=0 CRD=WORLD
+073 0x0000 SET    B020 1
+074 0x0000 MOVL   T017 V=50 O=INCLINE PL=0 CRD=WORLD
+075 0x0000 MOVL   T018 V=50 O=INCLINE PL=0 CRD=WORLD
+076 0x0000 TOUCH  X=0 Y=-1 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+077 0x0000 IMOVL  X=0 Y=10 Z=0 V=30 PL=0 CRD=WORLD
+078 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+079 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+080 0x0000 IMOVL  X=0 Y=0 Z=40 V=30 PL=0 CRD=WORLD
+081 0x0000 MOVO   T019 V=100 PL=0 CRD=WORLD
+082 0x0000 IMOVL  X=16 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+083 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+084 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+085 0x0000 MOVO   T020 V=100 PL=0 CRD=WORLD
+086 0x0000 GETPOS P009 X=0 Y=0 Z=0 CRD=WORLD
+087 0x0000 GETPOS P010 X=0 Y=-7 Z=-7 CRD=WORLD
+088 0x0000 IMOVL  X=-16 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+089 0x0000 IMOVL  X=0 Y=0 Z=-12 V=30 PL=0 CRD=WORLD
+090 0x0000 MOVO   T018 V=100 PL=0 CRD=WORLD
+091 0x0000 GETPOS P011 X=7 Y=-7 Z=0 CRD=WORLD
+092 0x0000 MOVL   T017 V=150 O=INCLINE PL=0 CRD=WORLD
+093 0x0000 SET    B020 0
+094 0x0000 MOVL   T021 V=50 O=INCLINE PL=0 CRD=WORLD
+095 0x0000 SET    B020 1
+096 0x0000 MOVL   T022 V=50 O=INCLINE PL=0 CRD=WORLD
+097 0x0000 TOUCH  X=0 Y=-1 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+098 0x0000 IMOVL  X=0 Y=10 Z=0 V=30 PL=0 CRD=WORLD
+099 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+100 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+101 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+102 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+103 0x0000 GETPOS P012 X=7 Y=-7 Z=-7 CRD=WORLD
+104 0x0000 SET    B020 0
+105 0x0000 MOVL   T023 V=150 O=INCLINE PL=0 CRD=WORLD
+106 0x0000 TOUCH  X=0 Y=-1 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+107 0x0000 IMOVL  X=0 Y=10 Z=0 V=30 PL=0 CRD=WORLD
+108 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+109 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+110 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+111 0x0000 IMOVL  X=0 Y=0 Z=10 V=10 PL=0 CRD=WORLD
+112 0x0000 GETPOS P013 X=7 Y=-7 Z=-7 CRD=WORLD
+113 0x0000 MOVO   T024 V=100 PL=0 CRD=WORLD
+114 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+115 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+116 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+117 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+118 0x0000 GETPOS P014 X=7 Y=0 Z=-7 CRD=WORLD
+119 0x0000 MOVL   T025 V=100 O=INCLINE PL=0 CRD=WORLD
+120 0x0000 TOUCH  X=0 Y=0 Z=-1 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+121 0x0000 IMOVL  X=0 Y=0 Z=10 V=30 PL=0 CRD=WORLD
+122 0x0000 TOUCH  X=1 Y=0 Z=0 L=100 P=P000 F=BREAK V=20 CRD=WORLD
+123 0x0000 IMOVL  X=-10 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+124 0x0000 GETPOS P015 X=7 Y=0 Z=-7 CRD=WORLD
+125 0x0000 IMOVL  X=-30 Y=20 Z=0 V=30 PL=0 CRD=WORLD
+126 0x0000 MOVL   T021 V=100 O=INCLINE PL=0 CRD=WORLD
+127 0x0000 MOVL   T002 V=150 O=INCLINE PL=0 CRD=WORLD
+128 0x0000 SET    B010 1
+129 0x0000 MOVL   T011 V=150 O=INCLINE PL=0 CRD=WORLD
+130 0x0000 MOVL   P004 V=150 O=INCLINE PL=0 CRD=WORLD
+131 0x0000 SET    B004 1
+132 0x0000 ARCON  SWF=SWF007 MWF=MWF009 WWF=MWF006 SEN=FALSE
+133 0x0000 UWEAVL P003 WD=0 AD=40 ED=30 WVF=WVF006 CRD=WORLD
+134 0x0000 ARCSET MWF=MWF010 SEN=FALSE
+135 0x0000 ARCOFF EWF=EWF007
+136 0x0000 SET    B004 0
+137 0x0000 IMOVL  X=-30 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+138 0x0000 MOVL   T009 V=150 O=INCLINE PL=0 CRD=WORLD
+139 0x0000 SET    B010 0
+140 0x0000 MOVL   T002 V=150 O=INCLINE PL=0 CRD=WORLD
+141 0x0000 SET    B020 1
+142 0x0000 MOVL   T021 V=150 O=INCLINE PL=0 CRD=WORLD
+143 0x0000 MOVL   P012 V=150 O=INCLINE PL=0 CRD=WORLD
+144 0x0000 SET    B004 2
+145 0x0000 ARCON  SWF=SWF006 MWF=MWF009 WWF=MWF006 SEN=FALSE
+146 0x0000 UWEAVL P011 WD=40 AD=80 ED=30 WVF=WVF006 CRD=WORLD
+147 0x0000 ARCSET MWF=MWF010 SEN=FALSE
+148 0x0000 WAIT   DIP000 == 0 T=1
+149 0x0000 MOVL   P010 V=10 O=INCLINE PL=0 CRD=WORLD
+150 0x0000 ARCOFF EWF=EWF007
+151 0x0000 SET    B004 0
+152 0x0000 MOVL   P009 V=30 O=INCLINE PL=0 CRD=WORLD
+153 0x0000 IMOVL  X=-30 Y=0 Z=0 V=30 PL=0 CRD=WORLD
+154 0x0000 MOVL   T017 V=150 O=INCLINE PL=0 CRD=WORLD
+155 0x0000 SET    B020 0
+156 0x0000 MOVL   T002 V=150 O=INCLINE PL=0 CRD=WORLD
+157 0x0000 MOVL   T011 V=150 O=INCLINE PL=0 CRD=WORLD
+158 0x0000 MOVL   T016 V=150 O=INCLINE PL=0 CRD=WORLD
+159 0x0000 MOVL   P005 V=150 O=INCLINE PL=0 CRD=WORLD
+160 0x0000 MOVL   P006 V=150 O=INCLINE PL=0 CRD=WORLD
+161 0x0000 SET    B004 0
+162 0x0000 ARCON  SWF=SWF002 MWF=MWF003 SEN=FALSE
+163 0x0000 MOVL   P007 V=150 O=INCLINE PL=0 CRD=WORLD
+164 0x0000 MOVL   P008 V=150 O=INCLINE PL=0 CRD=WORLD
+165 0x0000 ARCSET MWF=MWF001 SEN=FALSE
+166 0x0000 MOVL   P002 V=50 O=INCLINE PL=0 CRD=WORLD
+167 0x0000 MOVL   P015 V=30 O=INCLINE PL=0 CRD=WORLD
+168 0x0000 MOVL   P014 V=30 O=INCLINE PL=0 CRD=WORLD
+169 0x0000 MOVL   P013 V=30 O=INCLINE PL=0 CRD=WORLD
+170 0x0000 ARCOFF EWF=EWF002
+171 0x0000 IMOVL  X=-50 Y=50 Z=10 V=30 PL=0 CRD=WORLD
+172 0x0000 MOVL   T021 V=50 O=INCLINE PL=0 CRD=WORLD
+173 0x0000 MOVL   T002 V=150 O=INCLINE PL=0 CRD=WORLD
+174 0x0000 MOVL   T002 V=150 O=INCLINE PL=0 CRD=WORLD
+175 0x0000 MOVJ   T001 V=30(%) PL=0 CRD=WORLD
+176 0x0000 MOVL   P001 V=150 O=INCLINE PL=0 CRD=WORLD
+
+============================================================
+* position : 26
+============================================================
+T001 JOINT 0.0241 0.2381 0.7363 0.0082 0.8582 0.0179 0 0 0 0 0 0 0 0 0 0
+T002 JOINT 0.0253 0.6409 0.7826 0.0344 -0.3764 -0.0101 0 0 0 0 0 0 0 0 0 0
+T003 JOINT 0.0253 0.6409 0.7826 0.0344 -0.3764 -0.0101 0 0 0 0 0 0 0 0 0 0
+T004 JOINT -0.2645 0.9113 0.3619 -1.6077 -0.4489 0.6261 0 0 0 0 0 0 0 0 0 0
+T005 JOINT 0.0334 1.6485 0.387 0.0337 -1.8258 0.0155 0 0 0 0 0 0 0 0 0 0
+T006 JOINT -0.0305 1.4246 0.6109 -0.0288 -1.6863 -0.0137 0 0 0 0 0 0 0 0 0 0
+T007 JOINT 0.4202 1.6314 0.3292 0.4153 -1.7184 0.1574 0 0 0 0 0 0 0 0 0 0
+T008 JOINT -0.187 1.645 0.3769 -0.1881 -1.8048 -0.0834 0 0 0 0 0 0 0 0 0 0
+T009 JOINT 0.2166 1.235 0.6458 -0.3311 -1.7397 -0.9108 0 0 0 0 0 0 0 0 0 0
+T010 JOINT 0.0856 0.3841 -0.5668 -1.938 -1.1475 -0.4425 0 0 0 0 0 0 0 0 0 0
+T011 JOINT 0.3281 0.8146 0.7404 -0.1906 -1.0011 -0.3696 0 0 0 0 0 0 0 0 0 0
+T012 JOINT 0.1027 1.2803 0.0641 -1.1594 -1.1093 -2.0628 0 0 0 0 0 0 0 0 0 0
+T013 JOINT 0.1928 1.4482 0.3049 -0.4876 -1.3774 -0.8667 0 0 0 0 0 0 0 0 0 0
+T014 JOINT 0.1928 1.4482 0.3049 -0.4876 -1.3774 -0.8667 0 0 0 0 0 0 0 0 0 0
+T015 JOINT 0.1928 1.4482 0.3049 -0.4876 -1.3774 -0.8667 0 0 0 0 0 0 0 0 0 0
+T016 JOINT 0.0707 1.371 -0.0542 -1.2389 -1.1937 -0.4418 0 0 0 0 0 0 0 0 0 0
+T017 JOINT 0.043 0.7221 0.7343 0.7962 -1.0168 0.2473 0 0 0 0 0 0 0 0 0 0
+T018 JOINT 0.034 0.8121 0.3555 1.3062 -1.1656 1.9238 0 0 0 0 0 0 0 0 0 0
+T019 JOINT -0.0722 1.1839 0.4417 0.8139 -1.7596 1.6991 0 0 0 0 0 0 0 0 0 0
+T020 JOINT 0.0387 1.265 0.1746 1.1293 -1.6876 1.1452 0 0 0 0 0 0 0 0 0 0
+T021 JOINT 0.043 0.9533 0.6433 0.7424 -1.1176 0.3587 0 0 0 0 0 0 0 0 0 0
+T022 JOINT 0.0446 1.6141 -0.2696 1.3436 -1.2 0.4835 0 0 0 0 0 0 0 0 0 0
+T023 JOINT 0.0258 1.5691 -0.1568 1.2383 -1.1907 0.781 0 0 0 0 0 0 0 0 0 0
+T024 JOINT -0.1285 1.4587 0.2085 0.6956 -1.2907 0.8419 0 0 0 0 0 0 0 0 0 0
+T025 JOINT -0.1307 1.495 0.3003 0.5258 -1.4496 0.8573 0 0 0 0 0 0 0 0 0 0
+T026 JOINT -0.2292 1.5587 0.2242 0.4504 -1.5016 0.6711 0 0 0 0 0 0 0 0 0 0
+
+============================================================
+* weaving condition : 60
+============================================================
+WVF001 WVF width=7 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF002 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF003 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF004 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF005 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF006 WVF width=8 pitch=3 speed=55 angle=45 dwell1=0.2 dwell2=0.2 start_width=12 start_pitch=3 start_speed=10 dwell3=0
+WVF007 WVF width=8 pitch=3 speed=55 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF008 WVF width=8 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF009 WVF width=8 pitch=3 speed=55 angle=45 dwell1=0.2 dwell2=0.2 start_width=9 start_pitch=3 start_speed=20 dwell3=0
+WVF010 WVF width=8 pitch=3 speed=55 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF011 WVF width=7 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF012 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF013 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF014 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF015 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF016 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=12 start_pitch=3 start_speed=10 dwell3=0
+WVF017 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=9 start_pitch=3 start_speed=20 dwell3=0
+WVF018 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF019 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=12 start_pitch=3 start_speed=20 dwell3=0
+WVF020 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF021 WVF width=7 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF022 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF023 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF024 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF025 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF026 WVF width=10 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=12 start_pitch=3 start_speed=10 dwell3=0
+WVF027 WVF width=10 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=9 start_pitch=3 start_speed=20 dwell3=0
+WVF028 WVF width=10 pitch=3 speed=50 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF029 WVF width=10 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=12 start_pitch=3 start_speed=20 dwell3=0
+WVF030 WVF width=10 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF031 WVF width=7 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF032 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF033 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF034 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF035 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF036 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=12 start_pitch=3 start_speed=10 dwell3=0
+WVF037 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=9 start_pitch=3 start_speed=20 dwell3=0
+WVF038 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF039 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=12 start_pitch=3 start_speed=20 dwell3=0
+WVF040 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF041 WVF width=7 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF042 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF043 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF044 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF045 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF046 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=12 start_pitch=3 start_speed=10 dwell3=0
+WVF047 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=9 start_pitch=3 start_speed=20 dwell3=0
+WVF048 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF049 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=12 start_pitch=3 start_speed=20 dwell3=0
+WVF050 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF051 WVF width=7 pitch=3 speed=55 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF052 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF053 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF054 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF055 WVF width=0 pitch=0 speed=0 angle=0 dwell1=0 dwell2=0 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF056 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=12 start_pitch=3 start_speed=10 dwell3=0
+WVF057 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.3 dwell2=0.3 start_width=9 start_pitch=3 start_speed=20 dwell3=0
+WVF058 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.1 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+WVF059 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=12 start_pitch=3 start_speed=20 dwell3=0
+WVF060 WVF width=9 pitch=3 speed=50 angle=45 dwell1=0.2 dwell2=0.2 start_width=0 start_pitch=0 start_speed=0 dwell3=0
+
+============================================================
+* welding condition : start=60, main=60, end=60
+============================================================
+SWF001 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF002 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF003 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF004 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF005 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF006 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF007 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF008 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF009 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF010 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF011 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF012 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF013 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF014 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF015 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF016 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF017 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF018 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF019 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF020 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF021 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF022 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF023 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF024 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF025 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF026 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF027 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF028 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF029 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF030 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF031 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF032 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF033 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF034 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF035 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF036 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF037 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF038 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF039 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF040 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF041 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF042 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF043 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF044 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF045 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF046 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF047 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF048 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF049 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF050 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF051 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF052 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF053 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF054 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF055 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF056 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF057 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+SWF058 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF059 SWF voltage=0 current=0 arctime=0 preflow=0 distance=0
+SWF060 SWF voltage=1 current=10 arctime=0.5 preflow=0.5 distance=0
+
+MWF001 MWF voltage=26 current=250 speed=4
+MWF002 MWF voltage=26 current=240 speed=5.5
+MWF003 MWF voltage=24 current=220 speed=4
+MWF004 MWF voltage=25 current=230 speed=4
+MWF005 MWF voltage=25 current=230 speed=5
+MWF006 MWF voltage=27.5 current=250 speed=0
+MWF007 MWF voltage=27.5 current=250 speed=0
+MWF008 MWF voltage=27.5 current=250 speed=0
+MWF009 MWF voltage=27 current=245 speed=0
+MWF010 MWF voltage=25 current=230 speed=2
+MWF011 MWF voltage=26 current=250 speed=4
+MWF012 MWF voltage=26 current=250 speed=4.5
+MWF013 MWF voltage=26 current=250 speed=3
+MWF014 MWF voltage=26 current=240 speed=3
+MWF015 MWF voltage=26 current=240 speed=4
+MWF016 MWF voltage=27.5 current=250 speed=0
+MWF017 MWF voltage=27.5 current=250 speed=0
+MWF018 MWF voltage=27.5 current=250 speed=0
+MWF019 MWF voltage=27 current=245 speed=0
+MWF020 MWF voltage=25 current=230 speed=2
+MWF021 MWF voltage=26 current=250 speed=4
+MWF022 MWF voltage=26 current=250 speed=4.5
+MWF023 MWF voltage=26 current=250 speed=3
+MWF024 MWF voltage=26 current=240 speed=3
+MWF025 MWF voltage=26 current=240 speed=4
+MWF026 MWF voltage=27.5 current=250 speed=0
+MWF027 MWF voltage=27.5 current=250 speed=0
+MWF028 MWF voltage=27.5 current=250 speed=0
+MWF029 MWF voltage=27 current=245 speed=0
+MWF030 MWF voltage=25 current=230 speed=2
+MWF031 MWF voltage=26 current=250 speed=4
+MWF032 MWF voltage=26 current=250 speed=4.5
+MWF033 MWF voltage=26 current=250 speed=3
+MWF034 MWF voltage=26 current=240 speed=3
+MWF035 MWF voltage=26 current=240 speed=4
+MWF036 MWF voltage=27.5 current=250 speed=0
+MWF037 MWF voltage=27.5 current=250 speed=0
+MWF038 MWF voltage=27.5 current=250 speed=0
+MWF039 MWF voltage=27 current=245 speed=0
+MWF040 MWF voltage=25 current=230 speed=2
+MWF041 MWF voltage=26 current=250 speed=4
+MWF042 MWF voltage=26 current=250 speed=4.5
+MWF043 MWF voltage=26 current=250 speed=3
+MWF044 MWF voltage=26 current=240 speed=3
+MWF045 MWF voltage=26 current=240 speed=4
+MWF046 MWF voltage=27.5 current=250 speed=0
+MWF047 MWF voltage=27.5 current=250 speed=0
+MWF048 MWF voltage=27.5 current=250 speed=0
+MWF049 MWF voltage=27 current=245 speed=0
+MWF050 MWF voltage=25 current=230 speed=2
+MWF051 MWF voltage=26 current=250 speed=4
+MWF052 MWF voltage=26 current=250 speed=4.5
+MWF053 MWF voltage=26 current=250 speed=3
+MWF054 MWF voltage=26 current=240 speed=3
+MWF055 MWF voltage=26 current=240 speed=4
+MWF056 MWF voltage=26 current=240 speed=0
+MWF057 MWF voltage=26 current=240 speed=0
+MWF058 MWF voltage=26 current=240 speed=0
+MWF059 MWF voltage=26 current=240 speed=0
+MWF060 MWF voltage=25 current=230 speed=2
+
+EWF001 EWF voltage=-7 current=-60 cratertime=0.2 postflow=0.5
+EWF002 EWF voltage=-4 current=-20 cratertime=0.2 postflow=0.5
+EWF003 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF004 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF005 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF006 EWF voltage=-6 current=-20 cratertime=0.2 postflow=0.5
+EWF007 EWF voltage=-4 current=-30 cratertime=0.2 postflow=0.5
+EWF008 EWF voltage=-7 current=-40 cratertime=0.2 postflow=0.5
+EWF009 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF010 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF011 EWF voltage=-5 current=-30 cratertime=0.2 postflow=0.5
+EWF012 EWF voltage=-4 current=-20 cratertime=0.2 postflow=0.5
+EWF013 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF014 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF015 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF016 EWF voltage=-7 current=-30 cratertime=0.2 postflow=0.5
+EWF017 EWF voltage=-4 current=-30 cratertime=0.2 postflow=0.5
+EWF018 EWF voltage=-7 current=-40 cratertime=0.2 postflow=0.5
+EWF019 EWF voltage=-6 current=-50 cratertime=0 postflow=0
+EWF020 EWF voltage=-4 current=-40 cratertime=0.2 postflow=1
+EWF021 EWF voltage=-5 current=-30 cratertime=0.2 postflow=0.5
+EWF022 EWF voltage=-4 current=-20 cratertime=0.2 postflow=0.5
+EWF023 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF024 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF025 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF026 EWF voltage=-7 current=-30 cratertime=0.2 postflow=0.5
+EWF027 EWF voltage=-4 current=-30 cratertime=0.2 postflow=0.5
+EWF028 EWF voltage=-7 current=-40 cratertime=0.2 postflow=0.5
+EWF029 EWF voltage=-6 current=-50 cratertime=0 postflow=0
+EWF030 EWF voltage=-4 current=-40 cratertime=0.2 postflow=1
+EWF031 EWF voltage=-5 current=-30 cratertime=0.2 postflow=0.5
+EWF032 EWF voltage=-4 current=-20 cratertime=0.2 postflow=0.5
+EWF033 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF034 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF035 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF036 EWF voltage=-7 current=-30 cratertime=0.2 postflow=0.5
+EWF037 EWF voltage=-4 current=-30 cratertime=0.2 postflow=0.5
+EWF038 EWF voltage=-7 current=-40 cratertime=0.2 postflow=0.5
+EWF039 EWF voltage=-6 current=-50 cratertime=0 postflow=0
+EWF040 EWF voltage=-4 current=-40 cratertime=0.2 postflow=1
+EWF041 EWF voltage=-5 current=-30 cratertime=0.2 postflow=0.5
+EWF042 EWF voltage=-4 current=-20 cratertime=0.2 postflow=0.5
+EWF043 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF044 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF045 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF046 EWF voltage=-7 current=-30 cratertime=0.2 postflow=0.5
+EWF047 EWF voltage=-4 current=-30 cratertime=0.2 postflow=0.5
+EWF048 EWF voltage=-7 current=-40 cratertime=0.2 postflow=0.5
+EWF049 EWF voltage=-6 current=-50 cratertime=0 postflow=0
+EWF050 EWF voltage=-4 current=-40 cratertime=0.2 postflow=1
+EWF051 EWF voltage=-5 current=-30 cratertime=0.2 postflow=0.5
+EWF052 EWF voltage=-4 current=-20 cratertime=0.2 postflow=0.5
+EWF053 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF054 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF055 EWF voltage=0 current=0 cratertime=0 postflow=0
+EWF056 EWF voltage=-7 current=-30 cratertime=0.2 postflow=0.5
+EWF057 EWF voltage=-4 current=-30 cratertime=0.2 postflow=0.5
+EWF058 EWF voltage=-7 current=-40 cratertime=0.2 postflow=0.5
+EWF059 EWF voltage=-6 current=-50 cratertime=0 postflow=0
+EWF060 EWF voltage=-4 current=-40 cratertime=0.2 postflow=1
+

@@ -1,0 +1,3 @@
+#Fri Aug 23 20:03:37 KST 2013
+prefWatchExpressions=<?xml version\="1.0" encoding\="UTF-8"?>\r\n<watchExpressions>\r\n<expression enabled\="true" text\="g_rgpszJobTargetFiles"/>\r\n<expression enabled\="true" text\="g_nJobTargetFileCount"/>\r\n<expression enabled\="true" text\="(*((g_rgpszJobTargetFiles)+0)@10)[0]"/>\r\n</watchExpressions>\r\n
+eclipse.preferences.version=1

@@ -1,0 +1,108 @@
+#
+#
+# GENERATED FILE - QNX System Builder Export
+#   Image Type:     ifs
+#   Image Sub-type: 
+#
+[search=D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\sbin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\sbin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\photon\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-finstall;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\bin;D:\QNX650\target\qnx6\x86\sbin;D:\QNX650\target\qnx6\x86\usr\bin;D:\QNX650\target\qnx6\x86\usr\sbin;D:\QNX650\target\qnx6\x86\usr\photon\bin;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\lib\dll;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\photon\dll;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-finstall;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\lib\dll;D:\QNX650\target\qnx6\x86\usr\photon\dll;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\usr\photon\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-finstall;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Reductions;D:\QNX650\target\qnx6\x86\lib;D:\QNX650\target\qnx6\x86\usr\lib;D:\QNX650\target\qnx6\x86\usr\photon\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\etc;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\etc;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\usr\photon;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\usr\lib;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\usr\share;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-finstall;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\etc;D:\QNX650\target\qnx6\etc;D:\QNX650\target\qnx6\usr\photon;D:\QNX650\target\qnx6\usr\lib;D:\QNX650\target\qnx6\usr\share;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\x86\boot\sys;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides\f19p-finstall;D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p\Overrides;D:\QNX650\target\qnx6\x86\boot\sys;]
+[compress=3]
+[virtual=x86,bios] .bootstrap = {
+    D:/QNX650/target/qnx6/x86/boot/sys/startup-bios -s64k
+     PATH=/proc/boot:/bin:/usr/bin LD_LIBRARY_PATH=/proc/boot:/lib:/usr/lib:/lib/dll D:/QNX650/target/qnx6/x86/boot/sys/procnto 
+}
+# Start-up script
+[+script] .script = {
+# To save memory make everyone use the libc in the boot image!
+# For speed (less symbolic lookups) we point to libc.so.3 instead of libc.so
+procmgr_symlink ../../proc/boot/libc.so.3 /usr/lib/ldqnx.so.2
+
+display_msg .
+display_msg Welcome to QNX Neutrino on F19P system
+
+# Start the pci server
+display_msg Start PCI server
+seedres
+pci-bios &
+waitfor /dev/pci
+
+display_msg Start diskboot
+# Default user programs to priorty 10, other scheduler (pri=10o)
+# Run 'inflator' on the QFS file mount point (/) when run from CD is selected
+# Tell "diskboot" to use DMA on IDE drives (-D1)
+# Start 4 text consoles buy passing "-n4" to "devc-con" (-o)
+# Disable access time to speed up installation
+# By adding "-e" linux ext2 filesystem will be mounted as well.
+[pri=10o] PATH=/proc/boot diskboot -i -D1 -odevc-con,-n4 -odevb-*,"blk noatime cd exe" -x devb-ahci
+}
+[dperms=0777 uid=0 gid=0]
+# Components
+
+[data=copy perms=0777] 
+
+libc.so = D:\QNX650\target\qnx6\x86\lib\libc.so
+libc.so.2 = D:\QNX650\target\qnx6\x86\lib\libc.so.2
+libhiddi.so = D:\QNX650\target\qnx6\x86\lib\libhiddi.so
+libusbdi.so = D:\QNX650\target\qnx6\x86\lib\libusbdi.so
+libcam.so = D:\QNX650\target\qnx6\x86\lib\libcam.so
+io-blk.so = D:\QNX650\target\qnx6\x86\lib\dll\io-blk.so
+cam-disk.so = D:\QNX650\target\qnx6\x86\lib\dll\cam-disk.so
+fs-qnx4.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-qnx4.so
+fs-qnx6.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-qnx6.so
+fs-dos.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-dos.so
+fs-ext2.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-ext2.so
+cam-cdrom.so = D:\QNX650\target\qnx6\x86\lib\dll\cam-cdrom.so
+fs-cd.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-cd.so
+fs-udf.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-udf.so
+fs-nt.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-nt.so
+fs-mac.so = D:\QNX650\target\qnx6\x86\lib\dll\fs-mac.so
+devu-ehci.so = D:\QNX650\target\qnx6\x86\lib\dll\devu-ehci.so
+devu-ohci.so = D:\QNX650\target\qnx6\x86\lib\dll\devu-ohci.so
+devu-uhci.so = D:\QNX650\target\qnx6\x86\lib\dll\devu-uhci.so
+devh-usb.so = D:\QNX650\target\qnx6\x86\lib\dll\devh-usb.so
+seedres = D:\QNX650\target\qnx6\x86\sbin\seedres
+pci-bios = D:\QNX650\target\qnx6\x86\sbin\pci-bios
+devb-eide = D:\QNX650\target\qnx6\x86\sbin\devb-eide
+devb-umass = D:\QNX650\target\qnx6\x86\sbin\devb-umass
+devb-ram = D:\QNX650\target\qnx6\x86\sbin\devb-ram
+devb-ahci = D:\QNX650\target\qnx6\x86\sbin\devb-ahci
+devb-mvSata = D:\QNX650\target\qnx6\x86\sbin\devb-mvSata
+devb-adpu320 = D:\QNX650\target\qnx6\x86\sbin\devb-adpu320
+devb-aha8 = D:\QNX650\target\qnx6\x86\sbin\devb-aha8
+umass-enum = D:\QNX650\target\qnx6\x86\sbin\umass-enum
+[search=${QNX_TARGET}/etc] umass-enum.cfg = D:\QNX650\target\qnx6\etc\umass-enum.cfg
+io-usb = D:\QNX650\target\qnx6\x86\sbin\io-usb
+io-hid = D:\QNX650\target\qnx6\x86\sbin\io-hid
+diskboot = D:\QNX650\target\qnx6\x86\sbin\diskboot
+slogger = D:\QNX650\target\qnx6\x86\usr\sbin\slogger
+fesh = D:\QNX650\target\qnx6\x86\bin\fesh
+devc-con = D:\QNX650\target\qnx6\x86\sbin\devc-con
+devc-con-hid = D:\QNX650\target\qnx6\x86\sbin\devc-con-hid
+finstall = D:\QNX650\target\qnx6\x86\usr\sbin\finstall
+mkqnx6fs = D:\QNX650\target\qnx6\x86\sbin\mkqnx6fs
+cp = D:\QNX650\target\qnx6\x86\bin\cp
+dloader = D:\QNX650\target\qnx6\x86\sbin\dloader
+dinit = D:\QNX650\target\qnx6\x86\sbin\dinit
+ipl-diskpc1 = D:\QNX650\target\qnx6\x86\boot\sys\ipl-diskpc1
+ipl-diskpc1-flop = D:\QNX650\target\qnx6\x86\boot\sys\ipl-diskpc1-flop
+ipl-diskpc2 = D:\QNX650\target\qnx6\x86\boot\sys\ipl-diskpc2
+ipl-diskpc2-flop = D:\QNX650\target\qnx6\x86\boot\sys\ipl-diskpc2-flop
+inflator = D:\QNX650\target\qnx6\x86\sbin\inflator
+
+[type=link] /bin/sh = /proc/boot/fesh
+unlink_list = {
+/proc/boot/devb-*
+}
+
+[perms=0775] /etc/system/trap/input.localhost = {
+devi-hid mouse kbd
+}
+
+
+[type=link] /etc/system/trap/unknown = /tmp/unknown
+[type=link] /etc/system/config/graphics-traplist = /tmp/graphics-traplist
+[type=link] /etc/system/setupisdone = /tmp/setupisdone
+/etc/system/enum/oem/graphics/ = D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\etc
+[search=../install/etc/system/enum/devices] /etc/system/enum/oem/net = D:\Work\Dandy2015_dev\robotmgr_ver0.11a_130723\bsp-menmikro-x86-f19p-src\install\etc\system\enum\devices\net
+[search=${QNX_TARGET}/../..] licenseCommercial.txt = install/qnxsdp/6.5.0/licenseCommercial.txt
+[search=${QNX_TARGET}/../..] licenseNonCommercial.txt = install/qnxsdp/6.5.0/licenseNonCommercial.txt
+[search=${QNX_TARGET}/../..] licensePartner.txt = install/qnxsdp/6.5.0/licensePartner.txt

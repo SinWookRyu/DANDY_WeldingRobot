@@ -1,0 +1,837 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  system_mon.c: System Monitoring
+//                                            2013.06.18  Ryu SinWook
+
+///////////////////////////////////////
+
+#include "robotmgr_main.h"
+
+///////////////////////////////////////
+
+#define VERBOSE_NAME    "RM_VERBOSE_"
+
+int g_nSiblingProcState_RM = -1;
+int g_nSiblingProcState_TE = -1;
+int g_nSiblingProcState_SC = -1;
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_localInit()
+//
+
+int _loc_SVC_localInit(char* szProcessName)
+{
+    static int nRet;
+    
+    // TE Connection Init
+    if(strcmp(szProcessName, TASKEXEC_ABB_NAME) == 0)
+    {
+        g_coidTEalive = MSG_AttachNamedConnection(TE_CHANNEL_NAME);
+
+        if(g_coidTEalive != INVALID_COID)
+            VERBOSE_VERBOSE("%s alive connected! coid = %d\n",
+                                                              TE_CHANNEL_NAME,
+                                                              g_coidTEalive);
+        nRet = MSG_SendPulse(g_coidTEalive, TESERV_LIFE_CHK, 0);
+
+        if(nRet != 1)
+        {
+            SVC_DefineErrorState(OFF, 0);
+        }
+        
+        g_coidTE = MSG_AttachNamedConnection(TE_CHANNEL_NAME);
+
+        if(g_coidTE!= INVALID_COID)
+            VERBOSE_VERBOSE("%s connected! coid = %d\n", TE_CHANNEL_NAME, g_coidTE);
+    }
+    // SC Connection Init
+    else if(strcmp(szProcessName, SERVOCON_ABB_NAME) == 0)
+    {
+        g_coidSCalive = MSG_AttachNamedConnection(SC_CHANNEL_NAME);
+
+        if(g_coidSCalive != INVALID_COID)
+            VERBOSE_VERBOSE("%s alive connected! coid = %d\n",
+                                                              SC_CHANNEL_NAME,
+                                                              g_coidSCalive);
+        nRet = MSG_SendPulse(g_coidSCalive, SC_SERV_ALIVE, 0);
+
+        if(nRet != 1)
+        {
+            SVC_DefineErrorState(OFF, 0);
+        }
+
+        g_coidSC = MSG_AttachNamedConnection(SC_CHANNEL_NAME);
+
+        if(g_coidSC!= INVALID_COID)
+            VERBOSE_VERBOSE("%s connected! coid = %d\n", SC_CHANNEL_NAME, g_coidSC);
+    }
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: SYSMON_SysAliveCheckThread()
+//      Error Code: SYS_ERR_PROC_ALIVE_RM
+//                  SYS_ERR_PROC_ALIVE_TE
+//                  SYS_ERR_PROC_ALIVE_SC
+
+THREAD_ENTRY_TYPE SYSMON_SysAliveCheckThread(void* pParam)
+{
+    static int nRet;
+    static int retSCcoid;
+    static int retTEcoid;
+    static int nForPrintTE;
+    static int nForPrintSC;
+    static int s_nCnt;
+
+    nForPrintTE = nForPrintSC = 0;
+    retSCcoid = retTEcoid = -1;
+    
+    g_coidTEalive = MSG_AttachNamedConnection(TE_CHANNEL_NAME);
+    g_coidSCalive = MSG_AttachNamedConnection(SC_CHANNEL_NAME);
+
+    while(g_fSysAliveThRun == RUN)
+	{
+        if(g_hShm_SysStatus != 0 && g_hShm_SysStatus != -1)
+        {
+            // check TE process alive
+            if(g_pShm_SysStatus->fInitProcTE == TRUE && 
+               g_pShm_SysStatus->fExitProcTE == FALSE && 
+               g_coidTEalive != INVALID_COID)
+            {
+                nRet = MSG_SendPulse(g_coidTEalive, TESERV_LIFE_CHK, 0);
+
+                if(nRet == -1)
+                {
+                    SVC_DefineErrorState(ON, SYS_ERR_PROC_ALIVE_TE);
+                    if(nForPrintTE ==0)
+                    {
+                        VERBOSE_VERBOSE("%s currently Not Alive! [ERR CODE: %d]\n",
+                                        TE_PROCESS_NAME, SYS_ERR_PROC_ALIVE_TE);
+                        nForPrintTE++;
+                    }
+                }
+                else
+                {
+                    SVC_DefineErrorState(OFF, 0);
+                }
+            }
+            // If Alive Check is Failed, Define Error State and Try to Connection Init
+            else if(g_coidTEalive == INVALID_COID && g_pShm_SysStatus->fExitProcTE != TRUE)
+            {
+                SVC_DefineErrorState(ON, SYS_ERR_PROC_ALIVE_TE);
+                if (g_Arg.fNoAutoInit == FALSE)
+                {
+                    _loc_SVC_localInit(TASKEXEC_ABB_NAME);
+                    //SVC_RetryInitProcessRM();
+                }
+            }
+
+            // check SC process alive
+            if(g_pShm_SysStatus->fInitProcSC == TRUE &&
+               g_pShm_SysStatus->fExitProcSC == FALSE && 
+               g_coidSCalive != INVALID_COID)
+            {
+                nRet = MSG_SendPulse(g_coidSCalive, SC_SERV_ALIVE, 0);
+
+                if(nRet == -1)
+                {
+                    // Process for Simultaneous Display
+                    if(g_pShm_SysStatus->nErrCode == SYS_ERR_PROC_ALIVE_TE && s_nCnt > 1)
+                    {
+                        SVC_DefineErrorState(ON, SYS_ERR_PROC_ALIVE_TE);
+                        s_nCnt = 0;
+                    }
+                    else
+                    {
+                        SVC_DefineErrorState(ON, SYS_ERR_PROC_ALIVE_SC);
+                    }
+                    s_nCnt++;
+
+                    if(nForPrintSC ==0)
+                    {
+                        VERBOSE_VERBOSE("%s currently Not Alive! [ERR CODE: %d]\n",
+                                        SC_PROCESS_NAME, SYS_ERR_PROC_ALIVE_SC);
+                        nForPrintSC++;
+                    }
+                }
+                else
+                {
+                    SVC_DefineErrorState(OFF, 0);
+                }
+            }
+            // If Alive Check is Failed, Define Error State and Try to Connection Init
+            else if(g_coidSCalive == INVALID_COID && g_pShm_SysStatus->fExitProcSC != TRUE)
+            {
+                if (g_Arg.fNoAutoInit == FALSE)
+                {
+                    _loc_SVC_localInit(SERVOCON_ABB_NAME);
+                    //SVC_RetryInitProcessRM();
+                }
+
+                if(g_pShm_SysStatus->nErrCode == SYS_ERR_PROC_ALIVE_TE && s_nCnt > 1)
+                {
+                    SVC_DefineErrorState(ON, SYS_ERR_PROC_ALIVE_TE);
+                    s_nCnt = 0;
+                }
+                else
+                {
+                    SVC_DefineErrorState(ON, SYS_ERR_PROC_ALIVE_SC);
+                }
+                s_nCnt++;
+            }
+        }
+
+        if (g_Arg.fNoAutoInit == FALSE)
+        {
+            if(g_pShm_SysStatus->fExitProcTE == TRUE)
+            {
+                MSG_CloseSiblingConnection(g_coidTE, g_coidTEalive);
+            }
+
+            if(g_pShm_SysStatus->fExitProcSC == TRUE)
+            {
+                MSG_CloseSiblingConnection(g_coidSC, g_coidSCalive);
+            }
+        }
+
+        while(g_fSysAliveThRun == PAUSE)
+        {
+            DANDY_SLEEP(500);
+        }
+
+        DANDY_SLEEP(1500);
+    }
+
+    g_fSysAliveThExit = TRUE;
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SYSMON_ParceErrCodeToErrContent()
+//      - Service Name: RMGR_SERV_SYSSTATE
+
+int SYSMON_ParceErrCodeToErrContent(int s_nErrCode)
+{
+    if(s_nErrCode == SYS_ERR_INIT_SYSTEM)                    //error code: 1
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_SYSTEM     ");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_RM)                   //error code: 2
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_RM         ");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_TE)                   //error code: 3
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_TE         ");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_SC)                   //error code: 4
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_SC         ");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_SERVO_FAIL)           //error code: 5
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_SERVO_FAIL ");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_MOTION_FAIL)          //error code: 6
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_MOTION_FAIL");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_SENSOR_FAIL)          //error code: 7
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_SENSOR_FAIL");
+    }
+    else if(s_nErrCode == SYS_ERR_INIT_WELDER_FAIL)          //error code: 8
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_INIT_WELDER_FAIL");
+    }
+    else if(s_nErrCode == SYS_ERR_FINALIZE_SYSTEM)           //error code: 9
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_FINALIZE_SYSTEM ");
+    }
+    else if(s_nErrCode == SYS_ERR_FINALIZE_RM)               //error code: 10
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_FINALIZE_RM     ");
+    }
+    else if(s_nErrCode == SYS_ERR_FINALIZE_TE)               //error code: 11
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_FINALIZE_TE     ");
+    }
+    else if(s_nErrCode == SYS_ERR_FINALIZE_SC)               //error code: 12
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_FINALIZE_SC     ");
+    }
+    else if(s_nErrCode == SYS_ERR_PROC_ALIVE_RM)             //error code: 13
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_PROC_ALIVE_RM   ");
+    }
+    else if(s_nErrCode == SYS_ERR_PROC_ALIVE_TE)             //error code: 14
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_PROC_ALIVE_TE   ");
+    }
+    else if(s_nErrCode == SYS_ERR_PROC_ALIVE_SC)             //error code: 15
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_PROC_ALIVE_SC   ");
+    }
+    else if(s_nErrCode == SYS_ERR_FROM_TE)                   //error code: 16
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_FROM_TE         ");
+    }
+    else if(s_nErrCode == SYS_ERR_FROM_SC)                   //error code: 17
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SYS_ERR_FROM_SC         ");
+    }
+    else if(s_nErrCode == SVC_ERR_JOB_COMPILE)               //error code: 50
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "SVC_ERR_JOB_COMPILE     ");
+    }
+    else if(s_nErrCode <= 0)
+    {
+        CRT_strcpy(g_szErrContent, ERROR_NAME_LEN, "NULL");
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSMON_DefSystemModeState()
+//
+
+static int _loc_SYSMON_DefSystemModeState(void)
+{
+    if(g_pShm_SysStatus->fErrorState == TRUE)
+    {
+        g_pShm_SysStatus->nSystemMode = MODE_STAT_ERROR;
+        g_nSystemMode = MODE_STAT_ERROR;
+    }
+    else if(g_pShm_SysStatus->fEStopState == TRUE)
+    {
+        g_pShm_SysStatus->nSystemMode = MODE_STAT_ESTOP;
+        g_nSystemMode = MODE_STAT_ESTOP;
+        g_pShm_SysStatus->nWorkType   = WORK_TYPE_NONE;
+        g_pShm_SysStatus->nExecStat   = EXEC_STAT_IDLE;
+        if(g_fJobExecRun == ON)
+        {
+            g_fJobExecRun = OFF;
+        }
+    }
+    else if(((g_pShm_SysStatus->fErrorState != TRUE &&
+             g_pShm_SysStatus->fEStopState != TRUE) &&
+            (g_nSystemMode != MODE_STAT_ENTRY &&
+             g_nSystemMode != MODE_STAT_INIT &&
+             g_nSystemMode != MODE_STAT_TERMINATE&&
+             g_nSystemMode != MODE_STAT_DRYRUN &&
+             g_nSystemMode != MODE_STAT_AUTORUN)) ||
+             g_nSystemMode == MODE_STAT_MANUAL)
+    {
+        g_pShm_SysStatus->nSystemMode = MODE_STAT_MANUAL;
+    }
+    else if(g_nSystemMode == MODE_STAT_ENTRY)
+    {
+         g_pShm_SysStatus->nSystemMode = MODE_STAT_ENTRY;
+    }
+    else if(g_nSystemMode == MODE_STAT_INIT)
+    {
+         g_pShm_SysStatus->nSystemMode = MODE_STAT_INIT;
+    }
+    else if(g_nSystemMode == MODE_STAT_TERMINATE)
+    {
+         g_pShm_SysStatus->nSystemMode = MODE_STAT_TERMINATE;
+    }
+    else if(g_nSystemMode == MODE_STAT_DRYRUN)
+    {
+         g_pShm_SysStatus->nSystemMode = MODE_STAT_DRYRUN;
+    }
+    else if(g_nSystemMode == MODE_STAT_AUTORUN)
+    {
+         g_pShm_SysStatus->nSystemMode = MODE_STAT_AUTORUN;
+    }
+
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSMON_SetSystemModeState()
+//
+
+static int _loc_SYSMON_SetSystemModeState(void)
+{
+    static unsigned nForPrint[10];
+
+    if(g_pShm_SysStatus->nSystemMode == MODE_STAT_INIT)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_INIT      ");
+        if(nForPrint[MODE_STAT_INIT] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_INIT\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_INIT]++;
+        }
+    }
+    else if(g_pShm_SysStatus->nSystemMode == MODE_STAT_MANUAL)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_MANUAL    ");
+        if(nForPrint[MODE_STAT_MANUAL] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_MANUAL\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_MANUAL]++;
+        }
+    }
+    else if(g_pShm_SysStatus->nSystemMode == MODE_STAT_AUTORUN)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_AUTORUN   ");
+        if(nForPrint[MODE_STAT_AUTORUN] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_AUTORUN\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_AUTORUN]++;
+        }
+    }
+    else if(g_pShm_SysStatus->nSystemMode == MODE_STAT_DRYRUN)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_DRYRUN   ");
+        if(nForPrint[MODE_STAT_DRYRUN] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_DRYRUN\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_DRYRUN]++;
+        }
+    }
+    else if(g_pShm_SysStatus->nSystemMode == MODE_STAT_ERROR)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_ERROR    ");
+        if(nForPrint[MODE_STAT_ERROR] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_ERROR\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_ERROR]++;
+        }
+    }
+    else if(g_pShm_SysStatus->nSystemMode == MODE_STAT_ESTOP)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_ESTOP    ");
+        if(nForPrint[MODE_STAT_ESTOP] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_ESTOP\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_ESTOP]++;
+        }
+    }
+    else if(g_pShm_SysStatus->nSystemMode == MODE_STAT_TERMINATE)
+    {
+        CRT_strcpy(g_szSystemMode, SYSMODE_NAME_LEN, "SYSMODE_TERMINATE");
+        if(nForPrint[MODE_STAT_TERMINATE] == 0)
+        {
+#if defined(__DEBUG)
+            VERBOSE_NOTIFY("\vSYSMODE_TERMINATE\n");
+            VERBOSE_VERBOSE("\v\n");
+#endif
+            nForPrint[MODE_STAT_TERMINATE]++;
+        }
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSMON_SetExecState()
+//
+
+static int _loc_SYSMON_SetExecState(void)
+{
+    if(g_pShmemTE != NULL)
+    {
+        if(g_pShm_SysStatus->nWorkType == WORK_TYPE_JOB)
+        {
+            if(g_fJobExecRun == ON && g_pShmemTE->run_mode == RUNMODE_PROG)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_EXECUTING;
+            }
+            else if(g_fJobExecRun == OFF && g_pShmemTE->run_mode == RUNMODE_NONE)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_TERMINATING;
+            }
+            
+            if(g_pShmemTE->run_mode != RUNMODE_PROG &&
+               g_fJobExecRun == OFF && 
+               g_fJobLoadDoneCheck == ON)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_PREPARATION;
+            }
+            
+            if(g_pShmemTE->run_mode != RUNMODE_PROG &&
+               g_fJobExecRun == ON && 
+               g_fJobLoadDoneCheck == OFF)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_WARM_EXEC;
+            }
+        }
+
+        if(g_pShm_SysStatus->nWorkType == WORK_TYPE_HOME)
+        {
+            if(g_fJobExecRun == ON && g_pShmemTE->run_mode == RUNMODE_PROG)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_EXCEPT;
+            }
+
+            if(g_pShmemTE->run_mode != RUNMODE_PROG &&
+               g_fJobExecRun == ON)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_WARM_EXCEPT;
+            }
+
+            if(g_fJobExecRun == ON && g_pShmemTE->run_mode == RUNMODE_NONE)
+            {
+                g_pShm_SysStatus->nExecStat = EXEC_STAT_TERMINATING;
+            }
+        }
+
+        if(g_pShm_SysStatus->nWorkType == WORK_TYPE_NONE &&
+          (g_pShm_SysStatus->nSystemMode == MODE_STAT_DRYRUN ||
+           g_pShm_SysStatus->nSystemMode == MODE_STAT_AUTORUN))
+        {
+            g_pShm_SysStatus->nExecStat = EXEC_STAT_IDLE;
+        }
+    }
+
+    if(g_pShm_SysStatus->nExecStat == EXEC_STAT_IDLE)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_IDLE            ");
+    }
+    else if(g_pShm_SysStatus->nExecStat == EXEC_STAT_PREPARATION)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_PREPARATION     ");
+    }
+    else if(g_pShm_SysStatus->nExecStat == EXEC_STAT_WARM_EXEC)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_WARM_EXEC       ");
+    }
+    else if(g_pShm_SysStatus->nExecStat == EXEC_STAT_WARM_EXCEPT)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_WARM_EXCEPT     ");
+    }
+    else if(g_pShm_SysStatus->nExecStat == EXEC_STAT_EXECUTING)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_EXECUTING       ");
+    }
+    else if(g_pShm_SysStatus->nExecStat == EXEC_STAT_EXCEPT)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_EXCEPT          ");
+    }
+    else if(g_pShm_SysStatus->nExecStat == EXEC_STAT_TERMINATING)
+    {
+        CRT_strcpy(g_szExecStat, EXECSTATE_NAME_LEN, "EXEC_TERMINATING     ");
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSMON_SetWorkType()
+//
+
+static int _loc_SYSMON_SetWorkType(void)
+{
+    if(g_pShm_SysStatus->nWorkType == WORK_TYPE_NONE)
+    {
+        CRT_strcpy(g_szWorkType, WORKTYPE_NAME_LEN, "WORK_TYPE_NONE");
+    }
+    if(g_pShm_SysStatus->nWorkType == WORK_TYPE_JOB)
+    {
+        CRT_strcpy(g_szWorkType, WORKTYPE_NAME_LEN, "WORK_TYPE_JOB ");
+    }
+    if(g_pShm_SysStatus->nWorkType == WORK_TYPE_HOME)
+    {
+        CRT_strcpy(g_szWorkType, WORKTYPE_NAME_LEN, "WORK_TYPE_HOME");
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSMON_SiblingProcessState(char* szProcessName)
+//
+
+static int _loc_SYSMON_SiblingProcessState(char* szProcessName)
+{
+    //if(szProcessName == ROBOMAN_ABB_NAME)
+    if(strcmp(szProcessName, ROBOMAN_ABB_NAME) == 0)
+    {
+        if(g_pShm_SysStatus->nSystemMode == MODE_STAT_INIT ||
+           g_pShm_SysStatus->nSystemMode == MODE_STAT_ENTRY)
+        {
+            CRT_strcpy(g_szRMState, SIBLINGSTATE_NAME_LEN, "[RM]Entry");
+        }
+        if((g_fSVCExecThRun == RUN || g_fServiceStatus == RUN) &&
+          (g_pShm_SysStatus->fErrorState != TRUE &&
+           g_pShm_SysStatus->fEStopState != TRUE))
+        {
+            CRT_strcpy(g_szRMState, SIBLINGSTATE_NAME_LEN, "[RM]Ready");
+            g_nSiblingProcState_RM = RUN;
+        }
+        else if(g_pShm_SysStatus->fErrorState == TRUE)
+        {
+            CRT_strcpy(g_szRMState, SIBLINGSTATE_NAME_LEN, "[RM]Error");
+            g_nSiblingProcState_RM = RUN;
+        }
+        if(g_pShm_SysStatus->fEStopState == TRUE)
+        {
+            CRT_strcpy(g_szRMState, SIBLINGSTATE_NAME_LEN, "[RM]Estop");
+            g_nSiblingProcState_RM = RUN;
+        }
+        if(g_fSVCExecThRun == STOP || g_fServiceStatus == STOP ||
+           g_fConsoleExitAct == TRUE)
+        {
+            CRT_strcpy(g_szRMState, SIBLINGSTATE_NAME_LEN, "[RM]Exit ");
+            g_nSiblingProcState_RM = STOP;
+        }
+    }
+    //else if(szProcessName == TASKEXEC_ABB_NAME)
+    else if(strcmp(szProcessName, TASKEXEC_ABB_NAME) == 0)
+    {
+        if(g_pShm_SysStatus->fInitProcTE == FALSE &&
+         ((g_coidTE == INVALID_COID && g_pShmemTE == NULL) &&
+           g_pShm_SysStatus->nSystemMode != MODE_STAT_TERMINATE))
+        {
+            CRT_strcpy(g_szTEState, SIBLINGSTATE_NAME_LEN, "[TE]NoAct");
+        }
+        if((g_coidTE != INVALID_COID && g_pShmemTE != NULL) &&
+           (g_pShm_SysStatus->fInitProcTE == FALSE &&
+           (g_pShm_SysStatus->nSystemMode == MODE_STAT_INIT ||
+            g_pShm_SysStatus->nSystemMode == MODE_STAT_ENTRY)))
+        {
+            CRT_strcpy(g_szTEState, SIBLINGSTATE_NAME_LEN, "[TE]Entry");
+        }
+        else if(g_pShm_SysStatus->fInitProcTE == TRUE)
+        {
+            CRT_strcpy(g_szTEState, SIBLINGSTATE_NAME_LEN, "[TE]Ready");
+            g_nSiblingProcState_TE = RUN;
+        }
+        else if((g_pShm_SysStatus->fInitProcTE == FALSE &&
+                 g_pShm_SysStatus->fExitProcTE == FALSE) &&
+                (g_pShm_SysStatus->nSystemMode == MODE_STAT_MANUAL ||
+                 g_pShm_SysStatus->nSystemMode == MODE_STAT_AUTORUN ||
+                 g_pShm_SysStatus->nSystemMode == MODE_STAT_DRYRUN))
+        {
+            CRT_strcpy(g_szTEState, SIBLINGSTATE_NAME_LEN, "[TE]Error");
+            g_nSiblingProcState_TE = RUN;
+        }
+        if(g_pShm_SysStatus->fEStopState == TRUE)
+        {
+            CRT_strcpy(g_szTEState, SIBLINGSTATE_NAME_LEN, "[TE]EStop");
+            g_nSiblingProcState_TE = RUN;
+        }
+        if(g_pShm_SysStatus->fExitProcTE == TRUE || g_fConsoleExitAct == TRUE)
+        {
+            CRT_strcpy(g_szTEState, SIBLINGSTATE_NAME_LEN, "[TE]Exit ");
+            g_nSiblingProcState_TE = STOP;
+        }
+    }
+    //else if(szProcessName == SERVOCON_ABB_NAME)
+    else if(strcmp(szProcessName, SERVOCON_ABB_NAME) == 0)
+    {
+        if(g_pShm_SysStatus->fInitProcSC == FALSE &&
+         ((g_coidSC == INVALID_COID && g_pShmemSC == NULL) &&
+           g_pShm_SysStatus->nSystemMode != MODE_STAT_TERMINATE))
+        {
+            CRT_strcpy(g_szSCState, SIBLINGSTATE_NAME_LEN, "[SC]NoAct");
+        }
+        if((g_coidSC != INVALID_COID && g_pShmemSC != NULL) &&
+           (g_pShm_SysStatus->fInitProcSC == FALSE &&
+           (g_pShm_SysStatus->nSystemMode == MODE_STAT_INIT ||
+            g_pShm_SysStatus->nSystemMode == MODE_STAT_ENTRY)))
+        {
+            CRT_strcpy(g_szSCState, SIBLINGSTATE_NAME_LEN, "[SC]Entry");
+        }
+        else if(g_pShm_SysStatus->fInitProcSC == TRUE)
+        {
+            CRT_strcpy(g_szSCState, SIBLINGSTATE_NAME_LEN, "[SC]Ready");
+            g_nSiblingProcState_SC = RUN;
+        }
+        else if(((g_pShm_SysStatus->fInitProcSC == FALSE &&
+                  g_pShm_SysStatus->fExitProcSC == FALSE) &&
+                 (g_pShm_SysStatus->nSystemMode == MODE_STAT_MANUAL ||
+                  g_pShm_SysStatus->nSystemMode == MODE_STAT_AUTORUN ||
+                  g_pShm_SysStatus->nSystemMode == MODE_STAT_DRYRUN)) ||
+                  (g_pShm_SysStatus->fErrorState == ON &&
+                   g_pShm_SysStatus->nErrCode == SYS_ERR_FROM_SC))
+        {
+            CRT_strcpy(g_szSCState, SIBLINGSTATE_NAME_LEN, "[SC]Error");
+            g_nSiblingProcState_SC = RUN;
+        }
+        if(g_pShm_SysStatus->fEStopState == TRUE)
+        {
+            CRT_strcpy(g_szSCState, SIBLINGSTATE_NAME_LEN, "[SC]EStop");
+            g_nSiblingProcState_SC = RUN;
+        }
+        if(g_pShm_SysStatus->fExitProcSC == TRUE || g_fConsoleExitAct == TRUE)
+        {
+            CRT_strcpy(g_szSCState, SIBLINGSTATE_NAME_LEN, "[SC]Exit ");
+            g_nSiblingProcState_SC = STOP;
+        }
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSMON_CheckSiblingProcessError(char* szProcessName)
+//
+
+static int _loc_SYSMON_CheckSiblingProcessError(char* szProcessName)
+{
+    //if(g_Arg
+    if(g_pShmemTE->run_error != ERR_NONE)
+    {
+        g_pShm_SysStatus->fErrorState = TRUE;
+        g_pShm_SysStatus->nErrCode = SYS_ERR_FROM_TE;
+    }
+    if(g_pShmemSC->sysstate.fErrorState != TRUE)
+    {
+        g_pShm_SysStatus->fErrorState = TRUE;
+        g_pShm_SysStatus->nErrCode = SYS_ERR_FROM_SC;
+    }
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: SYSMON_SysStatusCheckThread()
+//
+
+THREAD_ENTRY_TYPE SYSMON_SysStatusCheckThread(void* pParam)
+{
+    while(g_fSysModeStatusThRun == RUN)
+	{
+        // define system mode state
+        _loc_SYSMON_DefSystemModeState();
+
+        // set system mode state
+        _loc_SYSMON_SetSystemModeState();
+
+        // set executioin state
+        _loc_SYSMON_SetExecState();
+
+        // set work type
+        _loc_SYSMON_SetWorkType();
+
+        // set sibling process state (RM)
+        _loc_SYSMON_SiblingProcessState(ROBOMAN_ABB_NAME);
+
+        // set sibling process state (TE)
+        _loc_SYSMON_SiblingProcessState(TASKEXEC_ABB_NAME);
+
+        // set sibling process state (SC)
+        _loc_SYSMON_SiblingProcessState(SERVOCON_ABB_NAME);
+
+        DANDY_SLEEP(1);
+    }
+    
+    g_nSiblingProcState_RM = STOP;
+    g_nSiblingProcState_TE = STOP;
+    g_nSiblingProcState_SC = STOP;
+
+    g_fSysModeStatusThExit = TRUE;
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: SYSMON_SysStatusCheckThread()
+//
+
+THREAD_ENTRY_TYPE SYSMON_SysIOCheckThread(void* pParam)
+{
+    int nCurrentSysMode;
+
+    nCurrentSysMode = 0;
+
+    while(g_fSysIOStatusThRun == RUN)
+	{
+        if(g_pShmemSC != NULL)
+        {
+            if(g_pShmemSC->sysstate.fEStopState == ON)
+            {
+                g_pShm_SysStatus->fEStopState = TRUE;
+                nCurrentSysMode = g_pShm_SysStatus->nSystemMode;
+                g_pShm_SysStatus->nSystemMode = MODE_STAT_ESTOP;
+            }
+            else if(g_pShmemSC->sysstate.fEStopState == OFF)
+            {
+                g_pShm_SysStatus->fEStopState = FALSE;
+                g_pShm_SysStatus->nSystemMode = nCurrentSysMode;
+            }
+
+            if(g_nSiblingProcState_RM == RUN &&
+               g_nSiblingProcState_TE == RUN &&
+               g_nSiblingProcState_SC == RUN)
+            {
+                g_pShmemSC->outputcmd.fLampControllerReadyCmd = ON;
+            }
+            else
+            {
+                g_pShmemSC->outputcmd.fLampControllerReadyCmd = OFF;
+            }
+
+            if(g_pShm_SysStatus->nSystemMode == MODE_STAT_AUTORUN &&
+               g_pShm_SysStatus->nExecStat == EXEC_STAT_EXECUTING &&
+               g_pShm_SysStatus->nWorkType == WORK_TYPE_JOB)
+            {
+                g_pShmemSC->outputcmd.fLampUnderOperatingCmd = ON;
+            }
+            else
+            {
+                g_pShmemSC->outputcmd.fLampUnderOperatingCmd = OFF;
+            }
+            /*if(g_pShmemSC->fError == ON)
+            {
+            	SVC_DefineErrorState(ON, SYS_ERR_FROM_SC);
+            }
+            else if(g_pShmemSC->fError == OFF)
+            {
+            	SVC_DefineErrorState(OFF, 0);
+            }*/
+        }
+        else if(g_pShmemSC == NULL)
+        {
+            DANDY_SLEEP(50);
+        }
+
+        DANDY_SLEEP(1);
+    }
+
+    g_fSysIOStatusThExit = TRUE;
+
+    return 0;
+}

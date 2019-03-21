@@ -1,0 +1,411 @@
+#ifndef __ROBOT_MGR_H__
+#define __ROBOT_MGR_H__
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  robotmgr_main.h: RM module main header
+//                                            2013.04.11  Ryu SinWook
+
+// Standard Lib. Header
+#include <stdlib.h>
+#include <string.h>         // for strcpy(), strlen(), memset
+#include <stdio.h>
+#include <math.h>
+#include <assert.h>         // for assert()
+#include <limits.h>         // INI_MIN, INT_MAX used
+
+// DANDY-2015 External Lib. Header
+#include "dandy_thread.h"   // for service request thread
+#include "dandy_echo.h"     // for VERBOSE
+#include "dandy_msgpass.h"  // for message passing (service request)
+#include "dandy_ansi.h"     // for key input value
+#include "dandy_shmem.h"
+#include "dandy_timecon.h"
+
+#include "dandy_debug.h"    // for DEBUG_MALLOC()
+#include "dandy_platform.h" // for DANDY_SLEEP()
+#include "dandy_jobasm.h"   // for Job Compile
+
+// Header for InterProcessCommunication
+#include "ipc_robotmgr.h"
+#include "ipc_taskexec.h"
+#include "ipc_servocon.h"
+
+// Internal Defined Header
+#include "sys_conf.h"
+#include "ascii_def.h"
+#include "error_def.h"
+#include "conf_mgr.h"
+#include "CRT.h"
+
+///////////////////////////////////////
+
+#if defined(__linux__)
+#define STR_IGCASE_CMP  strcasecmp
+#elif defined(_MSC_VER)
+#define STR_IGCASE_CMP  _stricmp
+#else
+#define STR_IGCASE_CMP  stricmp
+#endif
+
+#if defined(_WIN32)
+#include <windows.h>
+#include <conio.h>
+#include <tlhelp32.h>
+#include "resource.h"
+#else
+#include <unistd.h>     // delay(), STDIN_FILENO, ...
+#include <termios.h>
+#endif
+
+#if defined(_WIN32)
+int TERM_SetCurrentConsoleIcon(HICON hIconSmall, HICON hIconBig, HICON* phSmallOld, HICON* phBigOld);
+#endif
+
+///////////////////////////////////////
+//
+//  Value Definition
+//
+
+#define     VERBOSE_NAME                "RM_VERBOSE_"
+#define     INIT_WAIT_TIME_LIMIT_SEC    5
+#define     WAITTIME_CONNECTION_SEC     1
+#define     CONNECT_RETRY_NO            2
+
+///////////////////////////////////////
+//
+//  Service Related Symbol Definition
+//
+
+#define     RESULT_OK                   0
+#define     RESULT_ERROR                -1
+
+#define     RELEASE                     0
+#define     LOCK                        1
+
+#define     OFF                         0
+#define     ON                          1
+
+#define     STOP                        1
+#define     RUN                         2
+#define     PAUSE                       3
+
+#define     BASEADDR                    0
+
+#define     TE_CHANNEL_ID               1
+#define     SC_CHANNEL_ID               2
+#define     RM_CHANNEL_ID               3
+
+#define     CHANNEL_NAME_LEN            18
+#define     SYSMODE_NAME_LEN            19+1
+#define     EXECSTATE_NAME_LEN          21+1
+#define     WORKTYPE_NAME_LEN           14+1
+#define     ERROR_NAME_LEN              24+1
+#define     SERV_NAME_LEN               23+1
+#define     SIBLINGSTATE_NAME_LEN       9+1
+#define     INIT_STEP_LEN               5
+#define     SYSTIME_DATA_LEN            20
+#define     RMGR_ERROR_DATA_LEN         32
+#define     RMGR_ESTOP_DATA_LEN         32
+
+#define     CONFIG_SECTION_GLOBAL       0
+#define     CONFIG_SECTION_ROBOT        1
+#define     CONFIG_SECTION_AXIS         2
+#define     CONFIG_SECTION_MOTOR        3
+#define     CONFIG_SECTION_WELDER       4
+#define     CONFIG_SECTION_SENSOR       5
+
+#define     PATH_NAME_BUFFER_SIZE       256
+
+// Initailize Step Define
+#define     INIT_STEP0_LOAD_PARAM       0
+#define     INIT_STEP1_CREATE_SHM       1
+#define     INIT_STEP2_CONNECT_CH       2
+#define     INIT_STEP3_INIT_SERV        3
+#define     INIT_STEP4_OPEN_SHM         4
+
+#define ROBOT_0_INDEX                   0
+#define ROBOT_1_INDEX                   1
+#define ROBOT_2_INDEX                   2
+#define ROBOT_3_INDEX                   3
+
+///////////////////////////////////////
+//
+//  System Config Related Symbol Definition
+//
+
+#define ROBSTRUC_NONE            -1
+#define ROBSTRUC_VOID            -2   // no axis robot
+#define ROBSTRUC_CARTESIAN       -3   // 
+#define ROBSTRUC_VERTART_5B      -4   // Vertical Articulated Robotic (5 bar linkage)
+#define ROBSTRUC_VERTART_4B      -5   // Vertical Articulated Robotic (4 bar linkage)
+#define ROBSTRUC_BLAST           -6   // DSME blasting working robot
+
+#define JOINT_CMD_RING_BUFFER_COUNT 100
+
+///////////////////////////////////////
+//
+//  Job Related System Config Data Definition
+//
+
+////////////////////////////////////////////////////////////////////////////////
+// Job program information
+
+#define JOB_NAME_LENGTH          32   // Job name length (available JOB_NAME_LENGTH-1)
+#define JOB_COMMENT_LENGTH       128  // job file comment (available JOB_COMMENT_LENGTH-1)
+
+#define COMPILE_TYPE_UNKNOWN     0
+#define COMPILE_TYPE_ASSEMBLE    1
+#define COMPILE_TYPE_DISASSEM    2
+
+#define COMPILE_FILE_COUNT       10
+#define SYSTEM_CMD_LEN           32
+
+
+#pragma pack(push, 1)
+typedef struct
+{
+    INT     nCmdCount;
+    INT     nPosCount;
+    INT     nWeavCount;
+    INT     nSWFCount;
+    INT     nMWFCount;
+    INT     nEWFCount;
+
+    CHAR    szName[JOB_NAME_LENGTH];        // job name (no extension name)
+    CHAR    __reserved1[32];
+    CHAR    szComment[JOB_COMMENT_LENGTH];  // first line comment of the file
+} JOB_MODULE_INFO;
+#pragma pack(pop)
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Job Commnad
+
+#define MIN_CMD_COUNT           10      // min command buffer count
+#define MAX_CMD_COUNT           32767   // max command buffer count, system can support
+#define MAX_EMB_POS_COUNT       32766   // max embedded position count, system can support
+#define MAX_GLB_POS_COUNT       32766   // max global position count, system can support
+#define MAX_VAR_COUNT           32766   // default I/R vairable count if not specified
+#define MAX_WEAVE_COUNT         128     // max weaving type
+#define MAX_WELD_COND_COUNT     128     // max welding condition
+#define MAX_HOME_COUNT          16      // Max home orientation (global home, not depend on job prog)
+#define MAX_T_VAR_COUNT         MAX_EMB_POS_COUNT
+#define MAX_P_VAR_COUNT         MAX_GLB_POS_COUNT
+#define MAX_ARG_COUNT           32
+
+#define DEF_CMD_COUNT           800     // default command count if not specified
+#define DEF_EMB_POS_COUNT       800     // default embedded position count
+#define DEF_GLB_POS_COUNT       300     // default global position count
+#define DEF_VAR_COUNT           100     // default I/R vairable count if not specified
+#define DEF_WEAVE_COUNT         4       // default weaving condition
+#define DEF_WELD_COND_COUNT     32      // default welding condition (dandy use 20)
+                                        // (use larger number than 20 for dandy compatible)
+
+///////////////////////////////////////
+//
+//  ARGUMENT_OPTION
+//
+
+#pragma pack(push, 1)
+typedef struct
+{
+    const char* pszConfigName;      // -cf argument
+
+    BOOL        bVerbose;           // -verbose argument
+    BOOL        bQuiet;             // -quiet argument
+    BOOL        bVGA;               // -nv argument
+    BOOL        bHelp;              // -help argument
+    BOOL        bManualInit;        // -mi argument
+    BOOL        fKeyIn;             // -key argument
+    unsigned    nWaitInitTime;      // -wi argument
+    unsigned    nWaitConnTime;      // -wc argument
+    BOOL        fShutdown;          // -sd argument
+    BOOL        fDebug;             // -d argument
+    BOOL        fClean;             // -c argument
+    BOOL        fCfIgnore;          // -cfi argument
+    BOOL        fRobotConfig;       // -r argument
+    BOOL        fSensorConfig;      // -sen argument
+    BOOL        fTrajTime;          // -tj argument
+    BOOL        fIoTime;            // -io argument
+    BOOL        fWelder;            // -w argument
+    BOOL        fWeldMap;           // -wm argument
+    BOOL        fNoAutoInit;        // -nai argument
+    BOOL        bLegacySyntax;      // -l argument
+    BOOL        bAssemble;          // -a argument
+    BOOL        bDisassem;          // -d argument
+    unsigned    nCompileType;       // COMPILE_TYPE_xxxx
+    BOOL        bOutFile;           // -o argument
+    BOOL        bMapFile;           // -m argument
+
+    // robot
+    int         nRobotCount;
+    const char* rgpszRobotTypeName[MAX_ROBOT_COUNT];
+    int         rgnStartAxis[MAX_ROBOT_COUNT];
+
+    // update time[ms]
+    int         nTrajTime;          // -tj argument(trajectory)
+    int         nIoTime;            // -io argument(I/O)
+    
+    // sysio style
+    int         nSysIoStyle;
+
+    // welding
+    int         nWelderCount;
+    int         rgnWelderRobot[MAX_WELDER_COUNT];
+    const char* rgpszWelderTypeName[MAX_WELDER_COUNT];
+    int         rgnWelderBoard[MAX_WELDER_COUNT];
+
+    const char* pszWeldMapFile;
+    
+    // job
+    const char* pszOutFileName;
+    const char* pszMapFileName;
+
+    int         nFileCount;
+    const char* rgpszFiles[COMPILE_FILE_COUNT];
+} ARGUMENT_OPTION;
+#pragma pack(pop)
+
+
+///////////////////////////////////////
+//
+//  function proto-types
+//
+
+BOOL ParseArgument(int nArgc, char* rgpszArgv[], ARGUMENT_OPTION* pArg);
+extern  int SVC_ExecService(int fKeyIn);
+extern  int SVC_InitRMService(void);
+extern  int SVC_InitTEService(void);
+extern  int SVC_InitSCService(void);
+extern  int SVC_ExitTEService(void);
+extern  int SVC_ExitSCService(void);
+extern  int SVC_DefineErrorState(int nState, int nErrorCode);
+extern  int SVC_RetryInitProcessRM(void);
+
+extern  int MSG_ConnectChannelServer(int nCoid);
+extern  int MSG_CloseSiblingConnection(int nCoid, int nCoidAlive);
+extern  int MSG_CloseRMInternalConnection(void);
+extern  int MSG_CloseRMChannel(void);
+extern  int MSG_CreateRMChannel(void);
+extern  int MSG_ReplyRMVerToOtherProc(void);
+extern  int MSG_CheckOtherProcVersion(void);
+
+extern  int SHM_OpenSharedMemory(void);
+extern  int SHM_OpenTEShmem(void);
+extern  int SHM_OpenSCShmem(void);
+extern  int SHM_CreateSharedMemory(void);
+extern  int SHM_DestroyShmem(void);
+
+extern  int SYSMON_ParceErrCodeToErrContent(int s_nErrCode);
+extern  int SYSC_LoadSystemConfigParameter(void);
+
+extern  int MAIN_Initialize(void);
+
+extern  int DSP_InitDisplay(void);
+extern  int DSP_FinalizeDisplay(void);
+extern  void DSP_DispDivider(void);
+
+extern  BOOL JOB_LoadJobToShmem(const char* pszModuleName, const DANDY_JOB_MEM* pJobMem);
+extern  int  JOB_DumpJobShmem(void);
+extern  int  JOB_DoJobAssemble(void);
+extern  int  JOB_DoJobDisassemble(void);
+extern  void JOB_GenerateMapFile(JOBASM_ASSEMBLER hAssembler);
+
+
+///////////////////////////////////////
+//
+//  global variables
+//
+
+//return value & ID
+extern  int g_coidTE;
+extern  int g_coidSC;
+extern  int g_coidRM;
+extern  int g_coidTEalive;
+extern  int g_coidSCalive;
+extern  int g_chidRM;
+
+extern  int g_retTEmsg;
+extern  int g_retSCmsg;
+extern  int g_retOpenShmemTE;
+extern  int g_retOpenShmemSC;
+extern  int g_retInitRM;
+
+extern  char g_szSystemMode[SYSMODE_NAME_LEN];
+extern  char g_szExecStat[EXECSTATE_NAME_LEN];
+extern  char g_szWorkType[WORKTYPE_NAME_LEN];
+extern  char g_szErrContent[ERROR_NAME_LEN];
+extern  char g_szServContent[SERV_NAME_LEN];
+extern  char g_szRMState[SIBLINGSTATE_NAME_LEN];
+extern  char g_szTEState[SIBLINGSTATE_NAME_LEN];
+extern  char g_szSCState[SIBLINGSTATE_NAME_LEN];
+
+//flag
+extern  int g_fSVCExecThRun;
+extern  int g_fSysModeStatusThRun;
+extern  int g_fSysIOStatusThRun;
+extern  int g_fSysAliveThRun;
+extern  int g_fVGA_DSPThRun;
+
+extern  int g_fSVCExecThExit;
+extern  int g_fSysModeStatusThExit;
+extern  int g_fSysIOStatusThExit;
+extern  int g_fSysAliveThExit;
+extern  int g_fVGA_DSPThExit;
+
+extern  int g_fServiceStatus;
+extern  int g_fInitRet[INIT_STEP_LEN];
+extern  int g_fConsoleExitAct;
+extern  int g_fArgAseembleDone;
+extern  int g_fAseembleDone;
+extern  int g_fJobFileMemSetDone;
+
+//handle
+extern  int g_hShm_SysStatus;
+extern  int g_hShmemTE;
+extern  int g_hShmemSC;
+extern  int g_hShm_SysConfig;
+
+extern  THREAD_HANDLE       hSysCheck_Thread;
+extern  THREAD_HANDLE       hSysAlive_Thread;
+extern  THREAD_HANDLE       hVGA_Display_Thread;
+extern  THREAD_HANDLE       hSVCCheck_Thread;
+extern  THREAD_HANDLE       hSysIOCheck_Thread;
+
+//shared memory
+extern  SHM_TE_STATUS*      g_pShmemTE;
+extern  SHM_RM_SYSSTATUS*   g_pShm_SysStatus;
+extern  SHM_SC_SYSTEM*      g_pShmemSC;
+extern  SHM_RM_SYSCONFIG*   g_pShm_SysConfig;
+
+//structure
+extern  ARGUMENT_OPTION     g_Arg;
+extern  ERROR_CODE_STACK    g_ErrCodeStack;
+extern  JOB_MODULE_INFO     g_JobModuleInfo;
+
+//packet
+extern  RMGR_PACKET         RM_packet;
+extern  RMGR_REPLY_PACKET   RM_reply_packet;
+extern  MSG_INFO            info_msg;
+extern  TE_MSG              TE_msg;
+extern  SC_MSG              SC_msg;
+extern  TE_REPLY            TE_reply;
+extern  SC_REPLY            SC_reply;
+extern  RMGR_JOB_MSG_DATA   Job_msg_data;
+
+//variable
+extern  int     g_nWaitInitSec;
+extern  int     g_nWaitConnSec;
+extern  int     g_nSystemMode;
+extern  int     g_nAssembleOpt;
+extern  char*   g_rgpszJobTargetFiles[COMPILE_FILE_COUNT];
+extern  int     g_nJobTargetFileCount;
+
+//thread
+extern  THREAD_ENTRY_TYPE DSP_VGADisplyThread(void* pParam);
+extern  THREAD_ENTRY_TYPE SYSMON_SysAliveCheckThread(void* pParam);
+extern  THREAD_ENTRY_TYPE SYSMON_SysStatusCheckThread(void* pParam);
+extern  THREAD_ENTRY_TYPE SYSMON_SysIOCheckThread(void* pParam);
+
+#endif  // end of __ROBOT_MGR_H__

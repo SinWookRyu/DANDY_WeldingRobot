@@ -1,0 +1,145 @@
+﻿Build started 2014-07-29 오전 8:45:59.
+     1>Project "F:\DANDY2015\Integrated_Project\taskexec\taskexec_win\taskexec_win.vcxproj" on node 2 (rebuild target(s)).
+     1>_PrepareForClean:
+         Deleting file "Debug\taskexec_win.lastbuildstate".
+       InitializeBuildStatus:
+         Creating "Debug\taskexec_win.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       ClCompile:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /IF:\DANDY2015\Lib\dandy_2015_140630\lib\include /IF:\DANDY2015\Integrated_Project\taskexec\taskexec_src /IF:\DANDY2015\Integrated_Project\taskexec\src /ID:\Project\DANDY2015\Project\taskexec\taskexec_src /ID:\Project\DANDY2015\Project\taskexec\src /ZI /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TC /analyze- /errorReport:prompt ..\src\calc_weav_rot.c ..\src\geometry.c ..\src\kin_dandy2.c ..\src\motion.c ..\src\profile3.c ..\src\profile7.c ..\src\trajectory.c ..\src\weave.c ..\taskexec_src\argument.c ..\taskexec_src\arg_get.c ..\taskexec_src\arg_set.c ..\taskexec_src\arg_unit.c ..\taskexec_src\call_stack.c ..\taskexec_src\cmd.c ..\taskexec_src\cmd_branch.c ..\taskexec_src\cmd_coord.c ..\taskexec_src\cmd_cweav.c ..\taskexec_src\cmd_mov.c ..\taskexec_src\cmd_op.c ..\taskexec_src\cmd_port.c ..\taskexec_src\cmd_touch.c ..\taskexec_src\cmd_weld.c ..\taskexec_src\coord.c ..\taskexec_src\filemgr.c ..\taskexec_src\global.c ..\taskexec_src\init.c ..\taskexec_src\run_jog.c ..\taskexec_src\run_prog.c ..\taskexec_src\run_restart.c ..\taskexec_src\run_serv.c ..\taskexec_src\run_timetest.c ..\taskexec_src\sensor.c ..\taskexec_src\str_conv.c ..\taskexec_src\te_serv.c ..\taskexec_src\t_runtime.c ..\taskexec_src\t_taskexec.c ..\taskexec_src\t_vga.c
+         t_vga.c
+         t_taskexec.c
+         t_runtime.c
+         te_serv.c
+         str_conv.c
+         sensor.c
+         run_timetest.c
+         run_serv.c
+         run_restart.c
+         run_prog.c
+         run_jog.c
+         init.c
+         global.c
+         filemgr.c
+         coord.c
+         cmd_weld.c
+         cmd_touch.c
+         cmd_port.c
+         cmd_op.c
+         cmd_mov.c
+         Generating Code...
+         Compiling...
+         cmd_cweav.c
+         cmd_coord.c
+         cmd_branch.c
+         cmd.c
+         call_stack.c
+         arg_unit.c
+         arg_set.c
+         arg_get.c
+         argument.c
+         weave.c
+         trajectory.c
+         profile7.c
+         profile3.c
+         motion.c
+         kin_dandy2.c
+         geometry.c
+         calc_weav_rot.c
+         Generating Code...
+       ResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /D _UNICODE /D UNICODE /l"0x0409" /nologo /fo"Debug\taskexec_win.res" taskexec_win.rc 
+       ManifestResourceCompile:
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\taskexec_win_d.exe.embed.manifest.res" Debug\taskexec_win_d_manifest.rc 
+       Link:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\taskexec_win_d.exe" /INCREMENTAL /NOLOGO /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\taskexec_win_d.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\taskexec_win_d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\taskexec_win_d.lib" /MACHINE:X86 Debug\taskexec_win.res
+         Debug\taskexec_win_d.exe.embed.manifest.res
+         Debug\calc_weav_rot.obj
+         Debug\geometry.obj
+         Debug\kin_dandy2.obj
+         Debug\motion.obj
+         Debug\profile3.obj
+         Debug\profile7.obj
+         Debug\trajectory.obj
+         Debug\weave.obj
+         Debug\argument.obj
+         Debug\arg_get.obj
+         Debug\arg_set.obj
+         Debug\arg_unit.obj
+         Debug\call_stack.obj
+         Debug\cmd.obj
+         Debug\cmd_branch.obj
+         Debug\cmd_coord.obj
+         Debug\cmd_cweav.obj
+         Debug\cmd_mov.obj
+         Debug\cmd_op.obj
+         Debug\cmd_port.obj
+         Debug\cmd_touch.obj
+         Debug\cmd_weld.obj
+         Debug\coord.obj
+         Debug\filemgr.obj
+         Debug\global.obj
+         Debug\init.obj
+         Debug\run_jog.obj
+         Debug\run_prog.obj
+         Debug\run_restart.obj
+         Debug\run_serv.obj
+         Debug\run_timetest.obj
+         Debug\sensor.obj
+         Debug\str_conv.obj
+         Debug\te_serv.obj
+         Debug\t_runtime.obj
+         Debug\t_taskexec.obj
+         Debug\t_vga.obj
+       Manifest:
+         Deleting file "Debug\taskexec_win_d.exe.embed.manifest".
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /out:"Debug\taskexec_win_d.exe.embed.manifest" /manifest Debug\taskexec_win_d.exe.intermediate.manifest
+         C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /nologo /fo"Debug\taskexec_win_d.exe.embed.manifest.res" Debug\taskexec_win_d_manifest.rc 
+       LinkEmbedManifest:
+         C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\taskexec_win_d.exe" /INCREMENTAL /NOLOGO /LIBPATH:F:\DANDY2015\Lib\dandy_2015_140630\lib\archive dandy_all_win.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\taskexec_win_d.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"F:\DANDY2015\Integrated_Project\DANDY_2015\Debug\taskexec_win_d.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\taskexec_win_d.lib" /MACHINE:X86 Debug\taskexec_win.res
+         Debug\taskexec_win_d.exe.embed.manifest.res
+         Debug\calc_weav_rot.obj
+         Debug\geometry.obj
+         Debug\kin_dandy2.obj
+         Debug\motion.obj
+         Debug\profile3.obj
+         Debug\profile7.obj
+         Debug\trajectory.obj
+         Debug\weave.obj
+         Debug\argument.obj
+         Debug\arg_get.obj
+         Debug\arg_set.obj
+         Debug\arg_unit.obj
+         Debug\call_stack.obj
+         Debug\cmd.obj
+         Debug\cmd_branch.obj
+         Debug\cmd_coord.obj
+         Debug\cmd_cweav.obj
+         Debug\cmd_mov.obj
+         Debug\cmd_op.obj
+         Debug\cmd_port.obj
+         Debug\cmd_touch.obj
+         Debug\cmd_weld.obj
+         Debug\coord.obj
+         Debug\filemgr.obj
+         Debug\global.obj
+         Debug\init.obj
+         Debug\run_jog.obj
+         Debug\run_prog.obj
+         Debug\run_restart.obj
+         Debug\run_serv.obj
+         Debug\run_timetest.obj
+         Debug\sensor.obj
+         Debug\str_conv.obj
+         Debug\te_serv.obj
+         Debug\t_runtime.obj
+         Debug\t_taskexec.obj
+         Debug\t_vga.obj
+         taskexec_win.vcxproj -> F:\DANDY2015\Integrated_Project\DANDY_2015\\Debug\taskexec_win_d.exe
+       FinalizeBuildStatus:
+         Deleting file "Debug\taskexec_win.unsuccessfulbuild".
+         Touching "Debug\taskexec_win.lastbuildstate".
+     1>Done Building Project "F:\DANDY2015\Integrated_Project\taskexec\taskexec_win\taskexec_win.vcxproj" (rebuild target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:06.89

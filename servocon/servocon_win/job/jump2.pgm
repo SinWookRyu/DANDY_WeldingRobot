@@ -1,0 +1,11 @@
+;  possible pass 1
+
+T01 	JOINT	0 0 0 0 0 0
+T02 	JOINT	-15, 15, 15, -15, 15, -15
+T03 	JOINT	 15, 15, 15,  15,  15, 15
+
+LABEL TEST
+MOVJ   T01 V=10.0 PL=0 
+MOVJ  T02 V=10.0 PL=0 
+MOVJ  T03 V=10.0 PL=0 
+JUMP TEST 

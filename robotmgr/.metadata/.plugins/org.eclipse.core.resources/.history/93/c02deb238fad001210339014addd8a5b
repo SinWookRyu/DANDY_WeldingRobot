@@ -1,0 +1,33 @@
+#ifndef __CRT_DEF_H_
+#define __CRT_DEF_H_
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  CRT_def.h: C Runtime Library Compatible with both VC and QNX
+//                                            2013.04.11  Ryu SinWook(By ChoYS)
+
+#if defined (__cplusplus)
+extern "C" {
+#endif 
+
+#if defined(_WIN32)
+
+#define CRT_gets(str_, size_str_)               gets_s(str_, size_str_)    
+#define CRT_strcpy(trg_, size_trg_, src_)       strcpy_s(trg_, size_trg_, src_)
+
+#endif
+
+#if defined(__QNXNTO__)
+
+#define CRT_gets(str_, size_str_)               gets(str_)                            
+#define CRT_strcpy(trg_, size_trg, src_)        strcpy(trg_, src_)
+
+#endif
+
+    
+#if defined (__cplusplus)
+}
+#endif 
+
+
+#endif  //end of __CRT_DEF_H

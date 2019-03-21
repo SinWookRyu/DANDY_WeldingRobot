@@ -1,0 +1,1012 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#if defined (__QNXNTO__)
+#include "ecatmkpa.h"
+#include "libmkpaiodev.h"
+//#include "mkpaauxiliary.h"
+#endif 
+
+#include "servocon_main.h"
+#include "dandy_platform.h"
+#include "dandy_thread.h"
+#include "dandy_echo.h"
+
+
+char* g_pszEcatConfigDir      = DEF_ECAT_CONFIG_FILE_NAME;  // ECAT Config Dir
+int g_nAxisCount              = DEF_AXIS_COUNT;             // Axis Count
+int g_nSlaveCount             = DEF_SLAVE_COUNT;            // Slave Count
+
+int g_nWriteInitOffsetSize    = DEF_WRITE_INIT_OFFSET_SIZE; // BeckHoff output size
+int g_nWriteEcatDataSize      = DEF_WRITE_ECAT_SRVDATA_SIZE;
+int g_nWriteOffsetControlWord = DEF_WRITE_OFFSET_CONTROLWORD;
+int g_nWirteOffsetPosition    = DEF_WRITE_OFFSET_POSITION;
+int g_nWirteOffsetPhysicalOutput = DEF_WRITE_OFFSET_OUTPUT;
+
+int g_nReadInitOffsetSize     = DEF_READ_INIT_OFFSET_SIZE;  // BeckHoff input size
+int g_nReadEcatDataSize       = DEF_READ_ECAT_SRVDATA_SIZE;
+int g_nReadOffsetStatus       = DEF_READ_OFFSET_STATUS;
+int g_nReadOffsetPosition     = DEF_READ_OFFSET_POSITION;
+int g_nReadOffsetError        = DEF_READ_OFFSET_ERROR;
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_WriteTargetPosition()
+//
+
+int ECATSERV_WriteTargetPosition(int nAxis, int fAllAxis)
+{
+    int iAxis;
+
+    if(fAllAxis == ALL)
+    {
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            FUNC_ConvertPosToPulse(iAxis, TARGET_POS_IDX);
+        }
+    }
+    else if(fAllAxis == EACH)
+    {
+        FUNC_ConvertPosToPulse(nAxis, TARGET_POS_IDX);
+    }
+
+#if defined (_WIN32)
+    // write actual pos. value
+    FUNC_ConvertPulseToPos(nAxis, TARGET_POS_IDX);
+    g_pShmem_sc->inputstate.dbActPos[nAxis] = g_pShmem_sc->outputcmd.dbTrgPos[nAxis];    
+#endif
+
+	return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_WriteControlWord()
+//
+// -wValue : value of control command
+// -nAxis  : index of axis (0 ~ 5)
+// -fAllAxis : flag for all axis write or not
+
+int ECATSERV_WriteControlWord(int nAxis, ECAT_WORD wValue, int fAllAxis)
+{
+    int iAxis;
+
+    if(fAllAxis == ALL)
+    {
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            g_nCtrlWord[iAxis] = wValue;
+        }
+    }
+    else if(fAllAxis == EACH)
+    {
+        g_nCtrlWord[nAxis] = wValue;
+    }
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_WritePhysicalOutput()
+//
+// -wValue : value of control command(switch off: 0, swtich on: 1)
+// -nAxis  : index of axis (0 ~ 5)
+// -fAllAxis : flag for all axis write or not
+//
+
+int ECATSERV_WritePhysicalOutput(int nAxis, ECAT_WORD wValue, int fAllAxis)
+{
+    int iAxis;
+
+    if(fAllAxis == ALL)
+    {
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            if(wValue == ON)
+            {
+	            g_nPhysicalOut[iAxis] = 0x70000;
+            }
+            else if(wValue == OFF)
+            {
+                g_nPhysicalOut[iAxis] = 0x00;
+            }
+        }
+    }
+    else if(fAllAxis == EACH)
+    {
+        if(wValue == ON)
+        {
+	        g_nPhysicalOut[nAxis] = 0x70000;
+        }
+        else if(wValue == OFF)
+        {
+            g_nPhysicalOut[nAxis] = 0x00;
+        }
+    }
+
+    return RESULT_OK;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadStatus()
+//
+// -nAxis    : index of axis
+// -fAllAxis : flag for all axis read or not
+//
+#define SIZEOF_STATUS_INDATA     2 * READ_STATUS_SIZE * DEF_AXIS_COUNT
+
+int ECATSERV_ReadStatus(int nAxis, int fAllAxis)
+{
+#if 0
+//#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_STATUS_INDATA];
+	ECAT_WORD wBitOffset_status;
+    int iAxis;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+        if(fAllAxis == ALL)
+        {
+            for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+            {
+		        // read status word
+		        wBitOffset_status = iAxis * g_nReadEcatDataSize + g_nReadOffsetStatus;
+
+		        if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+		        		                            (ECAT_PBYTE) &g_nReadStatusValue[iAxis],
+		        		                             READ_STATUS_SIZE,
+		        		                             wBitOffset_status)))
+		        {
+		        	VERBOSE_ERROR("Cannot get Axis-%d servo status.\n", iAxis);
+		        	return RESULT_ERROR;
+		        }
+            }
+        }
+        else if(fAllAxis == EACH)
+        {
+            // read status word
+		    wBitOffset_status = nAxis * g_nReadEcatDataSize + g_nReadOffsetStatus;
+
+		    if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+		    		                            (ECAT_PBYTE) &g_nReadStatusValue[nAxis],
+		    		                             READ_STATUS_SIZE,
+		    		                             wBitOffset_status)))
+		    {
+		    	VERBOSE_ERROR("Cannot get Axis-%d servo status.\n", nAxis);
+		    	return RESULT_ERROR;
+		    }
+        }
+	}
+	else
+	{
+		//VERBOSE_ERROR("Cannot start read input function.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+
+#else
+    g_nReadStatusValue[nAxis] = 0x0237;  // 0000 0010 0011 0111(operation enable)
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadPosition()
+//
+//
+#define SIZEOF_POSITION_INDATA     2 * READ_POSITION_SIZE * DEF_AXIS_COUNT
+
+int ECATSERV_ReadPosition(void)
+{
+#if 0
+//#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_POSITION_INDATA];
+	ECAT_DWORD wBitOffset_position;
+    int iAxis;
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+		    // read actual position
+		    wBitOffset_position = iAxis * g_nReadEcatDataSize + g_nReadOffsetPosition;
+
+		    if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+		    		                            (ECAT_PBYTE) &g_nAct_Pulse[iAxis],
+		    		                             READ_POSITION_SIZE,
+		    		                             wBitOffset_position)))
+		    {
+		    	VERBOSE_ERROR("Cannot get actual position.\n");
+		    	return RESULT_ERROR;
+		    }
+
+            //VERBOSE_VERBOSE("%d axis position : %d\n", nAxis, g_nAct_Pulse[nAxis]);
+        }
+	}
+	else
+	{
+		//VERBOSE_ERROR("Cannot start read input function.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+#else
+    //VERBOSE_VERBOSE("%d-th axis : %d\n", nAxis, g_pShmem_sc->dbTrgPos[nAxis]);
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_GetServoAlarmCode()
+//
+//
+#define SIZEOF_ERRORCODE_INDATA     2 * READ_ERRORCODE_SIZE * DEF_AXIS_COUNT
+
+int ECATSERV_GetServoAlarmCode(void)
+{
+#if 0
+//#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_ERRORCODE_INDATA];
+	ECAT_WORD wBitOffset_error;
+    int iAxis;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+        for(iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+		    // read status word
+		    wBitOffset_error = iAxis * g_nReadEcatDataSize + g_nReadOffsetError;
+
+		    if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+		    		                             (ECAT_PBYTE) &g_nErrCodeServo[iAxis],
+		    		                             READ_ERRORCODE_SIZE,
+		    		                             wBitOffset_error)))
+		    {
+		    	VERBOSE_ERROR("Cannot get Axis-%d alarm code.\n", iAxis);
+		    	return RESULT_ERROR;
+		    }
+        }
+	}
+	else
+	{
+		//VERBOSE_ERROR("Cannot start read input function.\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return RESULT_OK;
+#else
+    //VERBOSE_VERBOSE("No alarm.\n");
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_WriteDigitalOut()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~7: 2088 Dout 8-bit output)
+// -bValue : on(true) / off(false)
+//
+//#define SIZEOF_DIGITAL_OUTDATA    2 * ECAT_WRITE_DO_PORT_SIZE
+#define SIZEOF_DIGITAL_OUTDATA    256
+
+int ECATSERV_WriteDigitalOut(int nSlave, int nPort, ECAT_BOOL bValue)
+{
+    g_DoutPortVal[nSlave][nPort] = bValue;
+#if 0
+//#if defined (__QNXNTO__)
+	ECAT_BYTE pOutput[SIZEOF_DIGITAL_OUTDATA];
+	ECAT_WORD wBitOffset_Dout;
+	ECAT_WORD wCtrlWord;
+
+	wCtrlWord = (ECAT_WORD) bValue;
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_WRITE_DO_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_WRITE_DO_PORT_COUNT);
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// (1) write DO
+        //   - n-th_port(0~7) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Dout = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_DO_OFFSET;
+
+        else if(nSlave == 1)
+		    wBitOffset_Dout = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_DO_OFFSET
+                            + ECAT_WRITE_DO_SLAVE_SIZE;
+        else if(nSlave == 2)
+		    wBitOffset_Dout = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_CART_DO_OFFSET;
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                            (ECAT_PBYTE) &wCtrlWord,
+				                             ECAT_WRITE_DO_PORT_SIZE,
+				                             wBitOffset_Dout)))
+		{
+			VERBOSE_ERROR("Cannot write DO.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write DO...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+    #if 0
+	if (bValue == ECAT_TRUE)
+	{
+		VERBOSE_VERBOSE("%d-th slave, %d-th DO is on.\n", nSlave, nPort);
+	}
+	else
+	{
+		VERBOSE_VERBOSE("%d-th slave, %d-th DO is off.\n", nSlave, nPort);
+	}
+    #endif
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_WriteAnalogOut()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~1: 4132 Aout 2ch 16-bit output)
+// -rValue : -10~10 Volt
+//
+//#define SIZEOF_ANALOG_OUTDATA    2 * ECAT_WRITE_AO_PORT_SIZE
+#define SIZEOF_ANALOG_OUTDATA    256
+
+int ECATSERV_WriteAnalogOut(int nSlave, int nPort, ECAT_REAL32 rValue)
+{
+    g_AoutPortVal[nSlave][nPort] = rValue;
+#if 0
+//#if defined (__QNXNTO__)
+	ECAT_BYTE  pOutput[SIZEOF_ANALOG_OUTDATA];
+	ECAT_WORD  wBitOffset_Aout;
+	ECAT_INT16 nWriteBuff;
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	nWriteBuff =  ((ANALOG_RAW_VAL_RES * rValue) / ANALOG_MAX_ABS_VOLTAGE);
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_WRITE_AO_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_WRITE_AO_PORT_COUNT);
+
+	if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+			                                      pOutput,
+			                                      sizeof(pOutput))))
+	{
+		// (1) write AO
+        //   - n-th_port(0~1) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Aout = nPort * ECAT_WRITE_AO_PORT_SIZE + ECAT_WRITE_AO_OFFSET;
+
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevSetVariable(pOutput,
+				                            (ECAT_PBYTE) &nWriteBuff,
+				                             ECAT_WRITE_AO_PORT_SIZE,
+				                             wBitOffset_Aout)))
+		{
+			VERBOSE_ERROR("Cannot write AO.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed write AO...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneWriteOutputs(g_hMaster, pOutput, sizeof(pOutput));
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadDigitalIn()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~7: 1088 Din 8-bit input)
+// -return : D-in val
+#define SIZEOF_DIGITAL_INDATA    2 * ECAT_READ_DI_PORT_SIZE
+
+int ECATSERV_ReadDigitalIn(int nSlave, int nPort)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_DIGITAL_INDATA];
+	ECAT_WORD wBitOffset_Din;
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_READ_DI_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_READ_DI_PORT_COUNT);
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// (1) read DIn
+        //   - n-th_port(0~7) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET;
+
+        else if(nSlave == 1)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                            + ECAT_READ_DI_SLAVE_SIZE;
+        else if(nSlave == 2)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                            + 2 * ECAT_READ_DI_SLAVE_SIZE + ECAT_READ_AI_SALVE_SIZE;
+        else if(nSlave == 3)
+		    wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_CART_DI_OFFSET;
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                            (ECAT_PBYTE) &g_DinPortVal[nSlave][nPort],
+				                             ECAT_READ_DI_PORT_SIZE,
+				                             wBitOffset_Din)))
+		{
+			VERBOSE_ERROR("Cannot get DI value.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed get DI value...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+	return g_DinPortVal[nSlave][nPort];
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadDigitalInPortAll()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~7: 1088 Din 8-bit input)
+// -return : D-in val
+#define SIZEOF_DIGITAL_ALL_INDATA    2 * ECAT_READ_DI_PORT_SIZE * \
+                                     ECAT_READ_DI_PORT_COUNT * \
+                                     ECAT_READ_DI_SLAVE_COUNT
+
+int ECATSERV_ReadDigitalInPortAll(void)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_DIGITAL_ALL_INDATA];
+	ECAT_WORD wBitOffset_Din;
+    int nSlave, nPort;
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+        for(nSlave = 0; nSlave < ECAT_READ_DI_SLAVE_COUNT; nSlave++)
+        {
+            for(nPort = 0; nPort < ECAT_READ_DI_PORT_COUNT; nPort++)
+            {
+		        // (1) read DIn
+                //   - n-th_port(0~7) * port_size + start_offset(position of slave module)
+                if(nSlave == 0)
+		            wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET;
+
+                else if(nSlave == 1)
+		            wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                                    + ECAT_READ_DI_SLAVE_SIZE;
+                else if(nSlave == 2)
+		            wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                                    + 2 * ECAT_READ_DI_SLAVE_SIZE + ECAT_READ_AI_SALVE_SIZE;
+                else if(nSlave == 3)
+		            wBitOffset_Din = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_CART_DI_OFFSET;
+                else
+                    return RESULT_ERROR;
+
+		        if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+                                                    (ECAT_PBYTE) &g_DinPortVal[nSlave][nPort],
+		        		                             ECAT_READ_DI_PORT_SIZE,
+		        		                             wBitOffset_Din)))
+		        {
+		        	VERBOSE_ERROR("%d Port Read Fail\t", nPort);
+                    if(nPort == ECAT_READ_DI_PORT_COUNT - 1)
+                    {
+                        VERBOSE_ERROR("\n");
+                    }
+		        	return RESULT_ERROR;
+		        }
+            }
+        }
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed get DI value...\n");
+		return RESULT_ERROR;
+	}
+
+	EcatIODevDoneReadInputs(g_hMaster);
+
+    return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadAnalogIn()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~1: 3102 Aout 2ch 16-bit input)
+// -return : A-in val
+#define SIZEOF_ANALOG_INDATA    2 * ECAT_READ_AI_PORT_SIZE
+
+ECAT_REAL32 ECATSERV_ReadAnalogIn(int nSlave, int nPort)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_ANALOG_INDATA];
+	ECAT_WORD wBitOffset_Ain;
+    ECAT_INT16 nReadBuff;
+
+    DANDY_ASSERT(nSlave >= 0 && nSlave < ECAT_READ_AI_SLAVE_COUNT);
+    DANDY_ASSERT(nPort  >= 0 && nPort  < ECAT_READ_AI_PORT_COUNT);
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+		// (1) read AIn
+        //   - n-th_port(0~1) * port_size + start_offset(position of slave module)
+        if(nSlave == 0)
+		    wBitOffset_Ain = nPort * ECAT_READ_AI_PORT_SIZE + ECAT_READ_AI_OFFSET
+                             + ECAT_READ_AI_STATUS_SIZE;
+
+        else
+            return RESULT_ERROR;
+
+		if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+				                            (ECAT_PBYTE) &nReadBuff,
+				                             ECAT_READ_AI_PORT_SIZE,
+				                             wBitOffset_Ain)))
+		{
+			VERBOSE_ERROR("Cannot get AI value.\n");
+			return RESULT_ERROR;
+		}
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed get AI value...\n");
+		return RESULT_ERROR;
+	}
+    
+    g_AinPortVal[nSlave][nPort] = ((ECAT_REAL32)nReadBuff * ANALOG_MAX_ABS_VOLTAGE)
+                                  / ANALOG_RAW_VAL_RES;
+
+    EcatIODevDoneReadInputs(g_hMaster);
+
+#if 0
+    VERBOSE_ERROR("%d-%d th port: A in: %d(%d)\n", nSlave, nPort,
+    										      nReadBuff, g_AinPortVal[nSlave][nPort]);
+#endif
+	return g_AinPortVal[nSlave][nPort];
+#else
+    return RESULT_OK;
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadAnalogInPortAll()
+//
+// -nSlave : n-th Slave (0~SLAVE COUNT)
+// -nPort  : n-th Port  (0~1: 3102 Aout 2ch 16-bit input)
+// -return : A-in val
+//#define SIZEOF_ANALOG_INDATA    96
+#define SIZEOF_ANALOG_ALL_INDATA    2 * ECAT_READ_AI_PORT_SIZE *\
+                                    ECAT_READ_AI_PORT_COUNT *\
+                                    ECAT_READ_AI_SLAVE_COUNT
+
+int ECATSERV_ReadAnalogInPortAll(void)
+{
+#if defined (__QNXNTO__)
+	ECAT_BYTE pInput[SIZEOF_ANALOG_ALL_INDATA];
+	ECAT_WORD wBitOffset_Ain;
+    ECAT_INT16 nReadBuff[ECAT_READ_AI_PORT_COUNT];
+    int nSlave, nPort;
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+        return RESULT_ERROR;
+
+	if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+			                                    pInput,
+			                                    sizeof(pInput))))
+	{
+        for(nSlave = 0; nSlave < ECAT_READ_AI_SLAVE_COUNT; nSlave++)
+        {
+            for(nPort = 0; nPort < ECAT_READ_AI_PORT_COUNT; nPort++)
+            {
+		        // (1) read AIn
+                //   - n-th_port(0~1) * port_size + start_offset(position of slave module)
+                if(nSlave == 0)
+		            wBitOffset_Ain = nPort * ECAT_READ_AI_PORT_SIZE + ECAT_READ_AI_OFFSET
+                                     + ECAT_READ_AI_STATUS_SIZE;
+
+                else
+                    return RESULT_ERROR;
+
+		        if (ECAT_FAILED(EcatIODevGetVariable(pInput,
+		        		                            (ECAT_PBYTE) &nReadBuff[nPort],
+		        		                             ECAT_READ_AI_PORT_SIZE,
+		        		                             wBitOffset_Ain)))
+		        {
+		        	VERBOSE_ERROR("%d Port AI Read Fail\t", nPort);
+                    if(nPort == ECAT_READ_AI_PORT_COUNT - 1)
+                    {
+                        VERBOSE_ERROR("\n");
+                    }
+		        	return RESULT_ERROR;
+		        }
+                else
+                {
+                    g_AinPortVal[nSlave][nPort] = ((ECAT_REAL32) nReadBuff[nPort] *
+                                                    ANALOG_MAX_ABS_VOLTAGE)
+                                                  / ANALOG_RAW_VAL_RES;
+                }
+            }
+        }
+	}
+	else
+	{
+		VERBOSE_ERROR("Failed get AI value...\n");
+		return RESULT_ERROR;
+	}
+
+    EcatIODevDoneReadInputs(g_hMaster);
+
+#if 0
+    VERBOSE_ERROR("%d-%d th port: A in: %d(%d)\n", nSlave, nPort,
+    										      nReadBuff, g_AinPortVal[nSlave][nPort]);
+#endif
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_ReadTotalInput()
+//
+#define SIZEOF_TOTAL_INPUT    ROB_AXIS_COUNT*(READ_STATUS_SIZE+READ_POSITION_SIZE+READ_ERRORCODE_SIZE) + \
+                              ECAT_READ_DI_SLAVE_COUNT * ECAT_READ_DI_PORT_COUNT * ECAT_READ_DI_PORT_SIZE+ \
+                              ECAT_READ_AI_SLAVE_COUNT * ECAT_READ_AI_PORT_COUNT * ECAT_READ_AI_PORT_SIZE
+
+int  ECATSERV_ReadTotalInput(void)
+{
+#if defined (__QNXNTO__)
+//#if 1
+    int         iAxis;
+    int         nSlave, nPort;
+    ECAT_BYTE   byInputs[SIZEOF_TOTAL_INPUT];
+    //ECAT_BYTE*  byInputs = 0x1100;
+    ECAT_WORD   wInputsSize;
+    ECAT_WORD   wAddr = 0;
+    ECAT_INT16  nReadBuff[ECAT_READ_AI_SLAVE_COUNT][ECAT_READ_AI_PORT_COUNT];
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+        return RESULT_ERROR;
+    }
+
+    if(g_fServoOnEventActive == ON)
+    {
+        wInputsSize = ROB_AXIS_COUNT*(READ_STATUS_SIZE+READ_ERRORCODE_SIZE);
+    }
+    else
+    {
+        wInputsSize = SIZEOF_TOTAL_INPUT;
+    }
+
+    if (ECAT_SUCCEEDED(EcatIODevStartReadInputs(g_hMaster,
+                                                byInputs,
+                                                wInputsSize)))
+    {
+        for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            // status word
+            wAddr = iAxis * g_nReadEcatDataSize + g_nReadOffsetStatus;
+            if (ECAT_SUCCEEDED(EcatIODevGetVariable(byInputs,
+                                                   (ECAT_PBYTE) &g_nReadStatusValue[iAxis],
+                                                    READ_STATUS_SIZE,
+                                                    wAddr ))) {}
+            if(g_fServoOnEventActive == OFF)
+            {
+                // actual position
+                wAddr = iAxis * g_nReadEcatDataSize + g_nReadOffsetPosition;
+                if (ECAT_SUCCEEDED(EcatIODevGetVariable(byInputs,
+                                                       (ECAT_PBYTE) &g_nAct_Pulse[iAxis],
+                                                        READ_POSITION_SIZE,
+                                                        wAddr ))) {}
+            }
+
+            // error code
+            wAddr = iAxis * g_nReadEcatDataSize + g_nReadOffsetError;
+            if (ECAT_SUCCEEDED(EcatIODevGetVariable(byInputs,
+                                                   (ECAT_PBYTE) &g_nErrCodeServo[iAxis],
+                                                    READ_ERRORCODE_SIZE,
+                                                    wAddr ))) {}
+
+            FUNC_ConvertPulseToPos(iAxis, ACTUAL_POS_IDX);
+            
+            // write actual position to SHM_SC
+            g_pShmem_sc->inputstate.dbActPos[iAxis] = g_dbAct_Pos[iAxis];
+            
+            SC_reply.data.pos.dbActPos[iAxis] = g_dbAct_Pos[iAxis];
+		}
+
+        if(g_fServoOnEventActive == OFF)
+        {
+            // Beckhoff Digital Input
+            for(nSlave = 0; nSlave < ECAT_READ_DI_SLAVE_COUNT; nSlave++)
+            {
+                for(nPort = 0; nPort < ECAT_READ_DI_PORT_COUNT; nPort++)
+                {
+                    if(nSlave == 0)
+                    {
+		                wAddr = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET;
+                    }
+                    else if(nSlave == 1)
+                    {
+		                wAddr = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                                + ECAT_READ_DI_SLAVE_SIZE;
+                    }
+                    else if(nSlave == 2)
+                    {
+		                wAddr = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_DI_OFFSET
+                                + 2 * ECAT_READ_DI_SLAVE_SIZE + ECAT_READ_AI_SALVE_SIZE;
+                    }
+                    else if(nSlave == 3)
+                    {
+		                wAddr = nPort * ECAT_READ_DI_PORT_SIZE + ECAT_READ_CART_DI_OFFSET;
+                    }
+
+                    if (ECAT_SUCCEEDED(EcatIODevGetVariable(byInputs,
+                                                           (ECAT_PBYTE) &g_DinPortVal[nSlave][nPort],
+                                                            ECAT_READ_DI_PORT_SIZE,
+                                                            wAddr))) {}
+                }
+            }
+            
+            // Beckhoff Analog Input
+            for(nSlave = 0; nSlave < ECAT_READ_AI_SLAVE_COUNT; nSlave++)
+            {
+                for(nPort = 0; nPort < ECAT_READ_AI_PORT_COUNT; nPort++)
+                {
+                    if(nSlave == 0)
+                    {
+		                wAddr = nPort * ECAT_READ_AI_PORT_SIZE + ECAT_READ_AI_OFFSET
+                                         + ECAT_READ_AI_STATUS_SIZE;
+                    }
+
+                    if (ECAT_SUCCEEDED(EcatIODevGetVariable(byInputs,
+                                                           (ECAT_PBYTE) &nReadBuff[nSlave][nPort],
+                                                            ECAT_READ_AI_PORT_SIZE,
+                                                            wAddr)))
+                    {
+                        g_AinPortVal[nSlave][nPort] = ((ECAT_REAL32) nReadBuff[nSlave][nPort] *
+                                                        ANALOG_MAX_ABS_VOLTAGE)
+                                                      / ANALOG_RAW_VAL_RES;
+                    }
+                }
+            }
+        }
+        
+        EcatIODevDoneReadInputs(g_hMaster);
+        //EcatIODevUpdateProcessImage(g_hMaster);
+    }
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ECATSERV_WriteTotalOutput()
+//
+#define SIZEOF_TOTAL_OUTPUT    ROB_AXIS_COUNT*(WRITE_CONTROLWORD_SIZE+WRITE_POSITION_SIZE+WRITE_PHYSIC_OUTPUT_SIZE) + \
+                               ECAT_WRITE_DO_SLAVE_COUNT * ECAT_WRITE_DO_PORT_COUNT * ECAT_WRITE_DO_PORT_SIZE + \
+                               ECAT_WRITE_AO_SLAVE_COUNT * ECAT_WRITE_AO_PORT_COUNT * ECAT_WRITE_AO_PORT_SIZE
+
+int  ECATSERV_WriteTotalOutput(void)
+{
+#if defined (__QNXNTO__)
+//#if 1
+    int         iAxis;
+    int         nSlave, nPort;
+    ECAT_BYTE   byOutputs[SIZEOF_TOTAL_OUTPUT];
+    //ECAT_BYTE*  byInputs = 0x1100;
+    ECAT_WORD   wOutputsSize;
+    ECAT_WORD   wAddr = 0;
+    ECAT_INT16  nWriteBuff[ECAT_WRITE_AO_SLAVE_COUNT][ECAT_WRITE_AO_PORT_COUNT];
+
+    if(g_pShmem_sc->sysstate.fEcatInitState == FALSE)
+    {
+        return RESULT_ERROR;
+    }
+
+    if(g_fServoOnEventActive == ON)
+    {
+        wInputsSize = ROB_AXIS_COUNT*(WRITE_CONTROLWORD_SIZE+WRITE_POSITION_SIZE);
+    }
+    else
+    {
+        wInputsSize = SIZEOF_TOTAL_INPUT;
+    }
+
+    if (ECAT_SUCCEEDED(EcatIODevStartWriteOutputs(g_hMaster,
+                                                  byOutputs,
+                                                  wOutputsSize)))
+    {
+        for (iAxis = 0; iAxis < g_nAxisCount; iAxis++)
+        {
+            if(g_pShmem_sc->outputstate.fServoOnOutState == TRUE)
+            {
+                g_dbTrg_Pos[iAxis] = g_pShmem_sc->outputcmd.dbTrgPos[iAxis];
+                FUNC_ConvertPosToPulse(iAxis, TARGET_POS_IDX);
+            }
+            else
+            {
+                g_dbTrg_Pos[iAxis] = g_dbAct_Pos[iAxis];
+                FUNC_ConvertPosToPulse(iAxis, TARGET_POS_IDX);
+            }
+
+            // control word
+            wAddr = iAxis * g_nWriteEcatDataSize + g_nWriteOffsetControlWord;
+            if (ECAT_SUCCEEDED(EcatIODevSetVariable(byOutputs,
+                                                   (ECAT_PBYTE) &g_nCtrlWord[iAxis],
+                                                    WRITE_CONTROLWORD_SIZE,
+                                                    wAddr ))) {}
+            
+            // target position
+            wAddr = iAxis * g_nWriteEcatDataSize + g_nWirteOffsetPosition;
+            if (ECAT_SUCCEEDED(EcatIODevSetVariable(byOutputs,
+                                                   (ECAT_PBYTE) &g_nTrg_Pulse[iAxis],
+                                                    WRITE_POSITION_SIZE,
+                                                    wAddr ))) {}
+            if(g_fServoOnEventActive == OFF)
+            {
+                // physical output
+                wAddr = iAxis * g_nReadEcatDataSize + g_nWirteOffsetPhysicalOutput;
+                if (ECAT_SUCCEEDED(EcatIODevSetVariable(byOutputs,
+                                                       (ECAT_PBYTE) &g_nPhysicalOut[iAxis],
+                                                        WRITE_PHYSIC_OUTPUT_SIZE,
+                                                        wAddr ))) {}
+            }
+		}
+
+        if(g_fServoOnEventActive == OFF)
+        {
+            // Beckhoff Digital Output
+            for(nSlave = 0; nSlave < ECAT_WRITE_DO_SLAVE_COUNT; nSlave++)
+            {
+                for(nPort = 0; nPort < ECAT_WRITE_DO_PORT_COUNT; nPort++)
+                {
+                    if(nSlave == 0)
+                    {
+		                wAddr = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_DO_OFFSET;
+                    }
+                    else if(nSlave == 1)
+                    {
+		                wAddr = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_DO_OFFSET
+                                + ECAT_WRITE_DO_SLAVE_SIZE;
+                    }
+                    else if(nSlave == 2)
+                    {
+		                wAddr = nPort * ECAT_WRITE_DO_PORT_SIZE + ECAT_WRITE_CART_DO_OFFSET;
+                    }
+                    
+                    if (ECAT_SUCCEEDED(EcatIODevSetVariable(byOutputs,
+                                                           (ECAT_PBYTE) &g_DoutPortVal[nSlave][nPort],
+                                                            ECAT_WRITE_DO_PORT_SIZE,
+                                                            wAddr))) {}
+                }
+            }
+            
+            // Beckhoff Analog Output
+            for(nSlave = 0; nSlave < ECAT_WRITE_AO_SLAVE_COUNT; nSlave++)
+            {
+                for(nPort = 0; nPort < ECAT_WRITE_AO_PORT_COUNT; nPort++)
+                {
+                    nWriteBuff[nSlave][nPort] = ((ANALOG_RAW_VAL_RES * g_AoutPortVal[nSlave][nPort]) / ANALOG_MAX_ABS_VOLTAGE);
+            
+                    if(nSlave == 0)
+                    {
+		                wAddr = nPort * ECAT_WRITE_AO_PORT_SIZE + ECAT_WRITE_AO_OFFSET;
+                    }
+            
+                    if (ECAT_SUCCEEDED(EcatIODevSetVariable(byOutputs,
+                                                           (ECAT_PBYTE) &nWriteBuff[nSlave][nPort],
+                                                            ECAT_WRITE_AO_PORT_SIZE,
+                                                            wAddr))) {}
+                }
+            }
+        }
+        
+        EcatIODevDoneWriteOutputs(g_hMaster, byOutputs, wOutputsSize);
+        //EcatIODevUpdateProcessImage(g_hMaster);
+    }
+
+	return RESULT_OK;
+#else
+    return RESULT_OK;
+#endif
+}
+

@@ -1,0 +1,50 @@
+
+Dandy-II Robot Manager program (DANDY2015) [Ver: 4.12a, Build: 2014.04.21]
+Copyright(c) 2013 DSME Co.Ltd. All Rights Reserved.
+Function: System Management, Comm, Job File Handling, Stats..
+
+Usage: robotmgr [-?] [-v] [-q] [-cf<=file>] [-k] [-m] [-wi<=time>] [-wc<=time>] [-c] [-cfi] [-r<=type[,axis]>] [-tj<=time>] [-io<=time>] [-sd]
+	('/' can be used instead of '-' for option prefix)
+Options:short	long	extra-opt  descript
+	-?,	-help	FALSE	 : display this help messages
+	-v,	-verb	FALSE	 : display all reference messages
+	-q,	-quiet	FALSE	 : suppress display messages
+	-nv,	-novga	FALSE	 : suppress VGA display messages
+	-cf,	-conf	TRUE	 : load specified config file
+				  (-cf=file is identical)
+	-k,	-key	FALSE	 : keyboard input enable
+	-mi,	-minit	FALSE	 : manual initialization enable
+	-wi,	-winit	TRUE	 : set wait time for initialization
+				  (-wi=time(sec) is identical)
+	-wc,	-wconn	TRUE	 : set wait time for channel connection
+				  (-wc=time(sec) is identical)
+	-d	-debug	FALSE	 : display message for debug
+	-c	-clean	FALSE	 : clean dirty files
+	-cfi	-ignor	FALSE	 : ignore config (all default)
+	-r,	-robot	TRUE	 : set robot type
+				  (-r=type[,axis] is identical)
+				    <type> robot type
+				      -VOID    : non-motion robot
+				      -10KG    : DSME 10kg welding robot
+				      -DR6     : Doosan DR6 robot
+				      -DANDY-II: DSME DANDY-II robot
+				    <axis> start axis of the robot
+				    <tool> welder, grinder, blower etc.
+	-tj	-traj	TRUE	 : trajectory scan time (ms)
+				  (-tj=time(ms) is identical)
+	-l	-legacy	FALSE	 :
+		compatible with Dandy-1996 (legacy syntax compatible)
+	-a	-assem	TRUE	 :
+		assemble 'files' and the write as a .job file
+	-d	-disassem TRUE	 : disassemble 'files' each
+	-o	-out	TRUE	 :
+		specified output file name if -assem option is specified
+	  (default out file name is first source file name with .job extension)
+	-m	-map	TRUE	 :
+		specified output file name if -assem option is specified
+	  (default map file name is first source file name with .map extension)
+	-nai	-nainit	FALSE	 : no automatically init retry process
+	-sd	-shutd	FALSE	 : shutdown system after app termination
+	-nd	-nodead	FALSE	 : in case of no deadman switch
+	[Default Value] wi = 5(sec), wc = 1(sec)
+	Total 26 program options can be used

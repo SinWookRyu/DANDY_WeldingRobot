@@ -1,0 +1,11 @@
+;  possible pass 1
+
+T01 	JOINT	1, 2, 3, 4
+T02	JOINT	5, 6, 7, 8
+T03	JOINT	1, 2, 3, 4
+T04	JOINT	1, 2, 3, 4
+
+MOVL   T01 V=150.0 PL=0
+MOVJ   T02 V=030.0(%) PL=0 
+MOVL   T03 V=120.0 PL=1
+MOVL   T04 V=150.0 PL=1

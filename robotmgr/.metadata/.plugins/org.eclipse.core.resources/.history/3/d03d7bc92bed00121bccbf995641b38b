@@ -1,0 +1,1933 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  conf_load.c: Parameter Config Information Load & Management
+//                                            2013.06.20  Ryu SinWook
+
+#include <stdlib.h>
+#include <string.h>         // for strcpy(), strlen(), memset
+#include <stdio.h>
+#include <math.h>
+#include <assert.h>
+
+///////////////////////////////////////
+#include "dandy_echo.h"     // for VERBOSE
+#include "dandy_thread.h"   // for service request thread
+
+#include "dandy_platform.h"
+
+#include "ipc_robotmgr.h"
+#include "ipc_taskexec.h"
+#include "ipc_servocon.h"
+
+#include "robotmgr_main.h"
+#include "CRT.h"
+#include "conf_mgr.h"
+#include "sys_conf.h"
+
+///////////////////////////////////////
+
+int g_nReqVersion = -1;
+int g_nTerminalInetPort = -1;
+
+char* g_pszWorkDir = NULL;          // will be allocated
+char* g_pszConfigDir = NULL;
+
+char* g_pszTerminalGreeting = NULL;
+char* g_pszLocale = NULL;
+char* g_pszPrompt = NULL;
+
+int g_nServoTime = 0;       // [us] unit, Servo Sample Time
+int g_nIoTime = 0;          // [ms] unit, Io Sample Time
+int g_nTrajTime = 0;        // [ms] unit, Trajectory Gneration Time
+int g_nTrajBufferUsed = 0;  // the number of trajectory ring buffer used count
+
+///////////////////////////////////////
+
+#ifndef UNREFERENCED_PARAMETER
+#define UNREFERENCED_PARAMETER(__var)       (__var = __var)
+#endif
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_LoadConfigGlobal()
+//
+
+static int _loc_SYSC_LoadConfigGlobal(const char* pszKey, const char* pszValue)
+{
+    int nType, nVal;
+
+    if (stricmp(pszValue, "disable") == 0)
+    {
+        nType = CONFIG_NUM_INT;
+        nVal = -1;
+    }
+    else
+    {
+        nType = PARAM_ConvNum(pszValue, &nVal, NULL);
+    }
+
+    ///////////////////////////////////////////////////////
+    // VERSION = 12.34
+    if (stricmp(pszKey, SYSCONF_KEY_VERSION) == 0)
+    {
+        if (g_nReqVersion != -1)
+        {
+            VERBOSE_ERROR("Req Version is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        nVal = ConvVersion(pszValue);
+
+        if (nVal == -1)
+        {
+            VERBOSE_ERROR("Invalid version : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_nReqVersion = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // terminal inet port : TERMINAL_INET_PORT = 2005
+    else if (stricmp(pszKey, SYSCONF_KEY_TERMINAL_INET_PORT) == 0)
+    {
+        if (g_nTerminalInetPort != -1)
+        {
+            VERBOSE_ERROR("Inet Terminal Port is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (stricmp(pszValue, "disable") == 0)
+        {
+            nVal = -2;
+        }
+        else
+        {
+            nType = PARAM_ConvNum(pszValue, &nVal, NULL);
+
+            if (nType != CONFIG_NUM_INT || nVal < 0)
+            {
+                VERBOSE_ERROR("Invalid Inet Terminal Port : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+        }
+
+        g_nTerminalInetPort = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // WORK_DIR = /dsme
+    else if (stricmp(pszKey, SYSCONF_KEY_WORK_DIR) == 0)
+    {
+        if (g_pszWorkDir != NULL)
+        {
+            VERBOSE_ERROR("Work Directory is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_pszWorkDir = (char *)DEBUG_MALLOC(strlen(pszValue)+1);
+
+        if (g_pszWorkDir == NULL)
+        {
+            VERBOSE_ERROR("Memory allocation failed for Work Dir\n");
+            return -1;
+        }
+
+        CRT_strcpy(g_pszWorkDir, strlen(pszValue)+1, pszValue);
+    }
+    ///////////////////////////////////////////////////////
+    // TERMINAL_GREETING = Hello
+    else if (stricmp(pszKey, SYSCONF_KEY_TERMINAL_GREETING) == 0)
+    {
+        if (g_pszTerminalGreeting != NULL)
+        {
+            VERBOSE_ERROR("Terminal Greeting is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_pszTerminalGreeting = (char *)DEBUG_MALLOC(strlen(pszValue)+1);
+
+        if (g_pszTerminalGreeting == NULL)
+        {
+            VERBOSE_ERROR("Memory allocation failed for Terminal Greeting\n");
+            return -1;
+        }
+
+        CRT_strcpy(g_pszTerminalGreeting, strlen(pszValue)+1, pszValue);
+    }
+    ///////////////////////////////////////////////////////
+    // LOCALE =             # keep current locale
+    // LOCALE = default     # default locale
+    else if (stricmp(pszKey, SYSCONF_KEY_LOCALE) == 0)
+    {
+        if (g_pszLocale != NULL)
+        {
+            VERBOSE_ERROR("Locale is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (pszValue == NULL || *pszValue == 0)
+        {
+            g_pszLocale = NULL;
+        }
+        else
+        {
+            if (strcmp(pszValue, "default") == 0)
+                pszValue = "";
+
+            g_pszLocale = (char*) DEBUG_MALLOC(strlen(pszValue) + 1);
+
+            if (g_pszLocale == NULL)
+            {
+                VERBOSE_ERROR("Memory allocation failed for Locale\n");
+                return -1;
+            }
+
+            CRT_strcpy(g_pszLocale, strlen(pszValue) + 1, pszValue);
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // PROMPT = $P$G
+    else if (stricmp(pszKey, SYSCONF_KEY_PROMPT) == 0)
+    {
+        if (g_pszPrompt != NULL)
+        {
+            VERBOSE_ERROR("Prompt is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_pszPrompt = (char*) DEBUG_MALLOC(strlen(pszValue) + 1);
+
+        if (g_pszPrompt == NULL)
+        {
+            VERBOSE_ERROR("Memory allocation failed for Prompt\n");
+            return -1;
+        }
+
+        CRT_strcpy(g_pszPrompt, strlen(pszValue) + 1, pszValue);
+    }
+    ///////////////////////////////////////////////////////
+    // SERVO_TIME = 500
+    else if (stricmp(pszKey, SYSCONF_KEY_SERVO_TIME) == 0)
+    {
+        if (g_nServoTime != 0)
+        {
+            VERBOSE_ERROR("Servo Time is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        nType = PARAM_ConvNum(pszValue, &nVal, NULL);
+
+        // 1 ~ 1000 [ms]
+        if (nType != CONFIG_NUM_INT || nVal < 1 || nVal > 1000)
+        {
+            VERBOSE_ERROR("Invalid Servo Time : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if ((1000000 % nVal) != 0)
+        {
+            VERBOSE_ERROR("Invalid Servo Time : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_nServoTime = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // IO_TIME = 5
+    else if (stricmp(pszKey, SYSCONF_KEY_IO_TIME) == 0)
+    {
+        if (g_nIoTime != 0)
+        {
+            VERBOSE_ERROR("IO Time is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        nType = PARAM_ConvNum(pszValue, &nVal, NULL);
+
+        // 1 ~ 1000 [ms]
+        if (nType != CONFIG_NUM_INT || nVal < 1 || nVal > 1000)
+        {
+            VERBOSE_ERROR("Invalid I/O Time : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_nIoTime = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // TRAJ_TIME = 5
+    else if (stricmp(pszKey, SYSCONF_KEY_TRAJ_TIME) == 0)
+    {
+        if (g_nTrajTime != 0)
+        {
+            VERBOSE_ERROR("Trajectory Time is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        nType = PARAM_ConvNum(pszValue, &nVal, NULL);
+
+        // 1 ~ 100,000 [ms]
+        if (nType != CONFIG_NUM_INT || nVal < 1 || nVal > 100000)
+        {
+            VERBOSE_ERROR("Invalid Trajectory Time : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_nTrajTime = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // TRAJ_BUFFER = 2
+    else if (stricmp(pszKey, SYSCONF_KEY_TRAJ_BUFFER) == 0)
+    {
+        if (g_nTrajBufferUsed != 0)
+        {
+            VERBOSE_ERROR("Trajectory Buffer Count is already specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        nType = PARAM_ConvNum(pszValue, &nVal, NULL);
+
+        // 2 ~ 100 [ms]
+        if (nType != CONFIG_NUM_INT || nVal < 2 || nVal > JOINT_CMD_RING_BUFFER_COUNT)
+        {
+            VERBOSE_ERROR("Invalid Trajectory Buffer Count : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_nTrajBufferUsed = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // WELDMAP = xxxx
+    else if (stricmp(pszKey, SYSCONF_KEY_WELDER_WELDMAP) == 0)
+    {
+//        SVCWD_SetWeldMapFileName(pszValue);
+    }
+    ///////////////////////////////////////////////////////
+    // ????????????
+    else
+    {
+        VERBOSE_ERROR("unknown global configuration specified : %s\n", pszKey);
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_LoadConfigRobot()
+//
+
+static int _loc_SYSC_LoadConfigRobot(int nRobot, const char* pszKey, const char* pszValue)
+{
+    int rgn[32];
+    double rgdb[32];
+    double rgdbVal[2];
+    double* arr;
+    int i, nType;
+    int nVal, nCount;
+
+    char szBuffer[256];
+    const char* pszNext;
+
+    DANDY_ASSERT(nRobot >= 0 && nRobot < MAX_ROBOT_COUNT);
+
+    ///////////////////////////////////////////////////////
+    // name : 'NAME = The name of the robot'
+    if (stricmp(pszKey, SYSCONF_KEY_ROBOT_NAME) == 0)
+    {
+        CRT_strcpy(g_rgszRobotName[nRobot], ROBOT_NAME_LEN, pszValue);
+        g_rgszRobotName[nRobot][ROBOT_NAME_LEN-1] = 0;
+    }
+    ///////////////////////////////////////////////////////
+    // type : 'TYPE = DR6'
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_TYPE) == 0)
+    {
+        if (stricmp(pszValue, "void") == 0 ||
+            stricmp(pszValue, "VOID") == 0 ||
+            stricmp(pszValue, "no axis") == 0 ||
+            stricmp(pszValue, "EXCEPT") == 0 ||
+            stricmp(pszValue, "except") == 0)
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_EXCEPT;
+        }
+        else if (stricmp(pszValue, "CART") == 0 ||
+            stricmp(pszValue, "CARTESIAN") == 0 ||
+            stricmp(pszValue, "RECT") == 0 ||
+            stricmp(pszValue, "RECTANGLE") == 0 ||
+            stricmp(pszValue, "RECTANGULAR") == 0)
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_RECTANGULAR;
+        }
+        else if (stricmp(pszValue, "10KG") == 0)
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_10KG;
+        }
+        else if (stricmp(pszValue, "DR6") == 0)
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_DR6;
+        }
+        else if (stricmp(pszValue, "DANDY") == 0 ||
+                 stricmp(pszValue, "DANDY-I") == 0 ||
+                 stricmp(pszValue, "DANDY-1") == 0 ||
+                 stricmp(pszValue, "DANDY-i") == 0)
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_DANDY;
+        }
+        else if (stricmp(pszValue, "DANDY-II") == 0 ||
+                 stricmp(pszValue, "DANDY-2") == 0 ||
+                 stricmp(pszValue, "DANDY-ii") == 0)
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_DANDY_II;
+        }
+        else
+        {
+            g_rgnRobotType[nRobot] = ROBTYPE_NONE;
+            VERBOSE_ERROR("unknown Robot Type specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // COMM_PORT = RS485, com5
+    // COMM_PORT = RS485, /dev/ser5
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_COMM_PORT) == 0)
+    {
+        pszNext = pszValue;
+
+        pszNext = PARAM_ParseArrayConfig(pszNext, szBuffer, 256);
+
+        if (pszNext == NULL)
+        {
+            VERBOSE_ERROR("Invalid syntax : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (stricmp(szBuffer, "RS232") == 0)
+        {
+            g_rgnCommProtocol[nRobot] = ROBOT_COMM_RS232;
+        }
+        else if (stricmp(szBuffer, "RS485") == 0)
+        {
+            g_rgnCommProtocol[nRobot] = ROBOT_COMM_RS485;
+        }
+        else
+        {
+            VERBOSE_ERROR("Invalid comm protocol specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        // com port
+        pszNext = PARAM_ParseArrayConfig(pszNext, szBuffer, 256);
+
+        if (pszNext == NULL)
+        {
+            VERBOSE_ERROR("Invalid syntax : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (strlen(szBuffer) >= ROBOT_COMM_PORT_LEN)
+        {
+            VERBOSE_ERROR("comm port is too long : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        //CRT_strcpy(g_rgszCommPort[nRobot], ROBOT_COMM_PORT_LEN, szBuffer);
+        CRT_strncpy(g_rgszCommPort[nRobot], sizeof(g_rgszCommPort[nRobot]) + 1,
+                    szBuffer, ROBOT_COMM_PORT_LEN);
+        g_rgszCommPort[nRobot][ROBOT_COMM_PORT_LEN-1] = 0;
+    }
+    ///////////////////////////////////////////////////////
+    // axis : AXES = 0, 1, 2, 3, 4, 5, ...
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_AXES) == 0)
+    {
+        nCount = PARAM_ConvArrayNumInt(pszValue, rgn, MAX_AXIS_COUNT);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid Axis was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+        
+        if (nCount > MAX_AXIS_COUNT)
+        {
+            VERBOSE_ERROR("Too many axes were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        for (i = 0; i < nCount; i++)
+        {
+            if (rgn[i] < 0 || rgn[i] >= MAX_AXIS_COUNT)
+            {
+                VERBOSE_ERROR("Invalid Axes was specified : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+
+            g_rgRobotAxis[nRobot][i].nMotorCount = rgn[i];
+        }
+
+        g_rgnRobotAxisCount[nRobot] = nCount;
+    }
+    ///////////////////////////////////////////////////////
+    // link param : 'LINK_th = th0, th1, th2, ...'      <- theta
+    //              'LINK_d  = d0,  d1,  d2, ...'       <- d
+    //              'LINK_al = al0, al1, al2, ...'      <- alpha
+    //              'LINK_l  = l0,  l1,  l2, ...'       <- l
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_th) == 0  ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_d) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_al) == 0  ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_l) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdb, MAX_AXIS_COUNT);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid parameter was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (nCount > MAX_AXIS_COUNT)
+        {
+            VERBOSE_ERROR("Too many parameters were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_th) == 0)
+            arr = g_rgRobotDHParam[nRobot].th;
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_d) == 0)
+            arr = g_rgRobotDHParam[nRobot].d;
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_al) == 0)
+            arr = g_rgRobotDHParam[nRobot].al;
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_LINK_l) == 0)
+            arr = g_rgRobotDHParam[nRobot].l;
+        else
+        {
+            DANDY_ASSERT(0);
+            arr = g_rgRobotDHParam[nRobot].l;
+        }
+
+        for (i = 0; i < nCount; i++)
+        {
+            if (arr[i] < -1.e-8 || arr[i] > 1.e-8)
+            {
+                VERBOSE_ERROR("Link parameter already has specified : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+
+            arr[i] = rgdb[i];
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // JOG_SPEED = 10
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_JOG_SPEED) == 0)
+    {
+        nType = PARAM_ConvArrayOneNum(pszValue, &nVal, NULL, NULL);
+
+        if (nType != CONFIG_NUM_INT || nVal < 1 || nVal > 1000)
+        {
+            VERBOSE_ERROR("Invalid jog percentage was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgnRobotDefJogPercent[nRobot] = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // EXJOG_SPEED = 10
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_EXJOG_SPEED) == 0)
+    {
+        nType = PARAM_ConvArrayOneNum(pszValue, &nVal, NULL, NULL);
+
+        if (nType != CONFIG_NUM_INT || nVal < 1 || nVal > 1000)
+        {
+            VERBOSE_ERROR("Invalid exjog percentage was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgnRobotDefExtraJogPercent[nRobot] = nVal;
+    }
+    ///////////////////////////////////////////////////////
+    // MAX_JOINT_SPEED = 0.72, 0.72, 0.72, 0.72, 0.72, 0.72, ...
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_MAX_JOINT_SPEED) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdb, MAX_AXIS_COUNT);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid Max Joint Speed was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+        
+        if (nCount > MAX_AXIS_COUNT)
+        {
+            VERBOSE_ERROR("Too many max joint speed were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        for (i = 0; i < nCount; i++)
+        {
+            if (rgdb[i] < 0 || rgdb[i] >= MAX_AXIS_COUNT)
+            {
+                VERBOSE_ERROR("Invalid Max Joint Speed was specified : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+        }
+
+        for (i = 0; i < nCount; i++)
+        {
+            g_rgRobotMotion[nRobot].dbMaxJointSpeed[i] = rgdb[i];
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // 'MAX_SPEED = <LinearSpeed>, <OrientaionSpeed>'
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_MAX_SPEED) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdb, 2);
+
+        if (nCount < 2 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid max speed was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (nCount > 2)
+        {
+            VERBOSE_ERROR("Too many max speed were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgRobotMotion[nRobot].dbMaxLinearSpeed = rgdb[0];
+        g_rgRobotMotion[nRobot].dbMaxOrientSpeed = rgdb[1];
+    }
+    ///////////////////////////////////////////////////////
+    // JERK  =
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_JERK) == 0)
+    {
+        static double s_dbJerkPercent;
+        
+        //if (PARAM_ConvNum(pszValue, &s_dbJerkPercent, NULL) != CONFIG_NUM_INT)
+        //if (PARAM_ConvArrayNumFloat(pszValue, &s_dbJerkPercent, 1) != CONFIG_NUM_ERROR)
+        
+        nCount = PARAM_ConvArrayNumFloat(pszValue, &s_dbJerkPercent, 1);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Jerk percentage is invalid : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (s_dbJerkPercent < 0 || s_dbJerkPercent > 100)
+        {
+            VERBOSE_ERROR("Jerk percentage is invalid : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgRobotMotion[nRobot].dbJerk = s_dbJerkPercent;
+    }
+    ///////////////////////////////////////////////////////
+    // xxxxx      = time
+    // ACCEL      = 0.4
+    // DECEL      = 0.3
+    // ERROR_STOP = 
+    // ESTOP      =
+    // TSTOP      = 
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_ACCEL) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_DECEL) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_ERROR_STOP) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_ESTOP) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_TSTOP) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdbVal, 1);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid robot motion parameter was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (nCount > 5)
+        {
+            VERBOSE_ERROR("Too many robot motion parameters were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (stricmp(pszKey, SYSCONF_KEY_ROBOT_ACCEL) == 0)
+        {
+            g_rgRobotMotion[nRobot].dbAccel = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_DECEL) == 0)
+        {
+            g_rgRobotMotion[nRobot].dbDecel = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_ERROR_STOP) == 0)
+        {
+            g_rgRobotMotion[nRobot].dbDecel_Error = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_ESTOP) == 0)
+        {
+            g_rgRobotMotion[nRobot].dbDecel_Estop = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_TSTOP) == 0)
+        {
+            g_rgRobotMotion[nRobot].dbDecel_Touch = rgdbVal[0];
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // WELDERS = 0, 1, 2
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_WELDERS) == 0)
+    {
+        nCount = PARAM_ConvArrayNumInt(pszValue, rgn, MAX_WELDER_COUNT);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid welder list was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+        
+        if (nCount > MAX_WELDER_COUNT)
+        {
+            VERBOSE_ERROR("Too many welders were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        for (i = 0; i < nCount; i++)
+        {
+            if (rgn[i] < 0 || rgn[i] >= MAX_WELDER_COUNT)
+            {
+                VERBOSE_ERROR("Invalid welder was specified : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+
+            g_rgnRobotWelderList[nRobot][i] = rgn[i];
+        }
+
+        g_rgnRobotWelderCount[nRobot] = nCount;
+    }
+    ///////////////////////////////////////////////////////
+    // CODE_COUNT = 800
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_CODE_COUNT) == 0)
+    {
+        nType = PARAM_ConvArrayOneNum(pszValue, &nCount, NULL, NULL);
+
+        if (nType != CONFIG_NUM_INT || nCount < MIN_CMD_COUNT || nCount > MAX_CMD_COUNT)
+        {
+            VERBOSE_ERROR("Invalid code count was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgdwCmdSize[nRobot] = nCount;
+    }
+    ///////////////////////////////////////////////////////
+    // T_COUNT = 800
+    // P_COUNT = 300
+    // I_COUNT = 100
+    // R_COUNT = 100
+    else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_T_COUNT) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_P_COUNT) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_I_COUNT) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_ROBOT_R_COUNT) == 0)
+    {
+        nType = PARAM_ConvArrayOneNum(pszValue, &nCount, NULL, NULL);
+
+        if (nType != CONFIG_NUM_INT || nCount < 0 || nCount > MAX_CMD_COUNT)
+        {
+            VERBOSE_ERROR("Invalid the number was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        nCount++;   // subscript 0 is used for internal
+                    // so it is needed one more
+
+        if (stricmp(pszKey, SYSCONF_KEY_ROBOT_T_COUNT) == 0)
+            g_rgdwTVarSize[nRobot] = nCount;
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_P_COUNT) == 0)
+            g_rgdwPVarSize[nRobot] = nCount;
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_I_COUNT) == 0)
+            g_rgdwIVarSize[nRobot] = nCount;
+        else if (stricmp(pszKey, SYSCONF_KEY_ROBOT_R_COUNT) == 0)
+            g_rgdwRVarSize[nRobot] = nCount;
+        else
+            DANDY_ASSERT(0);
+    }
+
+    else
+    {
+        VERBOSE_ERROR("unknown robot configuration specified : %s\n", pszKey);
+        return -1;
+    }
+    
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_LoadConfigAxis()
+//
+
+static int _loc_SYSC_LoadConfigAxis(int nAxis, const char* pszKey, const char* pszValue)
+{
+    int i, nType, nCount;
+    int nValue;
+    double dbValue;
+
+    char szBuffer[256];
+    const char* pszNext;
+    double rgdbVal[2];
+
+    DANDY_ASSERT(nAxis >= 0 && nAxis < MAX_AXIS_COUNT);
+
+    ///////////////////////////////////////////////////////
+    // name : 'NAME = The name of the axis'
+    if (stricmp(pszKey, SYSCONF_KEY_AXIS_NAME) == 0)
+    {
+        CRT_strcpy(g_rgszAxisName[nAxis], AXIS_NAME_LEN, pszValue);
+        g_rgszAxisName[nAxis][AXIS_NAME_LEN-1] = 0;
+    }
+    ///////////////////////////////////////////////////////
+    // 'TYPE = sigma_v'
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_TYPE) == 0)
+    {
+        if (stricmp(pszValue, "REVOLUTE") == 0 ||
+            stricmp(pszValue, "REV") == 0 ||
+            stricmp(pszValue, "ROTARY") == 0)
+        {
+            g_rgnAxisType[nAxis] = AXISTYPE_REVOLUTE;
+        }
+        else if (stricmp(pszValue, "PRISMATIC") == 0 ||
+            stricmp(pszValue, "PRIS") == 0 ||
+            stricmp(pszValue, "LINEAR") == 0)
+        {
+            g_rgnAxisType[nAxis] = AXISTYPE_PRISMATIC;
+        }
+        else
+        {
+            g_rgnAxisType[nAxis] = AXISTYPE_NONE;
+            VERBOSE_ERROR("Unknown Axis type : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // ID = 1
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_ID) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, &nValue, NULL);
+
+        if (nType != CONFIG_NUM_INT || nValue < 0 || nValue > 32767)
+        {
+            VERBOSE_ERROR("Invalid Axis identifier : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgnAxisIndex[nAxis] = nValue;
+    }
+    ///////////////////////////////////////////////////////
+    // HW_LIMIT = disable, 2
+    // HW_LIMIT = 3, 2
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_HW_LIMIT) == 0)
+    {
+        pszNext = pszValue;
+
+        for (i = 0; i < 2; i++)
+        {
+            if (*pszNext == 0)
+                break;
+
+            pszNext = PARAM_ParseArrayConfig(pszNext,
+                                            szBuffer,
+                                            sizeof(szBuffer) / sizeof(szBuffer[0]));
+
+            if (pszNext == NULL)
+                break;
+
+            if (stricmp(szBuffer, "disable") == 0)
+            {
+                g_rgnHwLimit[nAxis][i] = 0;
+            }
+            else
+            {
+                nType = PARAM_ConvNum(szBuffer, &nValue, NULL);
+
+                if (nType != CONFIG_NUM_INT || nValue < 0)
+                {
+                    VERBOSE_ERROR("Invalid HW limit : '%s=%s'\n",
+                             pszKey, pszValue);
+                    return -1;
+                }
+
+                g_rgnHwLimit[nAxis][i] = nValue;
+            }
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // SW_LIMIT = -3670, disable
+    // SW_LIMIT = -3540, 6570
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_SW_LIMIT) == 0)
+    {
+        pszNext = pszValue;
+
+        for (i = 0; i < 2; i++)
+        {
+            if (*pszNext == 0)
+                break;
+
+            pszNext = PARAM_ParseArrayConfig(pszNext,
+                                            szBuffer,
+                                            sizeof(szBuffer) / sizeof(szBuffer[0]));
+
+            if (pszNext == NULL)
+                break;
+
+            if (stricmp(szBuffer, "disable") == 0)
+            {
+                g_rgfSwLimitUsed[nAxis][i] = 0;
+            }
+            else
+            {
+                nType = PARAM_ConvNum(szBuffer, NULL, &dbValue);
+
+                if (nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT)
+                {
+                    VERBOSE_ERROR("Invalid SW limit : '%s=%s'\n",
+                             pszKey, pszValue);
+                    return -1;
+                }
+
+                g_rgfSwLimitUsed[nAxis][i] = 1;
+                g_rgdbSwLimit[nAxis][i] = dbValue;
+            }
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // GEAR_RATIO = 33.33
+    // GEAR_RATIO = 100, 3      # 100 / 3
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_GEAR_RATIO) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdbVal, 2);
+
+        if (nCount == 1)
+        {
+            if (rgdbVal[0] < 1.e-8)
+            {
+                VERBOSE_ERROR("Invalid gear ratio specified : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+
+            g_rgdbGearRatio[nAxis] = rgdbVal[0];
+        }
+        else if (nCount == 2)
+        {
+            if (rgdbVal[0] < 1.e-8 || rgdbVal[1] < 1.e-8)
+            {
+                VERBOSE_ERROR("The denominator is too samll : '%s=%s'\n",
+                                 pszKey, pszValue);
+                return -1;
+            }
+
+            g_rgdbGearRatio[nAxis] = rgdbVal[0] / rgdbVal[1];
+        }
+        else
+        {
+            VERBOSE_ERROR("Invalid gear ratio specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // TERM_DIST = 10
+    // TERM_DIST = 50, PI       # 50 * 3.141592...
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_TERM_DIST) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdbVal, 2);
+
+        if (nCount == 1)
+        {
+            g_rgdbRotaionDist[nAxis] = rgdbVal[0];
+        }
+        else if (nCount == 2)
+        {
+            g_rgdbRotaionDist[nAxis] = rgdbVal[0] * rgdbVal[1];
+        }
+        else
+        {
+            VERBOSE_ERROR("Invalid gear ratio specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // ENCODER_ORIGIN = INC, disable, 100 (type, reset value, home value)
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ENCODER_ORIGIN) == 0)
+    {
+        pszNext = pszValue;
+
+        pszNext = PARAM_ParseArrayConfig(pszNext, szBuffer, 256);
+                
+        if (pszNext != NULL)
+        {
+            if (stricmp(szBuffer, "disable") == 0)
+            {
+                g_rgnEcnoderHomeVal[nAxis] = INT_MIN;
+            }
+            else
+            {
+                nType = PARAM_ConvNum(szBuffer, &nValue, NULL);
+
+                if (nType != CONFIG_NUM_INT || nValue == INT_MIN)
+                {
+                    VERBOSE_ERROR("Invalid encoder home value is specified : '%s=%s'\n",
+                                  pszKey, pszValue);
+                    return -1;
+                }
+
+                g_rgnEcnoderHomeVal[nAxis] = nValue;
+            }
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // DIRECTION = 1 (or -1)
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_DIRECTION) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, NULL, &dbValue);
+
+        if ((nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT) ||
+            (dbValue != 1 && dbValue != -1))
+        {
+            VERBOSE_ERROR("Invalid axis direction specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgnAxisDirection[nAxis] = (int) dbValue;
+    }
+    ///////////////////////////////////////////////////////
+    // MOTOR_CNT = 1 (or more)
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_MOTOR_COUNT) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, NULL, &dbValue);
+
+        if ((nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT) ||
+            dbValue <= 0)
+        {
+            VERBOSE_ERROR("Invalid motor count specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_nMotorCount[nAxis] = (int) dbValue;
+    }
+
+    else
+    {
+        VERBOSE_ERROR("unknown axis configuration specified : %s\n", pszKey);
+        return -1;
+    }
+    
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_LoadConfigMotor()
+//
+
+static int _loc_SYSC_LoadConfigMotor(int nMotor, const char* pszKey, const char* pszValue)
+{
+    int nType, nCount;
+    int nValue;
+    double dbValue;
+
+    char szBuffer[256];
+    const char* pszNext;
+    double rgdbVal[2];
+
+    DANDY_ASSERT(nMotor >= 0 && nMotor < MAX_MOTOR_COUNT);
+
+    ///////////////////////////////////////////////////////
+    // name : 'NAME = The name of the motor'
+    if (stricmp(pszKey, SYSCONF_KEY_MOTOR_NAME) == 0)
+    {
+        CRT_strcpy(g_rgszMotorName[nMotor], MOTOR_NAME_LEN, pszValue);
+        g_rgszMotorName[nMotor][MOTOR_NAME_LEN-1] = 0;
+    }
+    ///////////////////////////////////////////////////////
+    // 'TYPE = sigma_v'
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_TYPE) == 0)
+    {
+        if (stricmp(pszValue, "sigma_v") == 0 ||
+            stricmp(pszValue, "sigma_5") == 0 ||
+            stricmp(pszValue, "SIGMA-V") == 0 ||
+            stricmp(pszValue, "SIGMA-5") == 0)
+        {
+            g_rgnMotorType[nMotor] = MOTTYPE_SIGMA_V;
+        }
+        else if (stricmp(pszValue, "minas") == 0 ||
+            stricmp(pszValue, "MINAS") == 0)
+        {
+            g_rgnMotorType[nMotor] = MOTTYPE_MINAS;
+        }
+        else
+        {
+            g_rgnMotorType[nMotor] = MOTTYPE_NONE;
+            VERBOSE_ERROR("Unknown Motor type : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // ID = 1
+    else if (stricmp(pszKey, SYSCONF_KEY_AXIS_ID) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, &nValue, NULL);
+
+        if (nType != CONFIG_NUM_INT || nValue < 0 || nValue > 32767)
+        {
+            VERBOSE_ERROR("Invalid Motor identifier : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgnMotorIndex[nMotor] = nValue;
+    }
+    ///////////////////////////////////////////////////////
+    // ENCODER_RES = 8192
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ENCODER_RES) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, &nValue, NULL);
+
+        if (nType != CONFIG_NUM_INT || nValue == 0)
+        {
+            VERBOSE_ERROR("Invalid encoder resolution specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgnEncoderRes[nMotor] = nValue;
+        g_rgMotorConfig[nMotor].nEncRes = nValue;
+    }
+    ///////////////////////////////////////////////////////
+    // ABS_ENCODER_RES = 131072   <-- 2^17
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ABS_ENCODER_RES) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, &nValue, NULL);
+
+        if (nType != CONFIG_NUM_INT || nValue < 2 || (nValue & 0x1))
+        {
+            VERBOSE_ERROR("Invalid ABS encoder resolution specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgdwAbsEncoderRes[nMotor] = (unsigned long) nValue;
+    }
+    ///////////////////////////////////////////////////////
+    // ENCODER_TYPE = INC(or ABS)
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ENCODER_TYPE) == 0)
+    {
+        pszNext = pszValue;
+
+        pszNext = PARAM_ParseArrayConfig(pszNext, szBuffer, 256);
+
+        if (pszNext == NULL)
+        {
+            VERBOSE_ERROR("Invalid syntax : '%s=%s'\n",
+                          pszKey, pszValue);
+            return -1;
+        }
+
+        if (stricmp(szBuffer, "inc") == 0 || stricmp(szBuffer, "INC") == 0)
+        {
+            g_rgnEncoderType[nMotor] = ENCTYPE_INC;
+        }
+        else if (stricmp(szBuffer, "abs") == 0 || stricmp(szBuffer, "ABS") == 0)
+        {
+            g_rgnEncoderType[nMotor] = ENCTYPE_ABS;
+        }
+        else
+        {
+            VERBOSE_ERROR("Invalid encoder type is specified : '%s=%s'\n",
+                          pszKey, pszValue);
+            return -1;
+        }
+
+        /*pszNext = PARAM_ParseArrayConfig(pszNext, szBuffer, 256);
+
+        if (pszNext != NULL)
+        {
+            if (stricmp(szBuffer, "disable") == 0)
+            {
+                g_rgnEncoderResetVal[nMotor] = INT_MIN;  // unused
+            }
+            else
+            {
+                nType = PARAM_ConvNum(szBuffer, &nValue, NULL);
+
+                if (nType != CONFIG_NUM_INT || nValue == INT_MIN)
+                {
+                    VERBOSE_ERROR("Invalid encoder reset value is specified : '%s=%s'\n",
+                                  pszKey, pszValue);
+                    return -1;
+                }
+
+                g_rgnEncoderResetVal[nMotor] = nValue;
+            }
+        }*/
+    }
+    ///////////////////////////////////////////////////////
+    // HW_HOME = 3
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_HW_HOME) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, &nValue, NULL);
+
+        if (stricmp(pszValue, "disable") == 0)
+        {
+            g_rgnHwHome[nMotor] = -1;
+        }
+        else
+        {
+            nType = PARAM_ConvNum(pszValue, &nValue, NULL);
+
+            if (nType != CONFIG_NUM_INT || nValue < 0)
+            {
+                VERBOSE_ERROR("Invalid HW Home : '%s=%s'\n",
+                                  pszKey, pszValue);
+                return -1;
+            }
+
+            g_rgnHwHome[nMotor] = nValue;
+        }
+    }
+    ///////////////////////////////////////////////////////
+    // MAX_VEL = 20
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_MAX_VEL) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, NULL, &dbValue);
+
+        if ((nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT) ||
+            dbValue < 1.e-8)
+        {
+            VERBOSE_ERROR("Invalid max velocity specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgdbMotorMaxVel[nMotor] = dbValue;
+        g_rgMotorConfig[nMotor].vellim_max = dbValue;
+    }
+    ///////////////////////////////////////////////////////
+    // MAX_ACCEL = 20
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_MAX_ACCEL) == 0)
+    {
+        nType = PARAM_ConvNum(pszValue, NULL, &dbValue);
+
+        if ((nType != CONFIG_NUM_INT && nType != CONFIG_NUM_FLOAT) ||
+            dbValue < 1.e-8)
+        {
+            VERBOSE_ERROR("Invalid max accel specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        g_rgdbMotorMaxAccel[nMotor] = dbValue;
+    }
+    ///////////////////////////////////////////////////////
+    // xxxxx      = time
+    // JERK       = 0.4
+    // ACCEL      = 0.4
+    // DECEL      = 0.3
+    // ERROR_STOP = 
+    // ESTOP      =
+    else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_JERK) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_MOTOR_ACCEL) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_MOTOR_DECEL) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_MOTOR_ERROR_STOP) == 0 ||
+             stricmp(pszKey, SYSCONF_KEY_MOTOR_ESTOP) == 0)
+    {
+        nCount = PARAM_ConvArrayNumFloat(pszValue, rgdbVal, 1);
+
+        if (nCount < 1 || nCount == CONFIG_NUM_ERROR)
+        {
+            VERBOSE_ERROR("Invalid motor control parameter was specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        if (nCount > 5)
+        {
+            VERBOSE_ERROR("Too many motor control parameters were specified : '%s=%s'\n",
+                             pszKey, pszValue);
+            return -1;
+        }
+
+        else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_JERK) == 0)
+        {
+            g_rgMotorConfig[nMotor].jrk = rgdbVal[0];
+        }
+        if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ACCEL) == 0)
+        {
+            g_rgMotorConfig[nMotor].acc = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_DECEL) == 0)
+        {
+            g_rgMotorConfig[nMotor].dec = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ERROR_STOP) == 0)
+        {
+            g_rgMotorConfig[nMotor].dec_error = rgdbVal[0];
+        }
+        else if (stricmp(pszKey, SYSCONF_KEY_MOTOR_ESTOP) == 0)
+        {
+            g_rgMotorConfig[nMotor].dec_estop = rgdbVal[0];
+        }
+    }
+
+    else
+    {
+        VERBOSE_ERROR("unknown motor configuration specified : %s\n", pszKey);
+        return -1;
+    }
+    
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_ParseSection()
+//
+
+static int _loc_SYSC_ParseSection(const char* pszSectionName, int* pnSectionIndex)
+{
+    static const struct
+    {
+        int             nSectionType;
+        const char*     pszSectionName;
+        int             nNameLen;
+    } rgConfigSections[] = {
+        {CONFIG_SECTION_GLOBAL, "global", 6},
+        {CONFIG_SECTION_ROBOT,  "robot",  5},
+        {CONFIG_SECTION_AXIS,   "axis",   4},
+        {CONFIG_SECTION_MOTOR,  "motor",  5},
+        {CONFIG_SECTION_WELDER, "welder", 6},
+        {CONFIG_SECTION_SENSOR, "sensor", 6},
+    };
+
+
+    const char* pszIndex;
+    char* pszEndStr;
+
+    int nSectionType;
+    int nSectionIndex;
+    int i, nCount;
+
+    nCount = sizeof(rgConfigSections) / sizeof(rgConfigSections[0]);
+
+    nSectionType = -1;
+    pszIndex = NULL;
+
+    for (i = 0; i < nCount; i++)
+    {
+        if (strnicmp(pszSectionName,
+                     rgConfigSections[i].pszSectionName,
+                     rgConfigSections[i].nNameLen) == 0)
+        {
+            nSectionType = rgConfigSections[i].nSectionType;
+            pszIndex = pszSectionName + rgConfigSections[i].nNameLen;
+            break;
+        }
+    }
+
+    if (i >= nCount)
+    {
+        VERBOSE_ERROR("Unknown section name is specified : '[%s]'\n",
+                      pszSectionName);
+
+        return -1;
+    }
+
+    // find configuration index
+
+    if (nSectionType == CONFIG_SECTION_ROBOT ||
+        nSectionType == CONFIG_SECTION_AXIS ||
+        nSectionType == CONFIG_SECTION_MOTOR ||
+        nSectionType == CONFIG_SECTION_WELDER)
+    {
+        // robot/axis/welder sections have index number
+        // i.e., robot1, robot2, axis0, axis1, welder0, welder1, ...
+
+        // valid number?
+        if (!isdigit(*pszIndex))
+        {
+            VERBOSE_ERROR("invalid section number specified : '%s'\n",
+                          pszSectionName);
+
+            return -1;
+        }
+
+        nSectionIndex = (int) strtol(pszIndex, &pszEndStr, 10);
+
+        if (*pszEndStr != 0)
+        {
+            VERBOSE_ERROR("invalid section number specified : '%s'\n",
+                          pszSectionName);
+
+            return -1;
+        }
+    }
+    else
+    {
+        nSectionIndex = 0;
+    }
+
+    switch (nSectionType)
+    {
+        // check configuration range
+    case CONFIG_SECTION_ROBOT :
+        // robot1 ~ robot4 are valid range
+        if (nSectionIndex <= 0 || nSectionIndex > MAX_ROBOT_COUNT)
+        {
+            VERBOSE_ERROR("invalid robot number specified : '%d' (%d ~ %d is valid)\n",
+                          nSectionIndex, 1, MAX_ROBOT_COUNT);
+
+            return -1;
+        }
+
+        nSectionIndex--;    // user uses from 1, internally uses from zero
+        //VERBOSE_VERBOSE("Changed to robot %d configuration\n", nSectionIndex + 1);
+        break;
+
+    case CONFIG_SECTION_AXIS :
+        // axis0 ~ axis31 are valid range
+        if (nSectionIndex < 0 || nSectionIndex >= MAX_AXIS_COUNT)
+        {
+            VERBOSE_ERROR("invalid axis number specified : '%d' (%d ~ %d is valid)\n",
+                          nSectionIndex, 0, MAX_AXIS_COUNT-1);
+
+            return -1;
+        }
+
+        //VERBOSE_VERBOSE("Changed to axis %d configuration\n", nSectionIndex);
+        break;
+
+    case CONFIG_SECTION_MOTOR :
+        // motor0 ~ motor31 are valid range
+        if (nSectionIndex < 0 || nSectionIndex >= MAX_MOTOR_COUNT)
+        {
+            VERBOSE_ERROR("invalid motor number specified : '%d' (%d ~ %d is valid)\n",
+                          nSectionIndex, 0, MAX_MOTOR_COUNT-1);
+
+            return -1;
+        }
+
+        //VERBOSE_VERBOSE("Changed to axis %d configuration\n", nSectionIndex);
+        break;
+
+    case CONFIG_SECTION_WELDER :
+        // welder0 ~ welder31 are valid range
+        if (nSectionIndex < 0 || nSectionIndex >= MAX_WELDER_COUNT)
+        {
+            VERBOSE_ERROR("invalid welder number specified : '%d' (%d ~ %d is valid)\n",
+                          nSectionIndex, 0, MAX_WELDER_COUNT-1);
+
+            return -1;
+        }
+
+        //VERBOSE_VERBOSE("Changed to welder %d configuration\n", nSectionIndex);
+        break;
+    }
+
+    if (pnSectionIndex != NULL)
+        *pnSectionIndex = nSectionIndex;
+
+    return nSectionType;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_LoadConfigCallback()
+//
+
+typedef struct
+{
+    int     nSectionType;
+    int     nSectionIndex;
+} LOAD_CONFIG_PARAM;
+
+static int _loc_SYSC_LoadConfigCallback(int nCallCount, void* pParam, int nType,
+                                        const char* pszKey, const char* pszValue)
+{
+    LOAD_CONFIG_PARAM* pConfigSec;
+
+    int nResult = 0;
+    int nSectionType;
+    int nSectionIndex;
+
+    nCallCount = nCallCount;
+    
+    pConfigSec = (LOAD_CONFIG_PARAM*) pParam;
+    DANDY_ASSERT(pConfigSec != NULL);
+
+    ///////////////////////////////////
+    // Section
+
+    if (nType == CONFIG_TYPE_SECTION)
+    {
+        nSectionType = _loc_SYSC_ParseSection(pszKey, &nSectionIndex);
+
+        if (nSectionType == -1 || nSectionIndex == -1)
+        {
+            return CONFIG_ENUM_SYNTAX;
+        }
+
+        pConfigSec->nSectionType  = nSectionType;
+        pConfigSec->nSectionIndex = nSectionIndex;
+
+        return CONFIG_ENUM_OK;
+    }
+
+    if (nType != CONFIG_TYPE_KEY)
+    {
+        return CONFIG_ENUM_OK;
+    }
+
+    ///////////////////////////////////
+    // Key 
+
+    nSectionType  = pConfigSec->nSectionType;
+    nSectionIndex = pConfigSec->nSectionIndex;
+
+    switch (nSectionType)
+    {
+    case CONFIG_SECTION_GLOBAL :
+        DANDY_ASSERT(nSectionIndex == 0);
+        nResult = _loc_SYSC_LoadConfigGlobal(pszKey, pszValue);
+        break;
+
+    case CONFIG_SECTION_ROBOT :
+        DANDY_ASSERT(nSectionIndex >= 0 && nSectionIndex < MAX_ROBOT_COUNT);
+        nResult = _loc_SYSC_LoadConfigRobot(nSectionIndex, pszKey, pszValue);
+        break;
+
+    case CONFIG_SECTION_AXIS :
+        DANDY_ASSERT(nSectionIndex >= 0 && nSectionIndex < MAX_AXIS_COUNT);
+        nResult = _loc_SYSC_LoadConfigAxis(nSectionIndex, pszKey, pszValue);
+        break;
+
+    case CONFIG_SECTION_MOTOR :
+        DANDY_ASSERT(nSectionIndex >= 0 && nSectionIndex < MAX_MOTOR_COUNT);
+        nResult = _loc_SYSC_LoadConfigMotor(nSectionIndex, pszKey, pszValue);
+        break;
+        
+    case CONFIG_SECTION_WELDER :
+        DANDY_ASSERT(nSectionIndex >= 0 && nSectionIndex < MAX_WELDER_COUNT);
+        //nResult = _loc_SYSC_LoadConfigWelder(nSectionIndex, pszKey, pszValue);
+        break;
+
+    case CONFIG_SECTION_SENSOR :
+        //DANDY_ASSERT(nSectionIndex >= 0 && nSectionIndex < MAX_SENSOR_COUNT);
+        //nResult = _loc_SYSC_LoadConfigPlc(pszKey, pszValue);
+        break;
+
+    default :
+        // unknown section
+        nResult = 0;
+    }
+
+    return (nResult == -1) ? CONFIG_ENUM_SYNTAX : CONFIG_ENUM_OK;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_FindOsNameConfigFile()
+//
+
+char* _loc_SYSC_FindOsNameConfigFile(const char* pszDirectory,
+                                     const char* pszBaseName, const char* pszExt,
+                                     char* pszPathName)
+{
+#if defined(_WIN32)
+    static const char* rgpszOSName[] = { ".win", ".dos", NULL};
+
+    int i;
+
+    for (i = 0; rgpszOSName[i] != NULL; i++)
+    {
+        if (FindFullPathName(pszBaseName, rgpszOSName[i], pszExt,
+                             pszDirectory, pszPathName, 256) != -1)
+        {
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("Found '%s' config file\n", pszBaseName);
+        VERBOSE_VERBOSE("Found '%s' system Name\n", rgpszOSName[i]);
+        VERBOSE_VERBOSE("Found '%s' path Name\n", pszPathName);
+#endif
+            return pszPathName;
+        }
+    }
+
+    return NULL;
+
+#else
+    char szUnixName[128];
+    struct utsname sysinfo;
+
+    // check os dependant config file name
+    // <pszDirectory>/<pszBaseName>.<`uname`>.<pszExt>
+
+    if (uname(&sysinfo) == -1)
+    {
+        VERBOSE_ERROR("Fails to get uname : %d\n", errno);
+        return NULL;
+    }
+
+    szUnixName[0] = '.';        // ".qnx"
+    strcpy(szUnixName + 1, sysinfo.sysname);
+    strlwr(szUnixName);
+
+    if (FindFullPathName(pszBaseName, szUnixName, pszExt,
+                         pszDirectory, pszPathName, 256) == -1)
+    {
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("Found '%s' file Name\n", pszBaseName);
+        VERBOSE_VERBOSE("Found '%s' system Name\n", szUnixName);
+        VERBOSE_VERBOSE("Found '%s' path Name\n", pszPathName);
+#endif
+        return pszPathName;
+    }
+
+    return NULL;
+#endif
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SYSC_FindConfigFile()
+//
+
+#if defined(_WIN32)
+static const char* s_rgpszConfigSearchDirectory[] = { ".", "..", NULL};
+static const char* s_rgpszConfigSearchExtension[] = { ".conf", ".cfg", ".ini", NULL};
+
+#else
+static const char* s_rgpszConfigSearchDirectory[] = { ".", "~", "..", NULL};
+static const char* s_rgpszConfigSearchExtension[] = { ".conf", ".cfg", NULL};
+#endif
+
+static char* _loc_SYSC_FindConfigFile(char* pszFileName)
+{
+    static char* pszConfig = NULL;
+    int i, j;
+
+    ///////////////////////////////////
+    // try to find the file is defined in environment variable
+#if defined(_WIN32)
+    size_t pRquiredSize = 0;
+    getenv_s(&pRquiredSize, NULL, 0, CONFIG_ENV_NAME);
+    if(pRquiredSize != 0)
+    {
+        pszConfig = (char *)DEBUG_MALLOC(pRquiredSize* sizeof(char));
+    }
+    else
+    {
+        pszConfig = (char *)DEBUG_MALLOC(CONF_FILENAME_LEN);
+    }
+    getenv_s(&pRquiredSize, pszConfig, CONF_FILENAME_LEN, CONFIG_ENV_NAME);
+#else
+    pszConfig = getenv(CONFIG_ENV_NAME);
+#endif
+
+    if (pszConfig != NULL && sizeof(pszConfig) > 4)
+    {
+        VERBOSE_VERBOSE("config file is specifed in environment : %s\n",
+                         CONFIG_ENV_NAME);
+        //VERBOSE_VERBOSE("pszConfig : \"%s\",size: %d\n", pszConfig, sizeof(pszConfig));
+    }
+
+    if ((pszConfig != NULL && sizeof(pszConfig) > 4) &&
+        CRT_access(pszConfig, 04) == 0)
+    {
+        // found the config file which is described in environment variable
+        CRT_strcpy(pszFileName, CONF_FILENAME_LEN, pszConfig);
+        DEBUG_FREE(pszConfig);
+        pszConfig = NULL;
+        return pszFileName;
+    }
+
+    if (pszConfig != NULL && sizeof(pszConfig) > 4)
+    {
+        // config file was defined in environment variable, but could not access
+        VERBOSE_ERROR("Cannot read config file %s\n", pszConfig);
+    }
+
+    ///////////////////////////////////
+    // try to access OS dependant configuration file
+    //  searching order :
+    //      (osn = operating system name, getting from uname(). osn=win in Windows )
+    //          ./DEF_CONFIG_BASENAME.osn.conf
+    //          ./DEF_CONFIG_BASENAME.osn.cfg
+    //          ~/DEF_CONFIG_BASENAME.osn.conf          (unix only, not in Windows)
+    //          ~/DEF_CONFIG_BASENAME.osn.cfg           (unix only, not in Windows)
+    //          /etc/DEF_CONFIG_BASENAME.osn.conf       (unix only, not in Windows)
+    //          /etc/DEF_CONFIG_BASENAME.osn.cfg        (unix only, not in Windows)
+    //          ../DEF_CONFIG_BASENAME.osn.conf
+    //          ../DEF_CONFIG_BASENAME.osn.cfg
+    //
+    DEBUG_FREE(pszConfig);    //important for memory leak
+    pszConfig = NULL;
+
+    for (i = 0; pszConfig == NULL && s_rgpszConfigSearchDirectory[i] != NULL; i++)
+    {
+        for (j = 0; pszConfig == NULL && s_rgpszConfigSearchExtension[j] != NULL; j++)
+        {
+            // add os name (.win, .qnx, ...)
+            pszConfig = _loc_SYSC_FindOsNameConfigFile(s_rgpszConfigSearchDirectory[i],
+                                                       DEF_CONFIG_BASENAME,
+                                                       s_rgpszConfigSearchExtension[j],
+                                                       pszFileName);
+            if (pszConfig != NULL)
+            {
+#if defined (SYSC_VERBOSE)
+                VERBOSE_VERBOSE("Config String: %s\n", pszConfig);
+#endif
+                break;
+            }
+        }
+    }
+
+    if (pszConfig != NULL)
+    {
+        CRT_strcpy(pszFileName, CONF_FILENAME_LEN, pszConfig);
+        pszConfig = NULL;
+        return pszFileName;
+    }
+    
+    ///////////////////////////////////
+    // try to access default configuration file (not related OS name)
+    //  searching order :
+    //          ./DEF_CONFIG_BASENAME.conf
+    //          ./DEF_CONFIG_BASENAME.cfg
+    //          ~/DEF_CONFIG_BASENAME.conf      (unix only, not in Windows)
+    //          ~/DEF_CONFIG_BASENAME.cfg       (unix only, not in Windows)
+    //          /etc/DEF_CONFIG_BASENAME.conf   (unix only, not in Windows)
+    //          /etc/DEF_CONFIG_BASENAME.cfg    (unix only, not in Windows)
+    //          ../DEF_CONFIG_BASENAME.conf
+    //          ../DEF_CONFIG_BASENAME.cfg
+    //
+    DEBUG_FREE(pszConfig);
+    pszConfig = NULL;
+
+    for (i = 0; pszConfig == NULL && s_rgpszConfigSearchDirectory[i] != NULL; i++)
+    {
+        for (j = 0; pszConfig == NULL && s_rgpszConfigSearchExtension[j] != NULL; j++)
+        {
+            if (FindFullPathName(DEF_CONFIG_BASENAME, NULL,
+                                 s_rgpszConfigSearchExtension[j],
+                                 s_rgpszConfigSearchDirectory[i],
+                                 pszFileName, 256) != -1)
+            {
+                pszConfig = pszFileName;
+            }
+        }
+    }
+
+    return pszConfig;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SYSC_LoadConfig()
+//
+
+int SYSC_LoadConfig(const char* pszConfigFileName)
+{
+#if defined(_DEBUG)
+    static int nLoadCount = 0;
+#endif
+
+    char szConfig[CONF_FILENAME_LEN];
+
+    LOAD_CONFIG_PARAM param;
+    int nResult;
+
+    if (pszConfigFileName == NULL)
+    {
+        // if user was not specified the config file name,
+        //      find default config file.
+        pszConfigFileName = _loc_SYSC_FindConfigFile(szConfig);
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("Env Config File Name: %s\n", pszConfigFileName);
+#endif
+    }
+
+#if 0
+    pszConfigFileName = "/works/dsmert.conf";
+
+#else
+    if (pszConfigFileName == NULL)
+    {
+        // use default file name if could not find config file
+        pszConfigFileName = DEF_CONFIG_BASENAME ".conf";
+#if defined(SYSC_VERBOSE)
+        VERBOSE_VERBOSE("Default Config File Name: %s\n", pszConfigFileName);
+#endif
+    }
+
+#endif
+
+    ///////////////////////////////////
+
+#if defined(_DEBUG)
+    DANDY_ASSERT(nLoadCount == 0);
+    nLoadCount++;
+#endif
+
+    DANDY_ASSERT(pszConfigFileName != NULL);
+
+    // clear all configurations
+    SYSC_ClearConfig();
+
+    // load configurations from file
+    VERBOSE_VERBOSE("Try to load configuration from '%s' file\n",
+                     pszConfigFileName);
+
+    param.nSectionType  = CONFIG_SECTION_GLOBAL;
+    param.nSectionIndex = 0;
+
+    nResult = CONF_EnumConfigFile(pszConfigFileName, TRUE,
+                                  _loc_SYSC_LoadConfigCallback,
+                                  (void*) &param);
+
+    if (nResult == CONFIG_ENUM_NO_FILE)
+    {
+        VERBOSE_ERROR("Fails to load the configurations\n");
+        return -1;
+    }
+    else if (nResult == CONFIG_ENUM_SYNTAX)
+    {
+        VERBOSE_ERROR("configuration file syntax error : %s\n",
+                       pszConfigFileName);
+
+        return -1;
+    }
+    else if (nResult != CONFIG_ENUM_OK)
+    {
+        VERBOSE_WARNING("Welding mapping file error : %d\n", nResult);
+
+        return -1;
+    }
+
+    VERBOSE_VERBOSE("Load Global Configuration Done!\n");
+    VERBOSE_VERBOSE("Load Robot Configuration Done!\n");
+    VERBOSE_VERBOSE("Load Axis Configuration Done!\n");
+
+    VERBOSE_VERBOSE("Successfully configuration is loaded\n");
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SYSC_SetTrajUpdateTime()
+//
+
+void SYSC_SetTrajUpdateTime(int nTrajTime)
+{
+    g_nTrajTime = nTrajTime;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SYSC_SetIoUpdateTime()
+//
+
+void SYSC_SetIoUpdateTime(int nIoTime)
+{
+    g_nIoTime = nIoTime;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SYSC_ExecLocale()
+//
+
+int SYSC_ExecLocale(void)
+{
+    const char* pszLocale;
+
+    pszLocale = setlocale(LC_ALL, "");
+
+    if (pszLocale != NULL)
+        VERBOSE_VERBOSE("current locale is '%s'\n", pszLocale);
+    else
+        VERBOSE_VERBOSE("current locale was undefined\n");
+
+    if (g_pszLocale != NULL)
+    {
+        pszLocale = setlocale(LC_ALL, g_pszLocale);
+
+        if (pszLocale != NULL)
+        {
+            VERBOSE_VERBOSE("System locale changed to '%s' by '%s'\n",
+                             pszLocale, g_pszLocale);
+        }
+        else
+        {
+            VERBOSE_ERROR("System locale setting '%s' failure\n", g_pszLocale);
+            return -1;
+        }
+    }
+
+    return 0;
+}
+

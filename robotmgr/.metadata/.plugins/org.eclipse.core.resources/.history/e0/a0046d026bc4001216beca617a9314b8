@@ -1,0 +1,238 @@
+#ifndef __IPC_ROBOTMGR_H__
+#define __IPC_ROBOTMGR_H__
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  ipc_robotmgr.h: RM process header for IPC(inter process communication)
+//                                            2013.04.11  Ryu SinWook
+
+///////////////////////////////////////
+//
+//  Version Information
+//
+
+#define SYS_RM_VERSION         "0.16b"
+#define SYS_RM_BUILD           "2013.05.20"
+
+///////////////////////////////////////
+//
+// RM Channel & SHM Name Define
+//
+#define SYS_RM_CHANNEL_NAME     "CHANNEL_RMGR"
+#define SHM_RM_SYSSTATUS_NAME   "SHM_RM_SYSSTATUS"
+
+/////////////////// Symbol Definition for Service, State //////////////////////
+
+///////////////////////////////////////
+//
+// RM Service Symbol
+//
+// Code : Service Name         : Data Format : Value
+//      :                      :             : 0       : 1       : 2
+// 0    : RMGR_SERV_SYSEXIT    : pulse       : RM(ALL) : TE(only): SC(only)
+// 1    : RMGR_SERV_SYSVERSION : message     : None    :
+// 2    : RMGR_SERV_SYSINIT    : pulse       : RM(ALL) : TE(only): SC(only)
+// 3    : RMGR_SERV_SYSSTATE   : message     : None    :
+
+    // system startup & status
+#define RMGR_SERV_SYSEXIT            0    // Service Finalize
+#define RMGR_SERV_SYSVERSION         1    // Check Software Version
+#define RMGR_SERV_SYSINIT            2    // Service Initialize
+#define RMGR_SERV_SYSSTATE           3    // System State Inform
+#define RMGR_SERV_TIMERTEST          4    // Timer Test
+#define RMGR_SYS_ALIVE_CHECK         127  // System Alive Check
+
+    // operation
+#define RCON_SERV_STOP               10
+#define RCON_SERV_JOG                11
+#define RCON_SERV_DIO                12
+#define RCON_SERV_AIO                13
+#define RCON_SERV_ESTOP              14 // EStop
+#define RCON_SERV_ESTOP_RECOVER      15 // Recover ESTOP
+#define RCON_SERV_HOME_FUNC          16 // set/get home position
+#define RCON_SERV_HOME_MOVE          17 // move to home
+#define RCON_SERV_COORD_FUNC         18 // set/get user coord
+#define RCON_SERV_CALIB_TOOL         19 // calibrate TCP
+
+
+///////////////////////////////////////
+//
+// job execution state
+//
+// IDLE: idle state (no job exec) (nWorkType = WORK_TYPE_NONE)
+// PREPARATION: preparing the job execution (RM preparing the job)
+// WARM_EXEC: warming up job execution (RM order job exec, TE preparing)
+// WARM_EXCEPT: warming up exceptional execution 
+//                              (RM order exceptional exec, TE preparing)
+// EXECUTING: job program running (TE running) (nWorkType = EXEC_TYPE_JOB)
+// EXCEPT:exceptional program running (nWorkType = WORK_TYPE_HOME, ...)
+// TERMINATING: job execution terminating... (TE stopped, RM clearing)
+
+#define EXEC_STAT_IDLE                  0
+#define EXEC_STAT_PREPARATION           1
+#define EXEC_STAT_WARM_EXEC             2
+#define EXEC_STAT_WARM_EXCEPT           3
+#define EXEC_STAT_EXECUTING             4
+#define EXEC_STAT_EXCEPT                5
+#define EXEC_STAT_TERMINATING           6
+
+// service exceptional working motion
+#define WORK_TYPE_NONE                  0
+#define WORK_TYPE_JOB                   1   // job executing...
+#define WORK_TYPE_HOME                  2   // HOME_MOVE
+
+// system mode
+#define MODE_STAT_ENTRY                 0
+#define MODE_STAT_INIT                  1
+#define MODE_STAT_MANUAL                2
+#define MODE_STAT_AUTORUN               3
+#define MODE_STAT_DRYRUN                4
+#define MODE_STAT_ERROR                 5
+#define MODE_STAT_ESTOP                 6
+#define MODE_STAT_TERMINATE             7
+
+//////////////////// Data Definition included in Packet ///////////////////////
+
+///////////////////////////////////////
+//
+// Service Name: Test for Service
+//
+// MSG Data Format for test
+//  - int tmp_0, tmp_1
+
+#pragma pack(push, 1)
+typedef struct t_serv_test_msg_data
+{
+    int tmp_0; 
+    int tmp_1; 
+} SERV_TEST_MSG_DATA;
+#pragma pack(pop)
+
+///////////////////////////////////////
+//
+// Service Name: RMGR_SERV_SYSVERSION
+//
+// Reply Data Format for version check
+// - rm_vers: version information of RM process
+// - rm_build: build number information of RM process
+
+#define     RMGR_VERSION_DATA_LEN             16
+#define     RMGR_BUILD_DATA_LEN               16
+
+#pragma pack(push, 1)
+typedef struct t_rmgr_ver_reply_data
+{
+    char rgchRM_vers[RMGR_VERSION_DATA_LEN]; 
+    char rgchRM_build[RMGR_BUILD_DATA_LEN]; 
+} RMGR_VER_REPLY_DATA;
+#pragma pack(pop)
+
+
+///////////////////////////////////////
+//
+// Service Name: RMGR_SERV_SYSSTATE
+//
+// Reply Data Format for system state check
+// - ErrCode: error code (included in error_def.h)
+// - EStopCode: estop code (included in error_def.h)
+// - nExecStat: execution state (EXEC_STAT_IDLE..)
+// - nWorkType: service for exceptional (WORK_TYPE_NONE..)
+
+#define     RMGR_ERROR_DATA_LEN          32
+#define     RMGR_ESTOP_DATA_LEN          32
+
+#pragma pack(push, 1)
+typedef struct t_rmgr_state_reply_data
+{
+    int nErrCode[RMGR_ERROR_DATA_LEN];      // error code
+    int nEstopCode[RMGR_ESTOP_DATA_LEN];    // estop code
+    int nExecStat;                          // execution state
+    int nWorkType;                          // service for exceptional
+} RMGR_STATE_REPLY_DATA;
+#pragma pack(pop)
+
+//////////////////// Packet Definition for MSG, Pulse /////////////////////////
+
+///////////////////////////////////////
+//
+// Message Packet Fomat for common use
+//     in case of Message(Reply) & Pulse
+//
+//  consists of 
+// nCode: Service Code(Required)
+// nValue: Service Option(Required)
+// nDataSize: Size of data(Required)
+// data: Service Contents(Optional)
+
+#define     RMGR_PACKET_LEN                   108
+#define     RMGR_PACKET_DATA_LEN              96
+#define     RMGR_PACKET_HEAD_LEN              12
+
+#define     RMGR_REPLY_PACKET_LEN             108
+#define     RMGR_REPLY_PACKET_DATA_LEN        96
+#define     RMGR_REPLY_PACKET_HEAD_LEN        12
+
+#pragma pack(push, 1)
+typedef struct t_rmgr_packet
+{
+    unsigned nCode; 
+    unsigned nValue; 
+    unsigned nDataSize;
+    
+    // message body
+    union rm_msg_data
+    {
+        BYTE dummy[RMGR_PACKET_DATA_LEN]; 
+
+    // For data of MSG 
+        SERV_TEST_MSG_DATA test_msg;
+        RMGR_VER_REPLY_DATA reply_ver;
+        RMGR_STATE_REPLY_DATA reply_state;
+    } Data;
+} RMGR_PACKET, RMGR_REPLY_PACKET; 
+#pragma pack(pop)
+
+///////////////////////// Shared Memory Definition ////////////////////////////
+
+///////////////////////////////////////
+//
+//  System Status Shared memory (RM Created)
+//      -fInit+Pro+name: check for process init done state
+//      -fExit+Pro+name: check for process Exit done state
+//      -nExecStat: execution state 
+//      -nWorkType: service for exceptional
+//      -fErrorState: error state flag
+//      -fEStopState: estop stae flag
+
+#pragma pack(push, 1)
+typedef struct t_shm_rm_sysstatus
+{
+    // check for the size of shared memory
+    int nSize; 
+
+    // flag for initialize done state check
+    BOOL fInitProcTE;
+    BOOL fInitProcSC;
+    
+    // flag for finalize done state check
+    BOOL fExitProcTE;
+    BOOL fExitProcSC;
+
+    // system runtime mode
+    int nExecStat;          // execution state (EXEC_STAT_IDLE..)
+    int nWorkType;          // service for exceptional (WORK_TYPE_NONE..)
+
+    // flag for error & estop state
+    BOOL fErrorState;                  // error state flag
+    BOOL fEStopState;                  // estop stae flag
+
+    // error & estop code
+    int nErrCode[RMGR_ERROR_DATA_LEN];      // error code
+    int nEstopCode[RMGR_ESTOP_DATA_LEN];    // estop code
+
+    // system mode
+    int nSystemMode;
+} SHM_RM_SYSSTATUS;
+#pragma pack(pop)
+
+#endif  // end of __IPC_ROBOTMGR_H__

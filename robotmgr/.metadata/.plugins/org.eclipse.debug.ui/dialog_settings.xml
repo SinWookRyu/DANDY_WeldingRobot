@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="FAVORITES_DIALOG_SECTION">
+		<item key="DIALOG_X_ORIGIN" value="789"/>
+		<item key="DIALOG_HEIGHT" value="400"/>
+		<item key="DIALOG_FONT_NAME" value="1|굴림|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|굴림"/>
+		<item key="DIALOG_Y_ORIGIN" value="263"/>
+		<item key="DIALOG_WIDTH" value="350"/>
+	</section>
+	<section name="org.eclipse.debug.ui.CHANGE_VARIABLE_VALUE_DIALOG_SECTION">
+		<item key="DIALOG_X_ORIGIN" value="724"/>
+		<item key="DIALOG_FONT_NAME" value="1|굴림|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|굴림"/>
+		<item key="DIALOG_HEIGHT" value="209"/>
+		<item key="DIALOG_Y_ORIGIN" value="390"/>
+		<item key="DIALOG_WIDTH" value="480"/>
+	</section>
+	<section name="org.eclipse.debug.ui.LAUNCH_CONFIGURATION_PROPERTIES_DIALOG_SECTION">
+		<item key="DIALOG_X_ORIGIN" value="54"/>
+		<item key="DIALOG_FONT_NAME" value="1|굴림|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|굴림"/>
+		<item key="DIALOG_HEIGHT" value="648"/>
+		<item key="DIALOG_Y_ORIGIN" value="-89"/>
+		<item key="DIALOG_WIDTH" value="657"/>
+	</section>
+	<section name="org.eclipse.debug.ui.STRING_VARIABLE_SELECTION_DIALOG_SECTION">
+		<item key="DIALOG_X_ORIGIN" value="259"/>
+		<item key="DIALOG_FONT_NAME" value="1|굴림|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|굴림"/>
+		<item key="DIALOG_HEIGHT" value="508"/>
+		<item key="DIALOG_Y_ORIGIN" value="-11"/>
+		<item key="DIALOG_WIDTH" value="390"/>
+	</section>
+	<section name="org.eclipse.debug.ui.LAUNCH_CONFIGURATIONS_DIALOG_SECTION">
+		<item key="org.eclipse.debug.ui.DIALOG_SASH_WEIGHTS_1" value="237"/>
+		<item key="DIALOG_X_ORIGIN" value="564"/>
+		<item key="DIALOG_HEIGHT" value="648"/>
+		<item key="DIALOG_FONT_NAME" value="1|굴림|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|굴림"/>
+		<item key="org.eclipse.debug.ui.EXPANDED_NODES" value=", com.qnx.tools.ide.qde.ui.QDELaunch, "/>
+		<item key="DIALOG_Y_ORIGIN" value="103"/>
+		<item key="DIALOG_WIDTH" value="858"/>
+		<item key="org.eclipse.debug.ui.DIALOG_SASH_WEIGHTS_2" value="762"/>
+	</section>
+	<section name="org.eclipse.debug.ui.SELECT_LAUNCH_SHORTCUT_DIALOG">
+		<item key="DIALOG_X_ORIGIN" value="789"/>
+		<item key="DIALOG_HEIGHT" value="350"/>
+		<item key="DIALOG_FONT_NAME" value="1|굴림|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|굴림"/>
+		<item key="DIALOG_Y_ORIGIN" value="296"/>
+		<item key="DIALOG_WIDTH" value="350"/>
+	</section>
+</section>

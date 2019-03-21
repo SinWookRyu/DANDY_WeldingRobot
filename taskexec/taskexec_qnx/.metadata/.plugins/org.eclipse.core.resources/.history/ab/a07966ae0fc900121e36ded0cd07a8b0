@@ -1,0 +1,310 @@
+////////////////////////////////////////////////////////////////////////////////
+// T_RUNTIME.C is Runtime Thread Program. 
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "taskexec_def.h"
+#include "te_serv.h"
+#include "dandy_echo.h"
+
+////////////////////////////////////////////////////////////////////////////////
+
+static int RuntimeInit(void); 
+static void RuntimeUninit(void);
+static void RuntimeService(void); 
+
+////////////////////////////////////////////////////////////////////////////////
+
+THREAD_ENTRY_TYPE RuntimeThread(void* pParam)
+{
+    TE_MSG      msg; 
+    MSG_INFO	msg_info; 
+    int         rcvid; 
+    int         f_exit = 0;     // exit requested flag
+
+    R_VERB_MSG("Starts 'Runtime' thread.\n"); 
+    
+    if(RuntimeInit())
+    { 
+        goto EXIT_PROCESS;
+    }   
+
+    // Runtime Starts Indicate Setting 
+	g_f_runtime_ready = TRUE; 
+    R_VERB_MSG("'Runtime' thread completed initialization.\n"); 
+
+    // Runtime Thread Start                                     
+    R_VERB_MSG("'Runtime' thread Starts Main Loop...\n"); 
+	while(1)
+	{
+		rcvid = MSG_Receive(g_ch_run, &msg, sizeof(msg), &msg_info);	
+        if(rcvid < 0)
+		{
+			R_VERB_WRN("Failed MSG Receiption.\n");
+            continue; 
+		}
+        
+        // Check Exit Condition
+        if(f_exit == TRUE && g_mode_run == RUNMODE_NONE)
+        {
+            goto EXIT_PROCESS; 
+        }
+
+        if(msg.code == RUNSERV_EXIT)
+        {	
+            Run_Stop(); 
+            f_exit = TRUE; 
+        }
+        else if(msg.code == RUNSERV_TIMER)
+        {   
+            RuntimeService(); 
+        }
+        else
+        {    
+            R_VERB_WRN("Received unsuported service.\n");
+            continue; 
+        }    
+        {
+            char str[8]; 
+            if(g_i_runtick & 0x80)
+            {
+                CRT_strcpy(str, sizeof(str), Str_GetRunMode(g_mode_run)); 
+            }            
+            else 
+            {
+                CRT_strcpy(str, sizeof(str), "    "); 
+            }            
+            VGA_printf(0, 0, "%s", str); 
+        }
+
+        // post work; 
+        g_i_runtick++; 
+	}
+
+EXIT_PROCESS:
+                                             	
+    // Runtime Exits Indicate Setting 
+    R_VERB_MSG("Enters to the exit process.\n");
+	RuntimeUninit();
+    g_f_runtime_exit = TRUE; 	                 
+    R_VERB_MSG("Exits 'Runtime' thread.\n"); 
+	return 0; 
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+int Run_SetMode(int mode)
+{    
+    int  ret; 
+
+    if(g_mode_run != RUNMODE_NONE)
+    {        
+        R_VERB_WRN("Runtime is busy. Trg:%s Act:%s\n", Str_GetRunMode(mode), Str_GetRunMode(g_mode_run));			
+        return -1; 
+    }
+
+    switch(mode)
+    {
+    case RUNMODE_TIMETEST:
+        ret = Cmd_TimerTest_Init();         
+        g_mode_run = RUNMODE_TIMETEST; 
+        break; 
+    case RUNMODE_NONE:
+    default:        
+        
+        break; 
+    }
+
+    if(ret)
+    {        
+        VERBOSE_ERROR("Failed to set Runtime Mode. Trg:%s Act:%s\n", Str_GetRunMode(mode), Str_GetRunMode(g_mode_run));			        
+
+    }
+    else
+    {
+        VERBOSE_MESSAGE("Set Runtime Mode(%s).\n", Str_GetRunMode(g_mode_run));
+    }
+    return ret; 
+}
+
+void Run_Stop(void)
+{
+    switch(g_mode_run)
+    {
+    case RUNMODE_TIMETEST:
+        Cmd_TimerTest_Stop();                 
+        break; 
+    case RUNMODE_NONE:
+    default:         
+        break; 
+    }    
+}
+
+////////////////////////////////////////////////////////////////////////////////
+static void RuntimeService(void)
+{
+    int ret; 
+    
+    // Update
+    switch(g_mode_run)
+    {
+    case RUNMODE_TIMETEST:    
+        ret = Cmd_TimerTest_Update();         
+        break;
+
+    case RUNMODE_NONE:
+    default:
+        ret = -1; 
+        break; 
+    }
+
+    // End of Work 
+    if(ret != 0)
+    {
+        if(g_mode_run != RUNMODE_NONE)
+        {
+            R_VERB_MSG("Resets Mode to NORMAL.\n");
+        }
+        g_mode_run = RUNMODE_NONE; 
+    }
+
+    // Process
+    switch(g_mode_run)
+    {
+    case RUNMODE_TIMETEST:    
+        Cmd_TimerTest_Run();         
+        break;
+        
+    case RUNMODE_NONE:
+    default:         
+        break; 
+    }
+}
+
+static int RuntimeInit(void)
+{    	
+	// Channel Init	for External Process
+    g_ch_run = MSG_CreateChannel(); 
+    if (g_ch_run == INVALID_CHID)
+    {
+		R_VERB_ERR("Failed to create the channel for RUNTIME thread.\n");
+        return -1; 
+    }
+	else
+	{
+		R_VERB_VRB("Created the channel for RUNTIME thread. ID:%d \n", g_ch_run);
+	}
+
+    // Extra Runtime Channel for SC
+    g_ch_run_ext = MSG_CreateNamedChannel(RUN_CHANNEL_NAME);
+    if (g_ch_run_ext == INVALID_CHID)
+    {
+		R_VERB_ERR("Failed to create the extra channel. Name:%s\n", RUN_CHANNEL_NAME);
+        return -1; 
+    }
+	else
+	{
+		R_VERB_VRB("Created the extra channel. Name:%s ID:%d \n", RUN_CHANNEL_NAME, g_ch_run);
+	}
+
+    // Connection to Runtime
+    g_co_run = MSG_AttachConnection(0, g_ch_run); 
+    if (g_co_run == INVALID_COID) 
+    { 
+        R_VERB_ERR("Failed to attatch connetion to Runtime Thread\n"); 
+        return -1; 
+    }
+    else
+    {
+        R_VERB_VRB("Attached the connection to Runtime Thread. ID:%d \n", g_co_run); 
+    }    
+
+    // Timer Register 
+    g_htmr_run = TIME_RegTimerPulse(g_co_run, RUNSERV_TIMER, 0, SAMPTIME_RUNTIME, 0);
+    if(g_htmr_run == -1)
+    {              
+        R_VERB_ERR("Failed to register RUNTIME timer.\n"); 
+        return -1; 
+    }
+    else
+    {
+        R_VERB_VRB("Registered RUNTIME timer. Handle:%d Sample:%d[ms]\n", g_htmr_run, SAMPTIME_RUNTIME); 
+    }
+
+    // VGA
+    if(VGA_MapVGAMemory(0) == -1) 
+    {    
+        R_VERB_ERR("Failed to map VGA memory\n"); 
+        return -1; 
+    }
+    else
+    {
+        R_VERB_VRB("Mapped VGA memory.\n"); 
+    }
+    // fgcolor : yellow, bkcolor : black 
+    VGA_SetAttr(VGA_MAKE_ATTR(VGA_COLOR_YELLOW, VGA_COLOR_BLACK)); 
+
+	return 0; 
+}
+
+static void RuntimeUninit(void)
+{
+	int ret; 	
+	
+    // VGA
+    VGA_UnmapVGAMemory();
+    R_VERB_VRB("Unmapped VGA memory.\n"); 
+
+    // Unregistered Runtime Timer
+    if(g_htmr_run != -1)
+    {
+        if(TIME_UnregTimerPulse(g_htmr_run) == -1)
+        {
+            R_VERB_ERR("Failed to unregister RUNTIME timer. Handle:%d \n", g_htmr_run); 
+        }
+        else
+        {
+            R_VERB_VRB("Unregistered RUNTIME timer. Handle:%d \n", g_htmr_run); 
+        }
+    }
+
+	// Uninit Connection
+	if(INVALID_COID != g_co_rm) 
+	{
+		MSG_DetachConnection(g_co_rm);
+		VERBOSE_MESSAGE("Detached the connection to RM. ID:%d\n", g_co_rm);
+		g_co_rm = INVALID_COID; 
+	}
+
+	// Uninit Extra Channel
+	if(INVALID_CHID != g_ch_run_ext)
+	{
+		ret = MSG_DestroyChannel(g_ch_run_ext);
+		g_ch_run_ext = INVALID_CHID; 
+
+		if(-1 == ret)
+		{
+			VERBOSE_ERROR("Failed to destroy the extra-channel. Name:%s\n", RUN_CHANNEL_NAME);
+		}
+		else
+		{
+			VERBOSE_MESSAGE("Destroyed the extra-channel. Name:%s\n", RUN_CHANNEL_NAME);
+		}
+	}
+
+    // Uninit Channel
+	if(INVALID_CHID != g_ch_run)
+	{
+		ret = MSG_DestroyChannel(g_ch_run);
+		g_ch_run = INVALID_CHID; 
+
+		if(-1 == ret)
+		{
+			VERBOSE_ERROR("Failed to destroy the channel.\n");
+		}
+		else
+		{
+			VERBOSE_MESSAGE("Destroyed the channel.\n");
+		}
+	}
+}

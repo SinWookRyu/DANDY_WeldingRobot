@@ -1,0 +1,1603 @@
+/////////////////////////////////////////////////////////////////////////////
+//
+//  robot_service.c: Robot Service Manage
+//                                            2013.04.11  Ryu SinWook
+
+///////////////////////////////////////
+
+#include "robotmgr_main.h"
+
+///////////////////////////////////////
+
+
+///////////////////////////////////////
+//Global_variable
+
+int  g_fServiceStatus = 0;
+int  g_retTEmsg = 0;
+int  g_retSCmsg = 0;
+int  g_fSVCExecThRun = RUN;
+char g_szRetSysTime[SYSTIME_DATA_LEN];
+char g_szErrContent[ERROR_NAME_LEN];
+char g_szServContent[SERV_NAME_LEN];
+
+THREAD_HANDLE                  hSVCCheck_Thread;
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_Fn_GetSystemTime(const struct tm* ptm, const char* pszType)
+//      - Function to get system time
+static void _loc_Fn_GetSystemTime(const struct tm* ptm, const char* pszType)
+{
+    CRT_sprintf(g_szRetSysTime, SYSTIME_DATA_LEN,
+             "%04d-%02d-%02d %02d:%02d:%02d",
+             ptm->tm_year + 1900, // years since 1900
+             ptm->tm_mon + 1,     // months since January - [0,11]
+             ptm->tm_mday,        // day of the month - [1,31]
+             ptm->tm_hour,        // hours since midnight - [0,23]
+             ptm->tm_min,         // minutes after the hour - [0,59]
+             ptm->tm_sec);        // seconds after the minute - [0,59]
+}
+
+#if 0
+///////////////////////////////////////
+//
+//  Function: _loc_STACK_Pop()
+//      - Function to delete an element from the stack
+static int _loc_STACK_Pop(void)
+{
+    static int nPopVal;
+
+    if (g_ErrCodeStack.nTop == - 1)
+    {
+        VERBOSE_VERBOSE ("Error Code Stack is Empty\n");
+        return g_ErrCodeStack.nTop;
+    }
+    else
+    {
+        nPopVal = g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop];
+        VERBOSE_VERBOSE ("poped element is = index: %d, value: %d\n",
+                                g_ErrCodeStack.nTop,                    
+                                g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop]);
+        RM_packet.Data.reply_state.nErrorCodeStack[g_ErrCodeStack.nTop] = 
+                                 g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop];
+        g_ErrCodeStack.nTop = g_ErrCodeStack.nTop - 1;
+    }
+
+    return nPopVal;
+}
+#endif
+
+///////////////////////////////////////
+//
+//  Function: _loc_Fn_STACK_Push()
+//      - Function to add an element to the stack
+static int _loc_Fn_STACK_Push(void)
+{
+    struct tm tm;
+
+    TIME_GetLocalTime(&tm);
+    _loc_Fn_GetSystemTime(&tm, "Local");
+
+    if (g_ErrCodeStack.nTop == (MAX_STACK_SIZE - 1))
+    {
+#if defined(__DEBUG)
+        VERBOSE_VERBOSE("Error Code Stack is Full!, Return the Index to 1!\n");
+#endif
+        // set the index to store
+        g_ErrCodeStack.nTop = 1;
+    }
+    else
+    {
+        // set the index to store
+        g_ErrCodeStack.nTop = g_ErrCodeStack.nTop + 1;
+    }
+
+    // push the error time to stack
+    CRT_strcpy(g_ErrCodeStack.szErrStackSysTime[g_ErrCodeStack.nTop],
+               SYSTIME_DATA_LEN, g_szRetSysTime);
+
+    // push the error code to stack
+    g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop] =
+                                                g_pShm_SysStatus->nErrCode;
+    
+    // push the error time to reply packet
+    RM_packet.Data.reply_state.szErrStackSysTime[g_ErrCodeStack.nTop] = 
+                     g_ErrCodeStack.szErrStackSysTime[g_ErrCodeStack.nTop];
+    // push the error code to reply packet
+    RM_packet.Data.reply_state.nErrorCodeStack[g_ErrCodeStack.nTop] = 
+                             g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop];
+
+#if defined(__DEBUG)
+    // display the pushed value
+    VERBOSE_VERBOSE ("[Error Stack]%s: index: %d, value: %d\n",
+                            g_szRetSysTime,
+                            g_ErrCodeStack.nTop,                    
+                            g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop]);
+#endif
+
+    return EXIT_SUCCESS;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_Write_ErrorHistory()
+//      - write error history to stack
+static int _loc_SVC_Write_ErrorHistory(void)
+{
+    if((g_pShm_SysStatus->fErrorState == TRUE) &&
+       (g_ErrCodeStack.nErrStack[g_ErrCodeStack.nTop] !=
+        g_pShm_SysStatus->nErrCode))
+    {
+        _loc_Fn_STACK_Push();
+    }
+
+    return EXIT_SUCCESS;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_DefineErrorState()
+//      - define error state: error flag, error code
+int SVC_DefineErrorState(int nState, int nErrorCode)
+{
+    if(g_hShm_SysStatus != 0 && g_hShm_SysStatus != -1)
+    {
+        if(nState == ON)
+        {
+            g_pShm_SysStatus->nErrCode = nErrorCode;
+            g_pShm_SysStatus->fErrorState = TRUE;
+            _loc_SVC_Write_ErrorHistory();
+        }
+        else if(nState == OFF)
+        {
+            g_pShm_SysStatus->fErrorState = FALSE;
+        }
+    }
+
+    return EXIT_SUCCESS;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_ExitTEService()
+//      - Service Name: RMGR_SERV_SYSEXIT
+int SVC_ExitTEService(void)
+{
+    if(g_coidTE != INVALID_COID)
+    {
+        g_fSysAliveThRun = PAUSE;
+        TE_msg.code = TESERV_EXIT;
+        TE_msg.value = 0;
+        TE_msg.size = 0;
+
+        g_retTEmsg = MSG_Send(g_coidTE,
+                              &TE_msg,
+                              TE_MSG_HEAD_SIZE,
+                              &TE_reply,
+                              TE_REPLY_HEAD_SIZE);
+	    VERBOSE_VERBOSE("TE Quit\n"); 
+
+        DANDY_SLEEP(100);
+        
+        // Close connection
+        MSG_CloseSiblingConnection(g_coidTE, g_coidTEalive);
+    }
+    else
+    {
+        SVC_DefineErrorState(ON, SYS_ERR_FINALIZE_TE);
+        VERBOSE_ERROR("Fail to MSG Sending, TE Connection is not valid\n"); 
+    }
+    
+    // Error Flag Check by Return Value
+    if(g_retTEmsg == RESULT_ERROR && g_coidTE != INVALID_COID)
+    {
+        SVC_DefineErrorState(ON, SYS_ERR_FINALIZE_TE);
+        VERBOSE_WARNING("TE EXIT Sended! (return: %d)\n", g_retTEmsg);
+    }
+    else if(g_retTEmsg == RESULT_OK && g_coidTE != INVALID_COID)
+    {
+        SVC_DefineErrorState(OFF, 0);
+        VERBOSE_VERBOSE("TE EXIT Sended! (return: %d)\n", g_retTEmsg);
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_ExitSCService()
+//      - Service Name: RMGR_SERV_SYSEXIT
+int SVC_ExitSCService(void)
+{
+	if(g_coidSC != INVALID_COID)
+    {
+        g_fSysAliveThRun = PAUSE;
+        SC_msg.code = SC_SERV_EXIT;
+        SC_msg.value = 0;
+        SC_msg.size = 0;
+
+        g_retSCmsg = MSG_Send(g_coidSC,
+                              &SC_msg,
+                              SC_PACKET_HEAD_SIZE,
+                              &SC_reply,
+                              SC_REPLY_PACKET_HEAD_SIZE);
+	    VERBOSE_VERBOSE("SC Quit\n"); 
+
+        DANDY_SLEEP(100);
+
+        // Close connection
+        MSG_CloseSiblingConnection(g_coidSC, g_coidSCalive);
+    }
+    else
+    {
+        SVC_DefineErrorState(ON, SYS_ERR_FINALIZE_SC);
+        VERBOSE_ERROR("Fail to MSG Sending, SC Connection is not valid\n"); 
+    }
+
+    // Error Flag Check by Return Value
+    if(g_retSCmsg == RESULT_ERROR && g_coidSC != INVALID_COID)
+    {
+        SVC_DefineErrorState(ON, SYS_ERR_FINALIZE_SC);
+        VERBOSE_WARNING("SC EXIT Sended! (return: %d)\n", g_retSCmsg);
+    }
+    else if(g_retSCmsg == RESULT_OK && g_coidSC != INVALID_COID)
+    {
+        SVC_DefineErrorState(OFF, 0);
+        VERBOSE_VERBOSE("SC EXIT Sended! (return: %d)\n", g_retSCmsg);
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_InitTEService()
+//          -Service Name: RMGR_SERV_SYSINIT
+int SVC_InitTEService(void)
+{
+    if(g_coidTE != INVALID_COID)
+    {
+        // If Prog. Argument Manual Init is TRUE, Try to Connect Channel
+        if(g_Arg.bManualInit == TRUE)
+        {
+            g_coidTE = MSG_ConnectChannelServer(TE_CHANNEL_ID);
+        }
+
+SEND_TEINIT:
+        // Define Message Contents
+        TE_msg.code = TESERV_INIT;
+        TE_msg.value = 0;
+        TE_msg.size = 0;
+
+        // Send Massage
+        g_retTEmsg = MSG_Send(g_coidTE,
+                              &TE_msg,
+                              RMGR_PACKET_HEAD_LEN,
+                              &TE_reply,
+                              RMGR_REPLY_PACKET_HEAD_LEN);
+#if defined(__DUBUG)
+        VERBOSE_VERBOSE("[TE sended]code: %d value: %d, size: %d\n",
+                                                        TE_msg.code,
+                                                        TE_msg.value,
+                                                        sizeof(TE_msg));
+#endif
+    }
+    // If Message Sending is Failed by Invalid Connection, Retry to Connect
+    if(g_coidTE == INVALID_COID || g_retTEmsg == RESULT_ERROR)
+    {
+        // Define Init Error State
+        SVC_DefineErrorState(ON, SYS_ERR_INIT_TE);
+        VERBOSE_ERROR("Fail to MSG Send, Retry Connection to TE!\n"); 
+
+        // Retry Connection
+        g_coidTE = MSG_AttachNamedConnection(TE_CHANNEL_NAME);
+        g_coidTEalive = MSG_AttachNamedConnection(TE_CHANNEL_NAME);
+
+        if(g_coidTE != INVALID_COID && g_coidTEalive != INVALID_COID)
+        {
+            // Retry to Send Message
+            goto SEND_TEINIT;
+
+            VERBOSE_VERBOSE("%s connected : coid=%d, %d\n",
+                                                           TE_CHANNEL_NAME,
+                                                           g_coidTE,
+                                                           g_coidTEalive);
+        }
+        else
+        {
+            VERBOSE_ERROR("Connection Fail! To %s channel\n",TE_CHANNEL_NAME);
+        }
+    }
+
+    // Error Flag Check by Return Value
+    if(g_retTEmsg == RESULT_ERROR && g_coidTE != INVALID_COID)
+    {
+        SVC_DefineErrorState(ON, SYS_ERR_INIT_TE);
+	    VERBOSE_WARNING("TE INIT Sended! (return: %d)\n", g_retTEmsg);
+        return -1;
+    }
+    else if(g_retTEmsg == RESULT_OK && g_coidTE != INVALID_COID)
+    {
+        SVC_DefineErrorState(OFF, 0);
+	    VERBOSE_VERBOSE("TE INIT Sended! (return: %d)\n", g_retTEmsg); 
+        return -1;
+    }
+
+    if(g_coidTE == INVALID_COID)
+        return -1;
+
+    return 0;
+}
+
+///////////////////////////////////////
+//
+//  Function: SVC_InitSCService()
+//          -Service Name: RMGR_SERV_SYSINIT
+int SVC_InitSCService(void)
+{
+	if(g_coidSC != INVALID_COID)
+    {
+        // If Prog. Argument Manual Init is TRUE, Try to Connect Channel
+        if(g_Arg.bManualInit == TRUE)
+        {
+            g_coidSC = MSG_ConnectChannelServer(SC_CHANNEL_ID);
+        }
+
+SEND_SCINIT:
+        // Define Message Contents
+        SC_msg.code = SC_SERV_INIT;
+        SC_msg.value = 0;
+        SC_msg.size = 0;
+
+        // Send Message
+        g_retSCmsg = MSG_Send(g_coidSC,
+                              &SC_msg,
+                              RMGR_PACKET_HEAD_LEN,
+                              &SC_reply,
+                              RMGR_REPLY_PACKET_HEAD_LEN);
+#if defined(__DUBUG)
+        VERBOSE_VERBOSE("[SC sended]code: %d value: %d, size: %d\n",
+                                                        SC_msg.code,
+                                                        SC_msg.value,
+                                                        sizeof(SC_msg));
+#endif
+    }
+    // If Message Sending is Failed by Invalid Connection, Retry to Connect
+    if(g_coidSC == INVALID_COID || g_retSCmsg == RESULT_ERROR)
+    {
+        // Define Init Error State
+        SVC_DefineErrorState(ON, SYS_ERR_INIT_SC);
+        VERBOSE_ERROR("Fail to MSG Send, Retry Connection to SC!\n");
+
+        // Retry Connection
+        g_coidSC = MSG_AttachNamedConnection(SC_CHANNEL_NAME);
+        g_coidSCalive = MSG_AttachNamedConnection(SC_CHANNEL_NAME);
+
+        if(g_coidSC != INVALID_COID && g_coidSCalive != INVALID_COID)
+        {
+            // Retry to Send Message
+            goto SEND_SCINIT;
+
+            VERBOSE_VERBOSE("%s connected : coid=%d, %d\n",
+                                                           SC_CHANNEL_NAME,
+                                                           g_coidSC,
+                                                           g_coidSCalive);
+        }
+        else
+        {
+            VERBOSE_ERROR("Connection Fail! To %s channel\n",SC_CHANNEL_NAME);
+        }
+    }
+    
+    // Error Flag Check by Return Value
+    if(g_retSCmsg == RESULT_ERROR && g_coidSC != INVALID_COID)
+    {
+        SVC_DefineErrorState(ON, SYS_ERR_INIT_SC);
+	    VERBOSE_WARNING("SC INIT Sended! (return: %d)\n", g_retSCmsg); 
+        return -1;
+    }
+    else if(g_retSCmsg == RESULT_OK && g_coidSC != INVALID_COID)
+    {
+        SVC_DefineErrorState(OFF, 0);
+	    VERBOSE_VERBOSE("SC INIT Sended! (return: %d)\n", g_retSCmsg);
+        return -1;
+    }
+
+    if(g_coidSC == INVALID_COID)
+        return -1;
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_RCON_Error_Reset()
+//      - Service Name: RCON_SERV_ERROR_RESET
+
+static int _loc_SVC_RCON_Error_Reset(void)
+{
+    int nRet;
+
+    nRet = MSG_SendPulse(g_coidSC, SC_SERV_ALARM_RESET, 0);
+    DANDY_SLEEP(100);
+
+    nRet = MSG_SendPulse(g_coidTE, TESERV_RESET_ERR, 0);
+	VERBOSE_VERBOSE("Error Reset Service Executed!\n"); 
+
+    return (nRet == RESULT_ERROR) ?
+        RESULT_ERROR : RESULT_OK;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_RCON_Stop()
+//
+
+static int _loc_SVC_RCON_Stop(void)
+{
+    MSG_SendPulse(g_coidTE, TESERV_STOP, 0); 
+	VERBOSE_VERBOSE("Stop Service Executed!\n"); 
+
+    return 0;
+}
+
+#if 0
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_RCON_Jog()
+//
+
+static int _loc_SVC_RCON_Jog(void)
+{
+    MSG_SendPulse(g_coidTE, TESERV_JOG, 0); 
+	VERBOSE_VERBOSE("Jog Service Executed!\n"); 
+
+    return 0;
+}
+#endif
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_TimerTest()
+//
+
+static int _loc_SVC_TimerTest(void)
+{
+    MSG_SendPulse(g_coidTE, TESERV_TIMETEST, 0); 
+	VERBOSE_VERBOSE("Timer Test Start!\n"); 
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: SVC_RetryInitProcessRM()
+//      - Service Name: RMGR_SERV_SYSINIT
+
+int SVC_RetryInitProcessRM(void)
+{
+    // Load System Parameters
+    if(g_fInitRet[INIT_STEP0_LOAD_PARAM] == -1)
+    {
+        VERBOSE_VERBOSE("Retry RM Shared Memory Create!\n");
+        SHM_CreateSharedMemory();
+    }
+    
+    // Create Shared Memory
+    if(g_fInitRet[INIT_STEP1_CREATE_SHM] == -1)
+    {
+        VERBOSE_VERBOSE("Retry Parameter Loading!\n");
+        SYSC_LoadSystemConfigParameter();
+    }
+
+    // Connect to Other Proc Channel
+    if(g_fInitRet[INIT_STEP2_CONNECT_CH] == -1)
+    {
+        VERBOSE_VERBOSE("Retry Connect Channel Server!\n");
+        // Retry to Connect Automatically by Alive Check Thread in system_mon.c
+    }
+
+    // Init RM Services
+    if(g_fInitRet[INIT_STEP3_INIT_SERV] == -1)
+    {
+        VERBOSE_VERBOSE("Retry RM Service Initialize!\n");
+        SVC_InitRMService();
+    }
+            
+    // Open Shared Memory
+    if(g_fInitRet[INIT_STEP4_OPEN_SHM] == -1)
+    {
+        VERBOSE_VERBOSE("Retry Open Shared Memory!\n");
+        SHM_OpenSharedMemory();
+    }
+            
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_SetSystemStatePacketDefine()
+//      - Service Name: RMGR_SERV_SYSSTATE
+
+#define Reply_SysState     RM_reply_packet.Data.reply_state
+
+static int _loc_SVC_SetSystemStatePacketDefine(void)
+{
+    static int iCount;
+
+    RM_reply_packet.nCode      = RM_packet.nCode;
+    RM_reply_packet.nValue     = RM_packet.nValue;
+    RM_reply_packet.nDataSize  = sizeof(RMGR_STATE_REPLY_DATA);
+
+    Reply_SysState.nExecStat   = g_pShm_SysStatus->nExecStat;
+    Reply_SysState.nWorkType   = g_pShm_SysStatus->nWorkType;
+    Reply_SysState.nSystemMode = g_pShm_SysStatus->nSystemMode;
+    Reply_SysState.nErrCode    = g_pShm_SysStatus->nErrCode;
+
+    for(iCount = 1; iCount < MAX_STACK_SIZE; iCount++)
+    {
+        Reply_SysState.szErrStackSysTime[iCount] = 
+                                       g_ErrCodeStack.szErrStackSysTime[iCount];
+        Reply_SysState.nErrorCodeStack[iCount]   = 
+                                       g_ErrCodeStack.nErrStack[iCount];
+    }
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ShowSystemStateDisplay()
+//      - Service Name: RMGR_SERV_SYSSTATE
+
+static int _loc_SVC_ShowSystemStateDisplay(void)
+{
+    static int iCount;
+
+
+    VERBOSE_VERBOSE("\v\n<- System State Info ->\n");
+
+    VERBOSE_VERBOSE("\v   ExecStat : %d\t"
+                    "   WorkType : %d\t"
+                    "   SysMode  : %d\t",
+                    g_pShm_SysStatus->nExecStat,
+                    g_pShm_SysStatus->nWorkType,
+                    g_pShm_SysStatus->nSystemMode);
+
+    VERBOSE_VERBOSE("\v   ErrCode(fErr): %d(%d)\n" 
+                    "   TE fInit: %d, fExit: %d\t"
+                    "   SC fInit: %d, fExit: %d\n"
+                    "   Error Code History\n",
+                    g_pShm_SysStatus->nErrCode,
+                    g_pShm_SysStatus->fErrorState,
+                    g_pShm_SysStatus->fInitProcTE,
+                    g_pShm_SysStatus->fExitProcTE,
+                    g_pShm_SysStatus->fInitProcSC,
+                    g_pShm_SysStatus->fExitProcSC);
+    
+    VERBOSE_VERBOSE("\v\t No \tTime\t\t\tCode\tContents\n");
+    for(iCount = 1; iCount < MAX_STACK_SIZE; iCount++)
+    {
+        SYSMON_ParceErrCodeToErrContent(g_ErrCodeStack.nErrStack[iCount]);
+        VERBOSE_VERBOSE("\v\t[%d]\t%s\t%d\t%s\n",
+                        iCount,
+                        g_ErrCodeStack.szErrStackSysTime[iCount],
+                        g_ErrCodeStack.nErrStack[iCount],
+                        g_szErrContent);
+
+        if(iCount == MAX_STACK_SIZE - 1)
+        {
+            VERBOSE_VERBOSE("\v\n");
+        }
+    }
+    
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_SetSystemInfoPacketDefine()
+//      - Service Name: RMGR_SERV_SYSINFO
+
+#define Reply_SysInfo   RM_reply_packet.Data.reply_info.shm_sysconfig
+#define Reply_AxisInfo  Reply_SysInfo.robot[iRobot].axis[iAxis]
+
+static int _loc_SVC_SetSystemInfoPacketDefine(int nValue)
+{
+    static int iRobot, iAxis, iMotor;
+    static int nAxesCount, nAxisIndex;
+
+    RM_reply_packet.nCode      = RM_packet.nCode;
+    RM_reply_packet.nValue     = RM_packet.nValue;
+    RM_reply_packet.nDataSize  = sizeof(RMGR_INFO_REPLY_DATA);
+
+    ///////////////////////////////////
+    // GLOBAL
+
+    Reply_SysInfo.ctrl.nReqVersion     = g_nControlParam.nReqVersion;
+    Reply_SysInfo.ctrl.nServoScanTime  = g_nControlParam.nServoScanTime;
+    Reply_SysInfo.ctrl.nIoScanTime     = g_nControlParam.nIoScanTime;
+    Reply_SysInfo.ctrl.nTrajScanTime   = g_nControlParam.nTrajScanTime;
+    Reply_SysInfo.ctrl.nTrajBufferUsed = g_nControlParam.nTrajBufferUsed;
+
+    CRT_strcpy(Reply_SysInfo.ecat.szPathName, CONFIG_PATH_NAME_LEN, g_pszEcatConfigDir);
+    Reply_SysInfo.ecat.nSlaveCount      = g_nECATParam.nSlaveCount;
+    Reply_SysInfo.ecat.nWriteOffsetSize = g_nECATParam.nWriteOffsetSize;
+    Reply_SysInfo.ecat.nReadOffsetSize  = g_nECATParam.nReadOffsetSize;
+
+    ///////////////////////////////////
+    // ROBOT
+    for (iRobot = 0; iRobot < MAX_ROBOT_COUNT; iRobot++)
+    {
+        // svc value: 0 or 1
+        if(nValue == 0 || nValue == 1)
+        {
+            g_pRobot = g_pShm_SysConfig->robot + iRobot;
+
+            Reply_SysInfo.robot[iRobot].fUsed = g_rgfRobotUsed[iRobot];
+            CRT_strcpy(Reply_SysInfo.robot[iRobot].szRobotName , ROBOT_NAME_LEN, g_pRobot->szRobotName);
+            Reply_SysInfo.robot[iRobot].nRobotType = g_pRobot->nRobotType;
+            
+            // maximum speed
+            for (iAxis = 0; iAxis < g_rgnRobotAxisCount[iRobot]; iAxis++)
+            {
+                Reply_SysInfo.robot[iRobot].dbMaxJointSpeed[iAxis] = 
+                                                  g_pRobot->dbMaxJointSpeed[iAxis];
+            }
+            Reply_SysInfo.robot[iRobot].dbMaxLinearSpeed = g_pRobot->dbMaxLinearSpeed;
+            Reply_SysInfo.robot[iRobot].dbMaxOrientSpeed = g_pRobot->dbMaxOrientSpeed;
+            
+            // jerk
+            Reply_SysInfo.robot[iRobot].dbJerk = g_pRobot->dbJerk;
+
+            // accel/decel pattern determined by jerk(0: trapezoidal)
+            Reply_SysInfo.robot[iRobot].dbAccel = g_pRobot->dbAccel;
+            Reply_SysInfo.robot[iRobot].dbDecel = g_pRobot->dbDecel;
+            Reply_SysInfo.robot[iRobot].dbDecel_Error = g_pRobot->dbDecel_Error;
+            Reply_SysInfo.robot[iRobot].dbDecel_Estop = g_pRobot->dbDecel_Estop;
+            Reply_SysInfo.robot[iRobot].dbDecel_Touch = g_pRobot->dbDecel_Touch;
+        }
+        
+        g_pAxis = g_pRobot->axis + 0;
+        nAxesCount = 0;
+        nAxisIndex = 0;
+
+        Reply_SysInfo.robot[iRobot].nAxesCount = g_pRobot->nAxesCount;
+        
+        ///////////////////////////////////
+        // Axis
+
+        for (iAxis = 0; iAxis < g_rgnRobotAxisCount[iRobot]; iAxis++)
+        {
+            nAxesCount = g_pRobot->nAxesCount;
+            DANDY_ASSERT(nAxesCount >= 0 && nAxesCount <= MAX_AXIS_COUNT);
+
+            // svc value: 0 or 2
+            if(nValue == 0 || nValue == 2)
+            {
+                g_pAxis = g_pShm_SysConfig->robot->axis + iAxis;
+            
+                CRT_strcpy(Reply_AxisInfo.szName, AXIS_NAME_LEN, g_pAxis->szName);
+                Reply_AxisInfo.nAxisType = g_pAxis->nAxisType;
+                Reply_AxisInfo.nAxisIndex = g_pAxis->nAxisIndex;
+
+                Reply_AxisInfo.fHwLim_min = g_pAxis->fHwLim_min;
+                Reply_AxisInfo.fHwLim_max = g_pAxis->fHwLim_max;
+
+                Reply_AxisInfo.fSwLim_min = g_pAxis->fSwLim_min;
+                Reply_AxisInfo.fHwLim_max = g_pAxis->fSwLim_max;
+                Reply_AxisInfo.pos_swlim_min = g_pAxis->pos_swlim_min;
+                Reply_AxisInfo.pos_swlim_max = g_pAxis->pos_swlim_max;
+
+                Reply_AxisInfo.ori[iAxis] = g_pAxis->ori[iAxis];
+                Reply_AxisInfo.red[iAxis] = g_pAxis->red[iAxis];
+                Reply_AxisInfo.dir[iAxis] = g_pAxis->dir[iAxis];
+                Reply_AxisInfo.nMotorCount = g_pAxis->nMotorCount;
+            }
+
+            ///////////////////////////////////
+            // MOTOR
+    
+            for (iMotor = iAxis; iMotor < (iAxis+g_nMotorCount[iAxis]); iMotor++)
+            //for (iMotor = 0; iMotor < g_nMotorCount[iAxis]; iMotor++)
+            {
+                // svc value: 0 or 3
+                if(nValue == 0 || nValue == 3)
+                {
+                    g_pMotor = g_pShm_SysConfig->motor + iMotor;
+                    
+                    CRT_strcpy(Reply_SysInfo.motor[iMotor].szName,
+                               MOTOR_NAME_LEN, g_pMotor->szName);
+                    Reply_SysInfo.motor[iMotor].nMotorType = g_pMotor->nMotorType;
+                    Reply_SysInfo.motor[iMotor].nMotorIndex = g_pMotor->nMotorIndex;
+
+                    Reply_SysInfo.motor[iMotor].jrk = g_pMotor->jrk;
+
+                    Reply_SysInfo.motor[iMotor].acc = g_pMotor->acc;
+                    Reply_SysInfo.motor[iMotor].dec = g_pMotor->dec;
+
+                    Reply_SysInfo.motor[iMotor].dec_error = g_pMotor->dec_error;
+                    Reply_SysInfo.motor[iMotor].dec_estop = g_pMotor->dec_estop;
+
+                    Reply_SysInfo.motor[iMotor].vellim_max = g_pMotor->vellim_max;
+                    Reply_SysInfo.motor[iMotor].nEncRes = g_pMotor->nEncRes;
+                }
+            }
+
+            g_pAxis++;
+            nAxisIndex++;
+        }
+#if 0       // ref for var. definition
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->jrk,
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->acc,
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->dec,
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->dec_error,
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->dec_estop,
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->vellim_max,
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->nEncRes);
+
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].ori[iMotor],
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].red[iMotor],
+        g_pShm_SysConfig->robot[iRobot].axis[iAxis].dir[iMotor]);
+#endif
+        // DH Parameter
+        for (iAxis = 0; iAxis < ROB_AXIS_COUNT; iAxis++)
+        {
+            // svc value: 0 or 1
+            if(nValue == 0 || nValue == 1)
+            {
+                Reply_SysInfo.robot[iRobot].dh[iAxis].l  = g_pRobot->dh[iAxis].l;
+                Reply_SysInfo.robot[iRobot].dh[iAxis].al = g_pRobot->dh[iAxis].al;
+                Reply_SysInfo.robot[iRobot].dh[iAxis].d  = g_pRobot->dh[iAxis].d;
+                Reply_SysInfo.robot[iRobot].dh[iAxis].th = g_pRobot->dh[iAxis].th;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ShowSystemInfoDisplay()
+//      - Service Name: RMGR_SERV_SYSINFO
+
+static int _loc_SVC_ShowSystemInfoDisplay(int nValue)
+{
+    static int iRobot, iAxis, iMotor, iCoordIdx;
+
+    // Print Global Config
+    VERBOSE_NOTIFY("\n<- System Infomation ->\n"
+                   "<Control Parameter>\n"
+                   "Servo Scan Time : %d ms\t"
+                   "Io Scan Time    : %d ms\n"
+                   "Traj Scan Time  : %d ms\t"
+                   "Traj Buffer Used: %d cnt\n", 
+                   g_pShm_SysConfig->ctrl.nServoScanTime,
+                   g_pShm_SysConfig->ctrl.nIoScanTime,
+                   g_pShm_SysConfig->ctrl.nTrajScanTime,
+                   g_pShm_SysConfig->ctrl.nTrajBufferUsed);
+
+    VERBOSE_NOTIFY("\v<EtherCAT Parameter>\n"
+                   "Slave Count : %d cnt\t"
+                   "Write Offset Size: 0x%x \n"
+                   "Read Offset Size: 0x%x \t"
+                   "ECAT Conf File  : %s\n", 
+                   g_pShm_SysConfig->ecat.nSlaveCount,
+                   g_pShm_SysConfig->ecat.nWriteOffsetSize,
+                   g_pShm_SysConfig->ecat.nReadOffsetSize,
+                   g_pShm_SysConfig->ecat.szPathName);
+
+    // Print Robot Config
+    for (iRobot = 0; iRobot < MAX_ROBOT_COUNT; iRobot++)
+    {
+        if(g_pShm_SysConfig->robot[iRobot].fUsed == TRUE)
+        {
+            // svc value: 0 or 1
+            if(nValue == 0 || nValue == 1)
+            {
+                VERBOSE_NOTIFY("\v\n<Robot %d Parameter: Total %d Robot Available>\n"
+                               "Robot Name: %s\t",
+                               iRobot, MAX_ROBOT_COUNT,
+                               g_pShm_SysConfig->robot[iRobot].szRobotName);
+
+                if(g_pShm_SysConfig->robot[iRobot].nRobotType == ROBTYPE_DR6 ||
+                   g_pShm_SysConfig->robot[iRobot].nRobotType == ROBTYPE_10KG)
+                    VERBOSE_NOTIFY("\vRobot Type: Vertical 5Bar Link\n");
+                else if(g_pShm_SysConfig->robot[iRobot].nRobotType == ROBTYPE_DANDY_II ||
+                        g_pShm_SysConfig->robot[iRobot].nRobotType == ROBTYPE_DANDY)
+                    VERBOSE_NOTIFY("\vRobot Type: Vertical 4Bar Link\n");
+                else if(g_pShm_SysConfig->robot[iRobot].nRobotType == ROBTYPE_RECTANGULAR)
+                    VERBOSE_NOTIFY("\vRobot Type: Cartesian\n");
+                
+                // Motion Parameters
+                VERBOSE_NOTIFY("\vRobot Max Joint Spd[rad/ms]: ");
+                for (iAxis = 0; iAxis < g_rgnRobotAxisCount[iRobot]; iAxis++)
+                {
+                    VERBOSE_NOTIFY("\v%.2lf  ",
+                                   g_pShm_SysConfig->robot[iRobot].dbMaxJointSpeed[iAxis]);
+                }
+                VERBOSE_NOTIFY("\v\n");
+
+                VERBOSE_NOTIFY("\vRobot Max Linear Spd: %.2lf mm/ms\t"
+                               "Robot Max Orient Spd: %.2lf rad/ms\n",
+                               g_pShm_SysConfig->robot[iRobot].dbMaxLinearSpeed,
+                               g_pShm_SysConfig->robot[iRobot].dbMaxOrientSpeed);
+
+                VERBOSE_NOTIFY("\vJerk: %.2lf %%\t"
+                               "Accel: %.2lf ms\t"
+                               "Decel: %.2lf ms\n"
+                               "Robot Error Decel: %.2lf ms\t\t"
+                               "Robot Estop Decel: %.2lf ms\n"
+                               "Robot Touch Decel: %.2lf ms\t\t"
+                               "Robot Axis Count: %d cnt\n",
+                               g_pShm_SysConfig->robot[iRobot].dbJerk,
+                               g_pShm_SysConfig->robot[iRobot].dbAccel,
+                               g_pShm_SysConfig->robot[iRobot].dbDecel,
+                               g_pShm_SysConfig->robot[iRobot].dbDecel_Error,
+                               g_pShm_SysConfig->robot[iRobot].dbDecel_Estop,
+                               g_pShm_SysConfig->robot[iRobot].dbDecel_Touch,
+                               g_pShm_SysConfig->robot[iRobot].nAxesCount);
+                
+                // DH Parameters
+               VERBOSE_NOTIFY("\vLink_th: %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                               g_pShm_SysConfig->robot[iRobot].dh[0].th,
+                               g_pShm_SysConfig->robot[iRobot].dh[1].th,
+                               g_pShm_SysConfig->robot[iRobot].dh[2].th,
+                               g_pShm_SysConfig->robot[iRobot].dh[3].th,
+                               g_pShm_SysConfig->robot[iRobot].dh[4].th,
+                               g_pShm_SysConfig->robot[iRobot].dh[5].th);
+               VERBOSE_NOTIFY("\vLink_d : %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                               g_pShm_SysConfig->robot[iRobot].dh[0].d,
+                               g_pShm_SysConfig->robot[iRobot].dh[1].d,
+                               g_pShm_SysConfig->robot[iRobot].dh[2].d,
+                               g_pShm_SysConfig->robot[iRobot].dh[3].d,
+                               g_pShm_SysConfig->robot[iRobot].dh[4].d,
+                               g_pShm_SysConfig->robot[iRobot].dh[5].d);
+               VERBOSE_NOTIFY("\vLink_al: %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                               g_pShm_SysConfig->robot[iRobot].dh[0].al,
+                               g_pShm_SysConfig->robot[iRobot].dh[1].al,
+                               g_pShm_SysConfig->robot[iRobot].dh[2].al,
+                               g_pShm_SysConfig->robot[iRobot].dh[3].al,
+                               g_pShm_SysConfig->robot[iRobot].dh[4].al,
+                               g_pShm_SysConfig->robot[iRobot].dh[5].al);
+               VERBOSE_NOTIFY("\vLink_l : %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                               g_pShm_SysConfig->robot[iRobot].dh[0].l,
+                               g_pShm_SysConfig->robot[iRobot].dh[1].l,
+                               g_pShm_SysConfig->robot[iRobot].dh[2].l,
+                               g_pShm_SysConfig->robot[iRobot].dh[3].l,
+                               g_pShm_SysConfig->robot[iRobot].dh[4].l,
+                               g_pShm_SysConfig->robot[iRobot].dh[5].l);
+               
+               // Coordinate Parameters
+               VERBOSE_NOTIFY("\vTCP : %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                               g_pShm_SysConfig->robot[iRobot].coordTool.x,
+                               g_pShm_SysConfig->robot[iRobot].coordTool.y,
+                               g_pShm_SysConfig->robot[iRobot].coordTool.z,
+                               g_pShm_SysConfig->robot[iRobot].coordTool.rol,
+                               g_pShm_SysConfig->robot[iRobot].coordTool.pit,
+                               g_pShm_SysConfig->robot[iRobot].coordTool.yaw);
+               VERBOSE_NOTIFY("\vWorld: %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                               g_pShm_SysConfig->robot[iRobot].world.x,
+                               g_pShm_SysConfig->robot[iRobot].world.y,
+                               g_pShm_SysConfig->robot[iRobot].world.z,
+                               g_pShm_SysConfig->robot[iRobot].world.rol,
+                               g_pShm_SysConfig->robot[iRobot].world.pit,
+                               g_pShm_SysConfig->robot[iRobot].world.yaw);
+            }
+
+            if(nValue == 4)
+            {
+                for(iCoordIdx = 0; iCoordIdx < MAX_USER_COORD_COUNT; iCoordIdx++)
+                {
+                    VERBOSE_NOTIFY("\vUser[%d]: %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                                   iCoordIdx,
+                                   g_pShm_SysConfig->robot[iRobot].user[iCoordIdx].x,
+                                   g_pShm_SysConfig->robot[iRobot].user[iCoordIdx].y,
+                                   g_pShm_SysConfig->robot[iRobot].user[iCoordIdx].z,
+                                   g_pShm_SysConfig->robot[iRobot].user[iCoordIdx].rol,
+                                   g_pShm_SysConfig->robot[iRobot].user[iCoordIdx].pit,
+                                   g_pShm_SysConfig->robot[iRobot].user[iCoordIdx].yaw);
+                }
+            }
+
+            if(nValue == 5)
+            {
+                for(iCoordIdx = 0; iCoordIdx < MAX_HOME_COUNT; iCoordIdx++)
+                {
+                    VERBOSE_NOTIFY("\vUser[%d]: %.2lf, %.2lf, %.2lf, %.2lf, %.2lf, %.2lf\n",
+                                   iCoordIdx,
+                                   g_pShm_SysConfig->robot[iRobot].rgdbHomePosVal[iCoordIdx][0],
+                                   g_pShm_SysConfig->robot[iRobot].rgdbHomePosVal[iCoordIdx][1],
+                                   g_pShm_SysConfig->robot[iRobot].rgdbHomePosVal[iCoordIdx][2],
+                                   g_pShm_SysConfig->robot[iRobot].rgdbHomePosVal[iCoordIdx][3],
+                                   g_pShm_SysConfig->robot[iRobot].rgdbHomePosVal[iCoordIdx][4],
+                                   g_pShm_SysConfig->robot[iRobot].rgdbHomePosVal[iCoordIdx][5]);
+                }
+            }
+
+            // Print Axis Config
+            for (iAxis = 0; iAxis < g_rgnRobotAxisCount[iRobot]; iAxis++)
+            {
+                // svc value: 0 or 2
+                if(nValue == 0 || nValue == 2)
+                {
+                    VERBOSE_NOTIFY("\v\n   <Axis %d Parameter>\n"
+                                   "   Axis Name: %s\t",
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].nAxisIndex,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].szName);
+
+                    if(g_pShm_SysConfig->robot[iRobot].axis[iAxis].nAxisType == AXISTYPE_REVOLUTE)
+                        VERBOSE_NOTIFY("\vAxis Type: Revolute\n");
+                    else if(g_pShm_SysConfig->robot[iRobot].axis[iAxis].nAxisType == AXISTYPE_PRISMATIC)
+                        VERBOSE_NOTIFY("\vAxis Type: Prismatic\n");
+                    else if(g_pShm_SysConfig->robot[iRobot].axis[iAxis].nAxisType == AXISTYPE_NONE)
+                        VERBOSE_NOTIFY("\vAxis Type: None\n");
+                    else
+                        VERBOSE_NOTIFY("\vAxis Type: Error\n");
+
+                    VERBOSE_NOTIFY("\v   SW Limit-> +: %d(Pos: %.1lf), -: %d(neg: %.1lf)\n"
+                                     "   HW Limit-> +: %d(Pos: %.1lf), -: %d(neg: %.1lf)\n"
+                                     "   Motor Count: %d cnt\n",
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].fSwLim_max,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].pos_swlim_max,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].fSwLim_min,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].pos_swlim_min,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].fHwLim_max,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].pos_hwlim_max,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].fHwLim_min,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].pos_hwlim_min,
+                                   g_pShm_SysConfig->robot[iRobot].axis[iAxis].nMotorCount);
+                }
+                // Print Motor Config
+                //for (iMotor = iAxis; iMotor < (iAxis+g_nMotorCount[iAxis]); iMotor++)
+                for (iMotor = 0; iMotor < g_nMotorCount[iAxis]; iMotor++)
+                {
+                    // svc value: 0 or 3
+                    if(nValue == 0 || nValue == 3)
+                    {
+                        if(nValue == 3)
+                             VERBOSE_NOTIFY("\v\n");
+                        VERBOSE_NOTIFY("\v      <Motor %d Parameter>\n"
+                                       "      Motor Name: %s\t",
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->nMotorIndex,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->szName);
+
+                        if(g_pShm_SysConfig->motor[iMotor].nMotorType == MOTTYPE_SIGMA_V)
+                            VERBOSE_NOTIFY("\v      Motor Type: Sigma-V(Yaskawa)\n");
+                        else if(g_pShm_SysConfig->motor[iMotor].nMotorType == MOTTYPE_MINAS)
+                            VERBOSE_NOTIFY("\v      Motor Type: Minas(Panasonic)\n");
+
+                        VERBOSE_NOTIFY("\v      Jerk: %.2lf %%\t"
+                                       "Accel: %.2lf ms\t"
+                                       "Decel: %.2lf ms\n"
+                                       "      Motor Error Decel: %.2lf ms\t\t"
+                                       "Motor Estop Decel: %.2lf ms\n"
+                                       "      Motor Velocity Max: %.2lf ms\t\t"
+                                       "Motor Encoder Resolution: %d\n",
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->jrk,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->acc,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->dec,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->dec_error,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->dec_estop,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->vellim_max,
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].motor[iMotor]->nEncRes);
+                        VERBOSE_NOTIFY("\v      Encoder Origin Value: %d p\t\t"
+                                       "Gear Reduction Ratio: %.2lf\n"
+                                       "      Direction: %d\n",
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].ori[iMotor],
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].red[iMotor],
+                                       g_pShm_SysConfig->robot[iRobot].axis[iAxis].dir[iMotor]);
+                    }
+                }
+            }
+        }
+    }
+    
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_SendVersionInform()
+//      - Service Name: RMGR_SERV_SYSVERSION
+
+static int _loc_SVC_SendVersionInform(void)
+{
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RMGR_VER_REPLY_DATA);
+    CRT_strcpy(RM_reply_packet.Data.reply_ver.rgchRM_vers,
+               RMGR_VERSION_DATA_LEN,
+               SYS_RM_VERSION);
+    CRT_strcpy(RM_reply_packet.Data.reply_ver.rgchRM_build,
+               RMGR_BUILD_DATA_LEN,
+               SYS_RM_BUILD);
+
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_LoadJobData()
+//      - Service Name: RSVC_SERV_JOBLOAD
+
+static int _loc_SVC_LoadJobData(void)
+{
+    static int nRet;
+    const char* pszCompileOpt;
+
+    // Check Compile Option
+    if(RM_packet.nValue & JOBASM_AF_NONE)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_NONE);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_ONEPASS)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_ONEPASS);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_CHECK_ONLY)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_CHECK_ONLY);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_STRICT)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_STRICT);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+    if(RM_packet.nValue & JOBASM_AF_DANDY1996)
+    {
+        pszCompileOpt = DANDY_DEFINE_NAME_STR(JOBASM_AF_DANDY1996);
+        VERBOSE_MESSAGE("Compile Option: %s\n", pszCompileOpt);
+    }
+
+    g_nAssembleOpt = RM_packet.nValue;
+
+    memcpy(Job_msg_data.szJobFileName,
+           RM_packet.Data.job_load.szJobFileName,
+           sizeof(Job_msg_data.szJobFileName));
+
+    VERBOSE_MESSAGE("Received Job Name: %s\n", Job_msg_data.szJobFileName);
+
+    // disassemble old job data & delete old job file
+    if(g_fAseembleDone == TRUE)
+    {
+        nRet = JOB_DoJobDisassemble();
+
+        if(nRet == RESULT_OK)
+            SVC_DefineErrorState(OFF, SVC_ERR_JOB_COMPILE);
+    }
+
+    // Compile Job data & Load Job shared memory
+    nRet = JOB_DoJobAssemble();
+
+    // Define Reply Message
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RMGR_JOB_LOAD_DATA);
+#if 0
+    if(nRet == RESULT_OK)
+    {
+        Job_msg_data.bCompileDoneCheck = TRUE;
+        RM_reply_packet.Data.job_load.bCompileDoneCheck = TRUE;
+    }
+    else if(nRet == RESULT_ERROR)
+    {
+        Job_msg_data.bCompileDoneCheck = RESULT_ERROR;
+        RM_reply_packet.Data.job_load.bCompileDoneCheck = RESULT_ERROR;
+    }
+#endif
+    return nRet;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExecuteJobProg()
+//      - Service Name: RSVC_SERV_JOBEXECUTE
+
+static int _loc_SVC_ExecuteJobProg(void)
+{
+    int nRet;
+
+    nRet = MSG_SendPulse(g_coidTE, TESERV_PROG_THRU, 0);
+	VERBOSE_VERBOSE("Request Job Prog Execute!\n"); 
+
+    g_pShm_SysStatus->nSystemMode = MODE_STAT_DRYRUN;
+    g_nSystemMode = MODE_STAT_DRYRUN;
+    g_pShm_SysStatus->nWorkType = WORK_TYPE_JOB;
+
+    return (nRet == RESULT_ERROR) ?
+        RESULT_ERROR : RESULT_OK;
+}
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExecuteJobProg()
+//      - Service Name: RSVC_SERV_SYSMON_TO_TP
+
+static int _loc_SVC_SystemMonDataSendToTP(void)
+{
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_ExecuteJobProg()
+//      - Service Name: RSVC_SERV_JOBLINE_DSP
+
+static int _loc_SVC_JobProgLineDisplay(int nDisplayLineIndex)
+{
+//    int nRet;
+//    SHM_DANDY_JOB* pJob;
+    SHM_DANDY_JOB* pShmem = g_pShmemJobRM;
+    DANDY_JOB_CMD* pCmdStart;
+    DANDY_JOB_CMD cmd;
+    //DANDY_JOB_MEM mem;
+    int nCmdCount;
+    int i;
+
+    if(g_pShmemTE != NULL)
+    {
+        RM_reply_packet.Data.sys_mon.nJobRunIndex = g_pShmemTE->run_prog_idx;
+    }
+    else
+    {
+        RM_reply_packet.Data.sys_mon.nJobRunIndex = -1;
+    }
+    
+    pCmdStart = GET_SHM_JOB_CMD_BUFFER(pShmem);
+    //JOBASM_ReferJobMem(hAssembler, &job);
+    //pShmem->
+    nCmdCount = pShmem->dwCmdLoadCount;
+    cmd = pCmdStart[0];
+    
+    for(i = 0; i < nCmdCount; i++)
+    {
+        cmd = pCmdStart[i];
+        
+        VERBOSE_VERBOSE("Cmd[%d]: LineIdx: %d, LineID: %d, Code: %d\n", i,
+                        cmd.nLineIndex, cmd.nLineId, cmd.nCode);
+        VERBOSE_VERBOSE("Cmd[%d]: Byte: %s, Int: %d\n", i,
+                        cmd.arg.argByteArray, &cmd.arg.argIntArray);
+    }
+
+    //RM_reply_packet.Data.job_dsp.nDisplayLineIndex
+
+
+//    return (nRet == RESULT_ERROR) ?
+//        RESULT_ERROR : RESULT_OK;
+    return 0;
+}
+
+
+///////////////////////////////////////
+//
+//  Function: _loc_SVC_DumpJobShmData()
+//      - Service Name: RSVC_SERV_JOBSHMDUMP
+
+static int _loc_SVC_DumpJobShmData(void)
+{
+    static int nRet;
+
+    // Dump Job shared memory data
+    nRet = JOB_DumpJobShmem();
+
+    // Define Reply Message
+    RM_reply_packet.nCode = RM_packet.nCode;
+    RM_reply_packet.nValue = RM_packet.nValue;
+    RM_reply_packet.nDataSize = sizeof(RMGR_JOB_LOAD_DATA);
+#if 0
+    if(nRet == RESULT_OK)
+    {
+        RM_reply_packet.Data.job_load.bDumpDoneCheck = TRUE;
+    }
+    else if(nRet == RESULT_ERROR)
+    {
+        RM_reply_packet.Data.job_load.bDumpDoneCheck = RESULT_ERROR;
+    }
+#endif
+    return nRet;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Thread Routine: _loc_SVC_ExternSVCExecThread()
+//
+
+static THREAD_ENTRY_TYPE _loc_SVC_ExternSVCExecThread(void* pParam)
+{
+    static int rgRcvid;
+    static int nDataSize;
+    static int nRet;
+    void* pReplyData;
+    
+    CRT_strcpy(g_szServContent, SERV_NAME_LEN, " No Service Request    ");
+
+    while(g_fSVCExecThRun == RUN && g_fConsoleExitAct == FALSE)
+	{
+        rgRcvid = MSG_Receive(g_chidRM,
+                              &RM_packet,
+                              sizeof(RM_packet),
+                              &info_msg);
+
+        if(g_fSVCExecThRun == STOP || g_fConsoleExitAct == TRUE)
+        {
+            break;
+        }
+
+        VERBOSE_VERBOSE("Received service(code: %d, value: %d)"
+                        "from pid: %d.\n",
+                        RM_packet.nCode,
+                        RM_packet.nValue,
+                        info_msg.pid);
+
+        nDataSize = 0;
+        pReplyData = NULL;
+
+        switch(RM_packet.nCode)
+        {
+        case RMGR_SERV_SYSEXIT:             /////// svc code : 0
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_SYSEXIT      ");
+			if(RM_packet.nValue == 0)       // svc value: 0
+            {
+                g_fServiceStatus = STOP;
+                g_fSVCExecThRun = STOP;
+
+			    VERBOSE_VERBOSE("RM Service Quit\n"); 
+                SVC_ExitSCService();
+                SVC_ExitTEService();
+            }
+            else if(RM_packet.nValue == 1)  // svc value: 1
+            {
+                SVC_ExitTEService();
+            }
+            else if(RM_packet.nValue == 2)  // svc value: 2
+            {
+                SVC_ExitSCService();
+            }
+            //VERBOSE_MESSAGE("Exit Request Done!\n");
+            break;
+
+        case RMGR_SERV_SYSVERSION:          /////// svc code : 1
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_SYSVERSION   ");
+            _loc_SVC_SendVersionInform();
+            break;
+
+        case RMGR_SERV_SYSINIT:             /////// svc code : 2
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_SYSINIT      ");
+            if(RM_packet.nValue == 0)       // svc value: 0
+            {
+                if(g_retInitRM == -1)
+                {
+                    SVC_RetryInitProcessRM();
+                }
+                else
+                {
+                    VERBOSE_WARNING("RM already INIT state!\n");
+                }
+                SVC_InitTEService();
+                SVC_InitSCService();
+            }
+            else if(RM_packet.nValue == 1)  // svc value: 1
+            {
+                SVC_InitTEService();
+            }
+            else if(RM_packet.nValue == 2)  // svc value: 2
+            {
+                SVC_InitSCService();
+            }
+
+            SHM_OpenSharedMemory();
+
+            if(g_pShm_SysStatus->fInitProcTE == TRUE)
+            {
+                g_pShm_SysStatus->fExitProcTE = FALSE;
+            }
+
+            if(g_pShm_SysStatus->fInitProcSC == TRUE)
+            {
+                g_pShm_SysStatus->fExitProcSC = FALSE;
+            }
+
+            break;
+        
+        case RMGR_SERV_SYSSTATE:            /////// svc code : 3
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_SYSSTATE     ");
+            _loc_SVC_SetSystemStatePacketDefine();
+            _loc_SVC_ShowSystemStateDisplay();
+            break;
+
+        case RMGR_SERV_SYSINFO:             /////// svc code : 4
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_SYSINFO      ");
+            _loc_SVC_ShowSystemInfoDisplay(RM_packet.nValue);
+            _loc_SVC_SetSystemInfoPacketDefine(RM_packet.nValue);
+            break;
+
+        case RMGR_SERV_TIMERTEST:           /////// svc code : 5
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_TIMERTEST    ");
+            _loc_SVC_TimerTest();
+            break;
+
+        case RMGR_SERV_CONFRELOAD:          /////// svc code : 6
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RMGR_SERV_CONFRELOAD   ");
+            nRet = SYSC_LoadSystemConfigParameter();
+            if(nRet == 0)
+            {
+                nRet = SYSC_LoadConfigToShmem(g_pShm_SysConfig);
+                if(nRet == 0)
+                {
+                    _loc_SVC_ShowSystemInfoDisplay(RM_packet.nValue);
+                    DANDY_SLEEP(100);
+                    SVC_InitTEService();
+                    SVC_InitSCService();
+                }
+                else if(nRet == -1)
+                    VERBOSE_ERROR("System Config Shared Memory Reload Fail!!\n");
+            }
+            else if(nRet == -1)
+            {
+                VERBOSE_ERROR("System Config Parameter Reload Fail!!\n");
+            }
+            break;
+
+        case RSVC_SERV_JOBLOAD:             /////// svc code : 10
+        case RSVC_SERV_GENMAPFILE:
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RSVC_SERV_JOBLOAD      ");
+            nRet = _loc_SVC_LoadJobData();
+            break;
+
+        case RSVC_SERV_JOBSHMDUMP:          /////// svc code : 12
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RSVC_SERV_JOBSHMDUMP   ");
+            nRet = _loc_SVC_DumpJobShmData();
+            break;
+
+        case RSVC_SERV_JOBEXECUTE:          /////// svc code : 13
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RSVC_SERV_JOBEXECUTE   ");
+            nRet = _loc_SVC_ExecuteJobProg();
+            break;
+
+        case RSVC_SERV_JOBEXESTOP:          /////// svc code : 14
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RSVC_SERV_JOBEXESTOP   ");
+            nRet = _loc_SVC_RCON_Stop();
+            break;
+
+        case RSVC_SERV_JOBLINE_DSP:         /////// svc code : 15
+            nRet = _loc_SVC_JobProgLineDisplay(RM_packet.nValue);
+            break;
+
+        case RSVC_SERV_SYSMON_TO_TP:        /////// svc code : 16
+            nRet = _loc_SVC_SystemMonDataSendToTP();
+            break;
+
+        case RCON_SERV_ERROR_RESET:         /////// svc code : 20
+            CRT_strcpy(g_szServContent, SERV_NAME_LEN, "RCON_SERV_ERROR_RESET  ");
+            _loc_SVC_RCON_Error_Reset();
+            break;
+
+        default:
+            VERBOSE_WARNING("Not defined service code : code=<%d>\n", 
+                            RM_packet.nCode);
+        }
+
+        nDataSize = RMGR_REPLY_PACKET_LEN;
+        pReplyData = &RM_reply_packet;
+
+        // message reply
+        if (rgRcvid == 0)       // pulse
+        {
+            ;
+        }
+        else if (rgRcvid > 0)   // massage
+        {
+            MSG_Reply(rgRcvid, 0, pReplyData, nDataSize);
+        }
+        else
+        {
+            VERBOSE_ERROR("Failed to receive data...\n");
+        }
+
+        DANDY_SLEEP(1);
+    }
+
+    g_fSVCExecThExit = TRUE;
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: _loc_SVC_ShowKeyMenu()
+//
+
+static int _loc_SVC_ShowKeyMenu(void)
+{
+    VERBOSE_VERBOSE("<- Key-in Usage: Ctrl+HotKey ->\n"); 
+    VERBOSE_VERBOSE("\v  'Q': RM Exit\t 'L': Show Menu\t "
+                    "'A': Sys State\t 'W': Sys Info\n"); 
+    VERBOSE_VERBOSE("\v  'E': TE INIT\t 'D': TE Exit\t "
+                    "'R': SC INIT\t 'F': SC Exit\n"); 
+    VERBOSE_VERBOSE("\v  'T': TimerRun\t 'P': Err Reset\t "
+                    "'G': ConfReload\t \n\n");
+
+    return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+//  Function: SVC_ExecService(BOOL fKeyIn)
+//
+
+int SVC_ExecService(BOOL fKeyIn)
+{
+    int nKeyInput;
+    int nRet;
+
+    g_fServiceStatus = RUN;
+    nKeyInput = -1;
+
+    //  launch external service check thread
+    hSVCCheck_Thread = THREAD_Create(_loc_SVC_ExternSVCExecThread,
+                                    NULL,
+                                    0,                 // auto stack size
+                                    THREAD_PRIO_NORMAL,// normal priority
+                                    THREAD_DETACHED,   // detach thread
+                                    THREAD_POLICY_RR); // round-robin
+
+    if (hSVCCheck_Thread == INVALID_THREAD)
+    {
+        VERBOSE_ERROR("cannot create service execution for external request "
+                      "thread...\n");
+
+        exit(1);
+    }
+    else
+    {
+        // Set System Mode: MANUAL state
+        g_nSystemMode = MODE_STAT_MANUAL;
+        g_pShm_SysStatus->nSystemMode = MODE_STAT_MANUAL;
+    }
+
+    VERBOSE_MESSAGE("Ready to start Service Request Receive!!\n");
+
+    if(fKeyIn == TRUE)
+    {
+        _loc_SVC_ShowKeyMenu();
+
+        // Key Input Process
+	    while(g_fServiceStatus == RUN && g_fConsoleExitAct == FALSE)
+	    {
+            if(g_fSVCExecThRun == STOP || g_fConsoleExitAct == TRUE)
+            {
+                break;
+            }
+            if(CIO_kbhit() && g_fConsoleExitAct == FALSE)
+            {
+	    	    nKeyInput = CIO_getch();
+            }
+
+            switch(nKeyInput)
+	    	{
+            case ASCII_CTRL_Q:
+                g_fServiceStatus = STOP;
+                MSG_SendPulse(g_coidRM, RMGR_SERV_SYSEXIT, 0);
+
+                VERBOSE_VERBOSE("RM Service Quit by key\n"); 
+                break; 
+
+            case ASCII_CTRL_D:
+                SVC_ExitTEService();
+                break; 
+
+            case ASCII_CTRL_E:
+                SVC_InitTEService();
+	    	    break; 
+
+            case ASCII_CTRL_F:
+	    		SVC_ExitSCService();
+	    	    break; 
+
+            case ASCII_CTRL_R:
+                SVC_InitSCService();
+                break; 
+
+            case ASCII_CTRL_V:
+                VERBOSE_VERBOSE("Version Information: %s - %s\n",
+                                                                SYS_RM_VERSION,
+                                                                SYS_RM_BUILD);
+                break;
+
+            case ASCII_CTRL_T:
+                _loc_SVC_TimerTest();
+                break;
+
+            case ASCII_CTRL_A:
+                _loc_SVC_SetSystemStatePacketDefine();
+                _loc_SVC_ShowSystemStateDisplay();
+                break;
+
+            case ASCII_CTRL_W:
+                // Show All Data: argument is zero
+                _loc_SVC_ShowSystemInfoDisplay(0);
+                break;
+
+            case ASCII_CTRL_L:
+                _loc_SVC_ShowKeyMenu();
+                break;
+
+            case ASCII_CTRL_G:
+                nRet = SYSC_LoadSystemConfigParameter();
+                if(nRet == 0)
+                {
+                    nRet = SYSC_LoadConfigToShmem(g_pShm_SysConfig);
+
+                    if(nRet == 0)
+                    {
+                        _loc_SVC_ShowSystemInfoDisplay(RM_packet.nValue);
+                        DANDY_SLEEP(100);
+                        SVC_InitTEService();
+                        SVC_InitSCService();
+                    }
+                    else if(nRet == -1)
+                        VERBOSE_ERROR("System Config Shared Memory Reload Fail!!\n");
+                }
+                else if(nRet == -1)
+                {
+                    VERBOSE_ERROR("System Config Parameter Reload Fail!!\n");
+                }
+                break;
+
+            case ASCII_CTRL_P:
+                _loc_SVC_RCON_Error_Reset();
+                break;
+
+            case ASCII_CTRL_J:
+                //_loc_SVC_RCON_Jog();
+                break;
+
+            default:
+                if(nKeyInput != -1)
+                {
+	    		    VERBOSE_VERBOSE("Unsupported Service! Key(%d)\n",nKeyInput);
+                }
+	    	}
+          
+            DANDY_SLEEP(10);
+            nKeyInput = -1;
+	    }
+    }
+    else
+    {
+        while(g_fServiceStatus == RUN)
+	    {
+           DANDY_SLEEP(100);
+        }
+    }
+
+    while(g_fSVCExecThExit == FALSE)
+    {
+        DANDY_SLEEP(100);
+    }
+
+    return 0;
+}

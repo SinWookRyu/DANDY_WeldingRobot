@@ -1,0 +1,17 @@
+start	SWF volt=24, curr=240, time=1, preflow=2
+major	MWF volt=28, curr=300, speed=4
+final	EWF volt=26, cur=260, time=1, postflow=2
+
+T01  JOINT -15.26 13.44 13.27 16.28 35.54 -29.76 ; 945.44 0 410.36 180 -60 0	; BASIC POSE
+T02  JOINT 7.77 11.22 15.92 -3.85 32.78 6.89
+    ;T02	CART  945.44 0  500  180 -60 0 ; 
+
+HOME V=10 HF=0
+
+MOVJ T01 V=10 PL=0
+;
+TOUCH Z=-1 L=20 P=P01 V=10
+
+ARCON SWF=start MWF=major
+MOVL T02 V=20
+ARCOFF EWF=final

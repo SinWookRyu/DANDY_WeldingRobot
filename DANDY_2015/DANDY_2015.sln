@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "robotmgr_win", "..\robotmgr\robotmgr_win\robotmgr_win\robotmgr_win.vcxproj", "{48EF8181-9C30-4108-955D-789FCA42849A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "servocon_win", "..\servocon\servocon_win\servocon_win\servocon_win.vcxproj", "{FF8E881D-8561-4533-B413-987FC293D2B5}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "taskexec_win", "..\taskexec\taskexec_win\taskexec_win.vcxproj", "{EE276182-92DF-4509-AD0F-E772A9EDB0BC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DANDY_2015", "DANDY_2015\DANDY_2015.vcxproj", "{8A2BEE15-BA46-42A7-831A-9BAA3A35E457}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48EF8181-9C30-4108-955D-789FCA42849A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{48EF8181-9C30-4108-955D-789FCA42849A}.Debug|Win32.Build.0 = Debug|Win32
+		{48EF8181-9C30-4108-955D-789FCA42849A}.Release|Win32.ActiveCfg = Release|Win32
+		{48EF8181-9C30-4108-955D-789FCA42849A}.Release|Win32.Build.0 = Release|Win32
+		{FF8E881D-8561-4533-B413-987FC293D2B5}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FF8E881D-8561-4533-B413-987FC293D2B5}.Debug|Win32.Build.0 = Debug|Win32
+		{FF8E881D-8561-4533-B413-987FC293D2B5}.Release|Win32.ActiveCfg = Release|Win32
+		{FF8E881D-8561-4533-B413-987FC293D2B5}.Release|Win32.Build.0 = Release|Win32
+		{EE276182-92DF-4509-AD0F-E772A9EDB0BC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EE276182-92DF-4509-AD0F-E772A9EDB0BC}.Debug|Win32.Build.0 = Debug|Win32
+		{EE276182-92DF-4509-AD0F-E772A9EDB0BC}.Release|Win32.ActiveCfg = Release|Win32
+		{EE276182-92DF-4509-AD0F-E772A9EDB0BC}.Release|Win32.Build.0 = Release|Win32
+		{8A2BEE15-BA46-42A7-831A-9BAA3A35E457}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8A2BEE15-BA46-42A7-831A-9BAA3A35E457}.Debug|Win32.Build.0 = Debug|Win32
+		{8A2BEE15-BA46-42A7-831A-9BAA3A35E457}.Release|Win32.ActiveCfg = Release|Win32
+		{8A2BEE15-BA46-42A7-831A-9BAA3A35E457}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

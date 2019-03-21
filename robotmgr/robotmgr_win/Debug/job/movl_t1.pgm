@@ -1,0 +1,11 @@
+;
+; teaching points
+T01 	JOINT	0  0  0  0  0  0
+T02 	CART	670  500 740 180 -60 0
+T03 	CART	670  500 140 180 -60 0
+T04 	CART	670 -300 140 180 -60 0
+T05 	CART	670 -300 740 180 -60 0
+;
+; move to where..??
+MOVl   T01 V=50.0 PL=0
+;

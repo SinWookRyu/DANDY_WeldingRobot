@@ -1,0 +1,4 @@
+#Thu Aug 22 10:18:16 KST 2013
+__DEFAULT__=false
+org.eclipse.help.ui.localSearch.master=true
+expression=libmalloc.so.2

@@ -1,0 +1,125 @@
+#ifndef SERVOCON_H__
+#define SERVOCON_H__
+
+
+#include "dandy_platform.h"
+#include "ipc_servocon.h"
+#include "ipc_taskexec.h"
+#include "ecattypes.h"
+
+
+#define AXIS_COUNT     5
+#define SLAVE_COUNT    11
+
+
+// Master configuration
+#define ECAT_MASTER_ADAPTER_INDEX        1
+#define ECAT_LOAD_CONFIG_BUF_SIZE        1024
+#define ECAT_CONFIG_FILE_NAME            "/root/ethercat/master_config_io_5.xml"
+#define ECAT_MASTER_CYCLE_TIME_US        1000
+#define ECAT_MASTER_SUBCYCLE_TIME_US     5000
+#define ECAT_AUTORECOVERY_TIMEOUT_MS     100
+#define ECAT_MASTER_PRIORITY             60
+#define ECAT_ERROR_MESSAGE_BUFFER_SIZE   256
+
+
+// Servo Driver offset configuration (write/output)
+#define ECAT_PI_WRITE_OFFSET_SIZE          0x30  // size of output variable
+#define ECAT_PI_WRITE_OFFSET_CONTROL       0x28  // start address of control word
+#define ECAT_PI_WRITE_OFFSET_POSITION      0x38  // start address of target position
+
+// Servo Driver offset configuration (read/input)
+#define ECAT_PI_READ_OFFSET_SIZE           0x40  // size of input variable
+#define ECAT_PI_READ_OFFSET_STATUS         0x38  // start address of status word
+#define ECAT_PI_READ_OFFSET_POSITION       0x58  // start address of position actual value
+#define ECAT_PI_READ_OFFSET_ERROR          0x68  // start address of error code
+
+// IO offset configuration (write/output)
+#define ECAT_PI_WRITE_IO_OFFSET_SIZE          1
+#define ECAT_PI_WRITE_IO_OFFSET               0
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// ARGUMENT_OPTION
+//
+typedef struct
+{
+    BOOL        bVerbose;
+    BOOL        bQuit;
+    const char* pszConfigName;
+} ARGUMENT_OPTION;
+
+// read data of PDO
+typedef struct
+{
+	ECAT_WORD  wStatusWord[AXIS_COUNT];
+	int        nPosition[AXIS_COUNT];
+	ECAT_WORD  wErrorCode[AXIS_COUNT];
+	BOOL       fError[AXIS_COUNT];
+}SERVO_READ_DATA;
+
+
+extern volatile SHM_SC_SYSTEM* g_pShmem_sc;
+extern BOOL g_fConfigLoad;
+extern int g_nTime_Limit;
+extern char g_chPrintLev; 
+extern ECAT_HANDLE g_hMaster;
+extern unsigned short g_CtrlWord[AXIS_COUNT];   // control word for PDO writingAXIS_COUNT
+extern unsigned short g_StatusWord[AXIS_COUNT]; // status word of PDO
+extern int g_nAct_Pos[AXIS_COUNT];              // actual position of motor
+extern int g_nTrg_Pos[AXIS_COUNT];              // target position of motor
+extern int g_nErrCode[AXIS_COUNT];              // error code of motor
+extern int g_nError[AXIS_COUNT];                // check error of motor
+extern int g_nServo[AXIS_COUNT];
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// Functions
+//
+BOOL ParseArgument(int nArgc, char* rgpszArgv[]);
+int SC_ConnectChannel(const char* pName);
+int SC_CreateChannel(const char* pName);
+int SC_DestroyChannel(const char* pName, int chid);
+int SC_DetachConnection(const char* pName, int coid);
+int SC_ClearAlarm(void);
+int SC_ReleaseMaster(void);
+int SC_EStop(int nValue);
+int SC_Servo(int nValue);
+int SC_EcatDIO(int nIndex, BOOL bValue);
+int SC_GetNetworkState(void);
+int SC_GetPosition(void);
+int SC_GetAlarmCode(void);
+int SC_GetServoState(void);
+int SC_SetVersion(SC_MSG* pMsg);
+void SC_SetVerbose(void);
+
+//#if defined (__QNXNTO__)
+// EtherCAT Master
+int  ECAT_Init(void);
+void ECAT_ReleaseMaster(void);
+int  ECAT_ServoOn(int nAxis);
+int  ECAT_ServoOff(int nAxis);      
+int ECAT_AlarmClear(int nAxis);
+int  ECAT_Brake(ECAT_BOOL bBrake);
+int  ECAT_ReadPDO(void);
+int  ECAT_ReadPosition(int nAxis, int* pActPos);
+int  ECAT_ReadStatus(int nAxis, ECAT_WORD* pStatus);
+int  ECAT_GetAlarmCode(int nAxis, ECAT_WORD* pAlarm);
+//int  ECAT_SetPosition(void);
+int  ECAT_WritePosition(int nAxis, ECAT_WORD wPos);
+int  ECAT_WriteControlWord(int nAxis, ECAT_WORD wValue);
+//int  ECAT_WritePDO(void);
+int  ECAT_WritePDO(int nAxis);
+int  ECAT_WriteIO(int nDevice, ECAT_BOOL bValue);
+
+
+
+//int ECAT_WritePDO(unsigned short pCtrlword[], int nPos[]);
+
+//#endif
+
+#endif  // SERVOCON_H__
