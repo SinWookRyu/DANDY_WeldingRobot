@@ -9,8 +9,8 @@ Code can be executed under windows & QNX compatible
 
 The location of code is 'DANDY/robotmgr/robotmgr_src/', 'DANDY/servocon/servocon_src/ ', 'DANDY/taskexec/taskexec_src/'
 
-robotmgr: Robot Manager, scheduling the process sync, parameter management, network broker etc
+ - robotmgr: Robot Manager, scheduling the process sync, parameter management, network broker etc
 
-taskexec: motion control, kinematics, i/o control calculation etc
+ - taskexec: motion control, kinematics, i/o control calculation etc
 
-servocon: ethercat interface, control command generation etc
+ - servocon: ethercat interface, control command generation etc
