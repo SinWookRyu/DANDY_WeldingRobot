@@ -14,3 +14,7 @@ The location of code is 'DANDY/robotmgr/robotmgr_src/', 'DANDY/servocon/servocon
  - taskexec: motion control, kinematics, i/o control calculation etc
 
  - servocon: ethercat interface, control command generation etc
+
+6 Axis Articulated Robot Manipulator for welding
+
+![image](https://user-images.githubusercontent.com/46182372/146345025-00719fb4-cd8f-4368-b04b-cad1772b8dcf.png)
