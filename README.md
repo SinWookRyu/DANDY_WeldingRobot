@@ -10,14 +10,14 @@ Code can be executed under windows & QNX compatible
 The location of code is 'DANDY/robotmgr/robotmgr_src/', 'DANDY/servocon/servocon_src/ ', 'DANDY/taskexec/taskexec_src/'
 
  - robotmgr: Robot Manager, scheduling the process sync, parameter management, network broker etc
-             Developed by SinWookRyu
+             (Developed by SinWookRyu)
 
  - taskexec: motion control, kinematics, i/o control calculation etc
-             Developed by YoungSikCho
+             (Developed by YoungSikCho)
 
  - servocon: ethercat interface, control command generation etc
-             Developed by SinWookRyu
- * API Developed by JinChulHong
+             (Developed by SinWookRyu)
+ * (API Developed by JinChulHong)
 
 6 Axis Articulated Robot Manipulator for welding
 
